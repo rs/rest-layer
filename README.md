@@ -680,7 +680,8 @@ A data storage handler is easy to write though. Some handlers for popular databa
 ```go
 type ResourceHandler interface {
 	Find(lookup *rest.Lookup, page, perPage int) (*rest.ItemList, *rest.Error)
-	Store(item *rest.Item, original *rest.Item) *rest.Error
+	Insert(items []*Item) *Error
+	Update(item *Item, original *Item) *Error
 	Delete(item *rest.Item) *rest.Error
 	Clear(lookup *rest.Lookup) (int, *rest.Error)
 }

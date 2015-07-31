@@ -11,6 +11,8 @@ var (
 	// InvalidMethodError happends when the used HTTP method is not supported for this
 	// resource
 	InvalidMethodError = &Error{405, "Invalid method", nil}
+	// NotImplementedError happends when a requested feature is not implemented
+	NotImplementedError = &Error{501, "Not implemented", nil}
 )
 
 // Error defines a REST error

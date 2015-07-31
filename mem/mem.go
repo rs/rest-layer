@@ -23,21 +23,33 @@ func NewHandler() *MemoryHandler {
 	}
 }
 
-// Store stores an item in memory
-func (m *MemoryHandler) Store(item *rest.Item, original *rest.Item) *rest.Error {
+// Insert inserts new items in memory
+func (m *MemoryHandler) Insert(items []*rest.Item) *rest.Error {
 	m.Lock()
 	defer m.Unlock()
-	if original != nil {
-		o, found := m.items[original.ID]
-		if !found {
-			return rest.NotFoundError
-		}
-		if original.Etag != o.Etag {
+	for _, item := range items {
+		if _, found := m.items[item.ID]; found {
 			return rest.ConflictError
 		}
-	} else {
+	}
+	for _, item := range items {
 		// Store ids in ordered slice for sorting
 		m.ids = append(m.ids, item.ID)
+		m.items[item.ID] = item
+	}
+	return nil
+}
+
+// Update replace an item by a new one in memory
+func (m *MemoryHandler) Update(item *rest.Item, original *rest.Item) *rest.Error {
+	m.Lock()
+	defer m.Unlock()
+	o, found := m.items[original.ID]
+	if !found {
+		return rest.NotFoundError
+	}
+	if original.Etag != o.Etag {
+		return rest.ConflictError
 	}
 	m.items[item.ID] = item
 	return nil

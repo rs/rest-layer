@@ -83,7 +83,8 @@ func (r *requestHandler) handleListRequestPOST(lookup *Lookup, resource *Resourc
 		r.sendError(err)
 		return
 	}
-	if err := resource.handler.Store(item, nil); err != nil {
+	// TODO: add support for batch insert
+	if err := resource.handler.Insert([]*Item{item}); err != nil {
 		r.sendError(err)
 		return
 	}
@@ -202,7 +203,7 @@ func (r *requestHandler) handleItemRequestPUT(lookup *Lookup, resource *Resource
 	// we are still replacing the same version of the object as handler is
 	// supposed check the original etag before storing when an original object
 	// is provided.
-	if err := resource.handler.Store(item, original); err != nil {
+	if err := resource.handler.Update(item, original); err != nil {
 		r.sendError(err)
 	} else {
 		r.sendItem(status, item)
@@ -258,7 +259,7 @@ func (r *requestHandler) handleItemRequestPATCH(lookup *Lookup, resource *Resour
 	// handler to ensure the stored document didn't change between in the
 	// interval. An PreconditionFailedError will be thrown in case of race condition
 	// (i.e.: another thread modified the document between the Find() and the Store())
-	if err := resource.handler.Store(item, original); err != nil {
+	if err := resource.handler.Update(item, original); err != nil {
 		r.sendError(err)
 	} else {
 		r.sendItem(200, item)

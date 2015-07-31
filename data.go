@@ -9,16 +9,22 @@ type ResourceHandler interface {
 	// If the total number of item can't be easily computed, ItemList.Total should
 	// be set to -1. The requested page should be set to ItemList.Page.
 	Find(lookup *Lookup, page, perPage int) (*ItemList, *Error)
-	// Store stores an item to the backend store. If the original item is provided, the
-	// ResourceHandler must ensure that the item exists in the database and has the same
-	// Etag field. This check should be performed atomically. If the original item is not
+	// Insert stores new items in the backend store. If any of the items does already exist,
+	// no item should be inserted and a rest.ConflictError must be returned. The insertion
+	// of the items must be performed atomically. If more than one item is provided and the
+	// backend store doesn't support atomical insertion of several items, a
+	// rest.NotImplementedError must be returned.
+	Insert(items []*Item) *Error
+	// Update replace an item in the backend store by a new version. The ResourceHandler must
+	// ensure that the original item exists in the database and has the same Etag field.
+	// This check should be performed atomically. If the original item is not
 	// found, a rest.NotFoundError must be returned. If the etags don't match, a
 	// rest.ConflictError must be returned.
 	//
-	// The item payload must be stored together with the etag and the updated field using.
+	// The item payload must be stored together with the etag and the updated field.
 	// The item.ID and the payload["id"] is garantied to be identical, so there's not need
 	// to store both.
-	Store(item *Item, original *Item) *Error
+	Update(item *Item, original *Item) *Error
 	// Delete deletes the provided item by its ID. The Etag of the item stored in the
 	// backend store must match the Etag of the provided item or a rest.ConflictError
 	// must be returned. This check should be performed atomically.
