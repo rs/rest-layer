@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 
@@ -22,37 +23,6 @@ type subResource struct {
 	resource *Resource
 }
 
-// ResourceHandler defines the interface of an handler able to manage the life of a resource
-type ResourceHandler interface {
-	// Find searches for items in the backend store matching the lookup argument. The
-	// pagination argument must be respected. If no items are found, an empty list
-	// should be returned with no error.
-	//
-	// If the total number of item can't be easily computed, ItemList.Total should
-	// be set to -1. The requested page should be set to ItemList.Page.
-	Find(lookup *Lookup, page, perPage int) (*ItemList, *Error)
-	// Store stores an item to the backend store. If the original item is provided, the
-	// ResourceHandler must ensure that the item exists in the database and has the same
-	// Etag field. This check should be performed atomically. If the original item is not
-	// found, a rest.NotFoundError must be returned. If the etags don't match, a
-	// rest.ConflictError must be returned.
-	//
-	// The item payload must be stored together with the etag and the updated field using.
-	// The item.ID and the payload["id"] is garantied to be identical, so there's not need
-	// to store both.
-	Store(item *Item, original *Item) *Error
-	// Delete deletes the provided item by its ID. The Etag of the item stored in the
-	// backend store must match the Etag of the provided item or a rest.ConflictError
-	// must be returned. This check should be performed atomically.
-	//
-	// If the provided item were not present in the backend store, a rest.NotFoundError
-	// must be returned.
-	Delete(item *Item) *Error
-	// Clear removes all items maching the lookup. When possible, the number of items
-	// removed is returned, otherwise -1 is return as the first value.
-	Clear(lookup *Lookup) (int, *Error)
-}
-
 // NewResource creates a new resource with provided spec, handler and config
 func NewResource(s schema.Validator, h ResourceHandler, c Conf) *Resource {
 	return &Resource{
@@ -62,6 +32,25 @@ func NewResource(s schema.Validator, h ResourceHandler, c Conf) *Resource {
 		resources: map[string]*subResource{},
 		aliases:   map[string]url.Values{},
 	}
+}
+
+// Compile the resource graph and report any error
+func (r *Resource) Compile() error {
+	// Compile schema and panic on any compilation error
+	if c, ok := r.schema.(schema.Compiler); ok {
+		if err := c.Compile(); err != nil {
+			log.Fatalf(": schema compilation error: %s", err)
+		}
+	}
+	for field, subResource := range r.resources {
+		if err := subResource.resource.Compile(); err != nil {
+			if subResource.field == "" {
+				return fmt.Errorf("%s%s", field, err)
+			}
+			return fmt.Errorf("%s.%s%s", subResource.field, field, err)
+		}
+	}
+	return nil
 }
 
 // Bind a sub-resource with the provided name. The field parameter defines the parent
@@ -75,15 +64,9 @@ func NewResource(s schema.Validator, h ResourceHandler, c Conf) *Resource {
 // This method will panic an alias or a resource with the same name is already bound
 // or if the specified field doesn't exist in the parent resource spec.
 func (r *Resource) Bind(name, field string, s *Resource) *Resource {
-	r.assertNotBound(name)
+	assertNotBound(name, r.resources, r.aliases)
 	if f := s.schema.GetField(field); f == nil {
 		log.Panicf("Cannot bind `%s' as sub-resource: field `%s' does not exist in the sub-resource'", name, field)
-	}
-	// Compile schema and panic on any compilation error
-	if c, ok := s.schema.(schema.Compiler); ok {
-		if err := c.Compile(); err != nil {
-			log.Fatalf("Schema compilation error: %s.%s", name, err)
-		}
 	}
 	r.resources[name] = &subResource{
 		field:    field,
@@ -100,16 +83,6 @@ func (r *Resource) Bind(name, field string, s *Resource) *Resource {
 //
 // This method will panic an alias or a resource with the same name is already bound
 func (r *Resource) Alias(name string, v url.Values) {
-	r.assertNotBound(name)
+	assertNotBound(name, r.resources, r.aliases)
 	r.aliases[name] = v
-}
-
-// assertNotBound asserts a given resource name is not already bound
-func (r *Resource) assertNotBound(name string) {
-	if _, found := r.resources[name]; found {
-		log.Panicf("Cannot bind `%s': already bound as resource'", name)
-	}
-	if _, found := r.aliases[name]; found {
-		log.Panicf("Cannot bind `%s': already bound as alias'", name)
-	}
 }

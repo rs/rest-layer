@@ -27,6 +27,7 @@ REST Layer is an opinionated framework. Unlike many web frameworks, you don't di
 		- [Nullable Values](#nullable-values)
 		- [Extensible Data Validation](#extensible-data-validation)
 	- [Data Storage Handler](#data-storage-handler)
+	- [Custom Response Sender](#custom-response-sender)
 <!-- /TOC -->
 
 ## Features
@@ -171,11 +172,11 @@ var (
 )
 
 func main() {
-	// Create a REST API handler
-	api := rest.New()
+	// Create a REST API root resource
+	root := rest.New()
 
 	// Add a resource on /users[/:user_id]
-	users := api.Bind("users", rest.NewResource(user, mem.NewHandler(), rest.Conf{
+	users := root.Bind("users", rest.NewResource(user, mem.NewHandler(), rest.Conf{
 		// We allow all REST methods
 		// (rest.ReadWrite is a shortcut for []rest.Mode{Create, Read, Update, Delete, List})
 		AllowedModes: rest.ReadWrite,
@@ -191,6 +192,12 @@ func main() {
 	// Add a friendly alias to public posts
 	// (equivalent to /users/:user_id/posts?filter=public=true)
 	posts.Alias("public", url.Values{"filter": []string{"public=true"}})
+
+	// Create API HTTP handler for the resource graph
+	api, err := rest.NewHandler(root)
+	if err != nil {
+		log.Fatalf("Invalid API configuration: %s", err)
+	}
 
 	// Add cors support
 	h := cors.New(cors.Options{OptionsPassthrough: true}).Handler(api)
@@ -457,8 +464,8 @@ post = schema.Schema{
 Now you just need to bind this schema at a specific endpoint on the `rest.Handler` object:
 
 ```go
-api := rest.New()
-posts := api.Bind("posts", rest.NewResource(post, mem.NewHandler(), rest.DefaultConf)
+root := rest.New()
+posts := root.Bind("posts", rest.NewResource(post, mem.NewHandler(), rest.DefaultConf)
 ```
 
 This tells the `rest.Handler` to bind the `post` schema at the `posts` endpoint. The resource collection URL is then `/posts` and item URLs are `/posts/<post_id>`.
@@ -507,7 +514,7 @@ Sub resources can be used to express a one-to-may parent-child relationship betw
 To create a sub-resource, you bind you resource on the object returned by the binding of the parent resource. For instance, here we bind a `comments` resource to a `posts` resource:
 
 ```go
-posts := api.Bind("posts", rest.NewResource(post, mem.NewHandler(), rest.DefaultConf)
+posts := root.Bind("posts", rest.NewResource(post, mem.NewHandler(), rest.DefaultConf)
 // Bind comment as sub-resource of the posts resource
 posts.Bind("comments", "post", rest.NewResource(comment, mem.NewHandler(), rest.DefaultConf)
 ```
@@ -680,3 +687,5 @@ type ResourceHandler interface {
 ```
 
 See [rest.ResourceHandler](https://godoc.org/github.com/rs/rest-layer#ResourceHandler) documentation for implementation details.
+
+## Custom Response Sender

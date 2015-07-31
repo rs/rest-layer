@@ -11,7 +11,7 @@ import (
 
 // requestHandler handles the request life cycle
 type requestHandler struct {
-	h        *Handler
+	root     *RootResource
 	req      *http.Request
 	res      http.ResponseWriter
 	s        ResponseSender
@@ -78,7 +78,7 @@ func (r *requestHandler) checkReferences(payload map[string]interface{}, s schem
 		// Check reference if validator is of type Reference
 		if field.Validator != nil {
 			if ref, ok := field.Validator.(*schema.Reference); ok {
-				resource := r.h.getResource(ref.Path)
+				resource := r.root.GetResource(ref.Path)
 				if resource == nil {
 					return &Error{500, fmt.Sprintf("Invalid resource reference for field `%s': %s", name, ref.Path), nil}
 				}

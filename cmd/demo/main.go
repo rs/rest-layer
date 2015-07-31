@@ -89,11 +89,11 @@ var (
 )
 
 func main() {
-	// Create a REST API handler
-	api := rest.New()
+	// Create a REST API root resource
+	root := rest.New()
 
 	// Add a resource on /users[/:user_id]
-	users := api.Bind("users", rest.NewResource(user, mem.NewHandler(), rest.Conf{
+	users := root.Bind("users", rest.NewResource(user, mem.NewHandler(), rest.Conf{
 		// We allow all REST methods
 		// (rest.ReadWrite is a shortcut for []rest.Mode{Create, Read, Update, Delete, List})
 		AllowedModes: rest.ReadWrite,
@@ -109,6 +109,12 @@ func main() {
 	// Add a friendly alias to public posts
 	// (equivalent to /users/:user_id/posts?filter=public=true)
 	posts.Alias("public", url.Values{"filter": []string{"public=true"}})
+
+	// Create API HTTP handler for the resource graph
+	api, err := rest.NewHandler(root)
+	if err != nil {
+		log.Fatalf("Invalid API configuration: %s", err)
+	}
 
 	// Add cors support
 	h := cors.New(cors.Options{OptionsPassthrough: true}).Handler(api)
