@@ -26,6 +26,7 @@ REST Layer is an opinionated framework. Unlike many web frameworks, you don't di
 	- [Data Validation](#data-validation)
 		- [Nullable Values](#nullable-values)
 		- [Extensible Data Validation](#extensible-data-validation)
+	- [Timeout and Request Cancellation](#timeout-and-request-cancellation)
 	- [Data Storage Handler](#data-storage-handler)
 	- [Custom Response Sender](#custom-response-sender)
 <!-- /TOC -->
@@ -33,6 +34,7 @@ REST Layer is an opinionated framework. Unlike many web frameworks, you don't di
 ## Features
 
 - [x] Automatic handling of REST resource operations
+- [ ] Full test coverage
 - [x] Plays well with other `net/http` middlewares
 - [x] Pluggable resources storage
 - [x] Pluggable response sender
@@ -51,7 +53,9 @@ REST Layer is an opinionated framework. Unlike many web frameworks, you don't di
 - [x] Extensible data validation and transformation
 - [x] Conditional requests (Last-Modified / Etag)
 - [x] Data integrity and concurrency control (If-Match)
+- [x] Timeout and request cancellation thru [net/context](https://godoc.org/golang.org/x/net/context)
 - [ ] Multi-GET
+- [ ] Bulk inserts
 - [x] Default and nullable values
 - [ ] Per resource cache control
 - [ ] Customizable authentication / authorization
@@ -671,22 +675,34 @@ type Compiler interface {
 
 When a field validator implements this interface, the `Compile` method is called at the binding. It's a good place to pre-compute some data (i.e.: compile regexp) and verify validator configuration. If validator configuration contains issue, the `Compile` method must return an error, so the binding will generate un fatal error.
 
+## Timeout and Request Cancellation
+
+REST Layer handles client request cancellation using [net/context](https://golang.org/x/net/context). In case the client closes the connection before the server has finish processing the request, the context is canceled. This context is passed to the resource handler so it can listen for those cancelations and stop the processing (see [Data Storage Handler](#data-storage-handler) section for more information about how to implement resource handlers.
+
+Timeout is implement the same way. If a timeout is set at server level through `rest.Handler` `RequestTimeout` property or if the `timeout` query-string parameter is passed with a duration value compatible with `time.ParseDuration`, the context will be set with a deadline set to that value.
+
+When a request is stopped because the client closed the connection, the response HTTP status is set to `499 Client Closed Request` (for logging purpose). When a timeout is set and the request has reached this timeout, the response HTTP status is set to `509 Gateway Timeout`.
+
 ## Data Storage Handler
 
-REST Layer doesn't handle storage of resources. A `mem.MemoryHandler` is provided as an exemple and should be used for testing only.
+REST Layer doesn't handle storage of resources directly. A `mem.MemoryHandler` is provided as an example but should be used for testing only.
 
-A data storage handler is easy to write though. Some handlers for popular databases are available (soon), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the `rest.ResourceHandler` interface:
+A resource handler is easy to write though. Some handlers for popular databases are available (soon), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the `rest.ResourceHandler` interface:
 
 ```go
 type ResourceHandler interface {
-	Find(lookup *rest.Lookup, page, perPage int) (*rest.ItemList, *rest.Error)
-	Insert(items []*Item) *Error
-	Update(item *Item, original *Item) *Error
-	Delete(item *rest.Item) *rest.Error
-	Clear(lookup *rest.Lookup) (int, *rest.Error)
+	Find(lookup *rest.Lookup, page, perPage int, ctx context.Context) (*rest.ItemList, *rest.Error)
+	Insert(items []*Item, ctx context.Context) *Error
+	Update(item *Item, original *Item, ctx context.Context) *Error
+	Delete(item *rest.Item, ctx context.Context) *rest.Error
+	Clear(lookup *rest.Lookup, ctx context.Context) (int, *rest.Error)
 }
 ```
 
-See [rest.ResourceHandler](https://godoc.org/github.com/rs/rest-layer#ResourceHandler) documentation for implementation details.
+Mutation methods like `Update` and `Delete` must ensure they are atomically mutating the same item as specified in argument by checking their `ETag` (the stored `ETag` must match the `ETag` of the provided item). In case the handler can't guarantee that, the storage must be left untouched, and a `rest.ConflictError` must be returned.
+
+If the the operation not immediate, the method must listen for cancellation on the passed `ctx`. If the operation is stopped due to context cancellation, the function must return the result of the `rest.ContextError()` with the `ctx.Err()` as argument. See [this blog post](https://blog.golang.org/context) for more information about how `net/context` works.
+
+See [rest.ResourceHandler](https://godoc.org/github.com/rs/rest-layer#ResourceHandler) documentation for more information on resource handler implementation details.
 
 ## Custom Response Sender

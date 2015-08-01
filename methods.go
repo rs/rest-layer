@@ -49,7 +49,7 @@ func (r *requestHandler) handleListRequestGET(lookup *Lookup, resource *Resource
 			return
 		}
 	}
-	list, err := resource.handler.Find(lookup, page, perPage)
+	list, err := resource.handler.Find(lookup, page, perPage, r.ctx)
 	if err != nil {
 		r.sendError(err)
 		return
@@ -84,7 +84,7 @@ func (r *requestHandler) handleListRequestPOST(lookup *Lookup, resource *Resourc
 		return
 	}
 	// TODO: add support for batch insert
-	if err := resource.handler.Insert([]*Item{item}); err != nil {
+	if err := resource.handler.Insert([]*Item{item}, r.ctx); err != nil {
 		r.sendError(err)
 		return
 	}
@@ -95,7 +95,7 @@ func (r *requestHandler) handleListRequestPOST(lookup *Lookup, resource *Resourc
 
 // handleListRequestDELETE handles DELETE resquests on a resource URL
 func (r *requestHandler) handleListRequestDELETE(lookup *Lookup, resource *Resource) {
-	if total, err := resource.handler.Clear(lookup); err != nil {
+	if total, err := resource.handler.Clear(lookup, r.ctx); err != nil {
 		r.sendError(err)
 	} else {
 		r.res.Header().Set("X-Total", strconv.FormatInt(int64(total), 10))
@@ -105,7 +105,7 @@ func (r *requestHandler) handleListRequestDELETE(lookup *Lookup, resource *Resou
 
 // handleItemRequestGET handles GET and HEAD resquests on an item URL
 func (r *requestHandler) handleItemRequestGET(lookup *Lookup, resource *Resource) {
-	l, err := resource.handler.Find(lookup, 1, 1)
+	l, err := resource.handler.Find(lookup, 1, 1, r.ctx)
 	if err != nil {
 		r.sendError(err)
 		return
@@ -143,7 +143,7 @@ func (r *requestHandler) handleItemRequestPUT(lookup *Lookup, resource *Resource
 	}
 	// Fetch original item if exist (PUT can be used to create a document with a manual id)
 	var original *Item
-	if l, err := resource.handler.Find(lookup, 1, 1); err != nil && err != NotFoundError {
+	if l, err := resource.handler.Find(lookup, 1, 1, r.ctx); err != nil && err != NotFoundError {
 		r.sendError(err)
 		return
 	} else if len(l.Items) == 1 {
@@ -203,7 +203,7 @@ func (r *requestHandler) handleItemRequestPUT(lookup *Lookup, resource *Resource
 	// we are still replacing the same version of the object as handler is
 	// supposed check the original etag before storing when an original object
 	// is provided.
-	if err := resource.handler.Update(item, original); err != nil {
+	if err := resource.handler.Update(item, original, r.ctx); err != nil {
 		r.sendError(err)
 	} else {
 		r.sendItem(status, item)
@@ -221,7 +221,7 @@ func (r *requestHandler) handleItemRequestPATCH(lookup *Lookup, resource *Resour
 	}
 	// Get original item if any
 	var original *Item
-	if l, err := resource.handler.Find(lookup, 1, 1); err != nil {
+	if l, err := resource.handler.Find(lookup, 1, 1, r.ctx); err != nil {
 		// If item can't be fetch, return an error
 		r.sendError(err)
 		return
@@ -259,7 +259,7 @@ func (r *requestHandler) handleItemRequestPATCH(lookup *Lookup, resource *Resour
 	// handler to ensure the stored document didn't change between in the
 	// interval. An PreconditionFailedError will be thrown in case of race condition
 	// (i.e.: another thread modified the document between the Find() and the Store())
-	if err := resource.handler.Update(item, original); err != nil {
+	if err := resource.handler.Update(item, original, r.ctx); err != nil {
 		r.sendError(err)
 	} else {
 		r.sendItem(200, item)
@@ -268,7 +268,7 @@ func (r *requestHandler) handleItemRequestPATCH(lookup *Lookup, resource *Resour
 
 // handleItemRequestDELETE handles DELETE resquests on an item URL
 func (r *requestHandler) handleItemRequestDELETE(lookup *Lookup, resource *Resource) {
-	l, err := resource.handler.Find(lookup, 1, 1)
+	l, err := resource.handler.Find(lookup, 1, 1, r.ctx)
 	if err != nil {
 		r.sendError(err)
 		return
@@ -283,7 +283,7 @@ func (r *requestHandler) handleItemRequestDELETE(lookup *Lookup, resource *Resou
 		r.sendError(err)
 		return
 	}
-	if err := resource.handler.Delete(original); err != nil {
+	if err := resource.handler.Delete(original, r.ctx); err != nil {
 		r.sendError(err)
 	} else {
 		r.send(204, map[string]interface{}{})

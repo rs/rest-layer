@@ -30,7 +30,7 @@ func (r *requestHandler) route(path string, lookup *Lookup, resources map[string
 				if sub, found := resource.resources[subName]; found {
 					// Check if the item exists before going farther
 					lookup.Fields["id"] = id
-					l, err := resource.handler.Find(lookup, 1, 1)
+					l, err := resource.handler.Find(lookup, 1, 1, r.ctx)
 					if err != nil {
 						r.sendError(err)
 						return

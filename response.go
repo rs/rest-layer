@@ -64,7 +64,9 @@ func (s DefaultResponseSender) SendError(w http.ResponseWriter, err error, skipB
 			"message": message,
 		}
 		if e, ok := err.(*Error); ok {
-			payload["issues"] = e.Issues
+			if e.Issues != nil {
+				payload["issues"] = e.Issues
+			}
 		}
 		s.Send(w, code, payload)
 	} else {

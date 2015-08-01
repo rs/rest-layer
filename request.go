@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/rs/rest-layer/schema"
+	"golang.org/x/net/context"
 )
 
 // requestHandler handles the request life cycle
 type requestHandler struct {
+	ctx      context.Context
 	root     *RootResource
 	req      *http.Request
 	res      http.ResponseWriter
@@ -84,7 +86,7 @@ func (r *requestHandler) checkReferences(payload map[string]interface{}, s schem
 				}
 				lookup := NewLookup()
 				lookup.Fields["id"] = value
-				list, _ := resource.handler.Find(lookup, 1, 1)
+				list, _ := resource.handler.Find(lookup, 1, 1, r.ctx)
 				if len(list.Items) == 0 {
 					return &Error{404, fmt.Sprintf("Resource reference not found for field `%s'", name), nil}
 				}
