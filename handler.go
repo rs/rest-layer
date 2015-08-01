@@ -44,7 +44,7 @@ func (h *Handler) getTimeout(r *http.Request) (time.Duration, error) {
 // server configuration. The context will automatically be canceled as soon as passed
 // request connection will be closed.
 func (h *Handler) getContext(w http.ResponseWriter, r *http.Request) (context.Context, *Error) {
-	// Handle canceled requests using net/cancel by passing a context
+	// Handle canceled requests using net/context by passing a context
 	// to the request handler that will be canceled as soon as the client
 	// connection is closed
 	notify := w.(http.CloseNotifier).CloseNotify()
