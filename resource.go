@@ -39,15 +39,16 @@ func (r *Resource) Compile() error {
 	// Compile schema and panic on any compilation error
 	if c, ok := r.schema.(schema.Compiler); ok {
 		if err := c.Compile(); err != nil {
-			log.Fatalf(": schema compilation error: %s", err)
+			return fmt.Errorf(": schema compilation error: %s", err)
 		}
 	}
 	for field, subResource := range r.resources {
 		if err := subResource.resource.Compile(); err != nil {
-			if subResource.field == "" {
+			if err.Error()[0] == ':' {
+				// Check if I'm the direct ancestor of the raised sub-error
 				return fmt.Errorf("%s%s", field, err)
 			}
-			return fmt.Errorf("%s.%s%s", subResource.field, field, err)
+			return fmt.Errorf("%s.%s", field, err)
 		}
 	}
 	return nil

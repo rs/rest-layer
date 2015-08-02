@@ -81,7 +81,21 @@ func (l *Lookup) SetFilter(filter string, validator schema.Validator) error {
 func validateFilter(f map[string]interface{}, validator schema.Validator, parentKey string) error {
 	for key, exp := range f {
 		switch key {
-		case "$ne", "$gt", "$gte", "$lt", "$lte":
+		case "$ne":
+			op := key
+			if parentKey == "" {
+				return fmt.Errorf("%s can't be at first level", op)
+			}
+			if field := validator.GetField(parentKey); field != nil {
+				if field.Validator != nil {
+					if _, err := field.Validator.Validate(exp); err != nil {
+						return fmt.Errorf("invalid filter expression for field `%s': %s", parentKey, err)
+					}
+				}
+			} else {
+				return fmt.Errorf("unknown filter field: %s", parentKey)
+			}
+		case "$gt", "$gte", "$lt", "$lte":
 			op := key
 			if parentKey == "" {
 				return fmt.Errorf("%s can't be at first level", op)
@@ -93,11 +107,15 @@ func validateFilter(f map[string]interface{}, validator schema.Validator, parent
 				if field.Validator != nil {
 					switch field.Validator.(type) {
 					case schema.Integer, schema.Float:
-						// Ok
+						if _, err := field.Validator.Validate(exp); err != nil {
+							return fmt.Errorf("invalid filter expression for field `%s': %s", parentKey, err)
+						}
 					default:
 						return fmt.Errorf("%s: cannot apply %s operation on a non numerical field", parentKey, op)
 					}
 				}
+			} else {
+				return fmt.Errorf("unknown filter field: %s", parentKey)
 			}
 		case "$in", "$nin":
 			op := key
@@ -107,28 +125,43 @@ func validateFilter(f map[string]interface{}, validator schema.Validator, parent
 			if _, ok := exp.(map[string]interface{}); ok {
 				return fmt.Errorf("%s: value for %s can't be a dict", parentKey, op)
 			}
+			if field := validator.GetField(parentKey); field != nil {
+				if field.Validator != nil {
+					values, ok := exp.([]interface{})
+					if !ok {
+						values = []interface{}{exp}
+					}
+					for _, value := range values {
+						if _, err := field.Validator.Validate(value); err != nil {
+							return fmt.Errorf("invalid filter expression (%s) for field `%s': %s", value, parentKey, err)
+						}
+					}
+				}
+			} else {
+				return fmt.Errorf("unknown filter field: %s", parentKey)
+			}
 		case "$or":
 			var subFilters []interface{}
 			var ok bool
 			if subFilters, ok = exp.([]interface{}); !ok {
-				return fmt.Errorf("%s: value for $or must be an array of dicts", parentKey)
+				return errors.New("value for $or must be an array of dicts")
 			}
 			if len(subFilters) < 2 {
-				return fmt.Errorf("%s: $or must contain at least to elements", parentKey)
+				return errors.New("$or must contain at least to elements")
 			}
 			for _, subFilter := range subFilters {
 				if sf, ok := subFilter.(map[string]interface{}); !ok {
-					return fmt.Errorf("%s: value for $or must be an array of dicts", parentKey)
+					return errors.New("value for $or must be an array of dicts")
 				} else if err := validateFilter(sf, validator, ""); err != nil {
 					return err
 				}
 			}
 		default:
 			// Exact match
+			if parentKey != "" {
+				return fmt.Errorf("%s: invalid expression", parentKey)
+			}
 			if subFilter, ok := exp.(map[string]interface{}); ok {
-				if parentKey != "" {
-					return fmt.Errorf("%s: invalid expression", parentKey)
-				}
 				if err := validateFilter(subFilter, validator, key); err != nil {
 					return err
 				}
@@ -152,7 +185,7 @@ func validateFilter(f map[string]interface{}, validator schema.Validator, parent
 // and tells if it match
 func (l *Lookup) Match(payload map[string]interface{}) bool {
 	for field, value := range l.Fields {
-		if payload[field] != value {
+		if !reflect.DeepEqual(payload[field], value) {
 			return false
 		}
 	}
@@ -163,34 +196,39 @@ func matchFilter(f map[string]interface{}, payload map[string]interface{}, paren
 	for key, exp := range f {
 		switch key {
 		case "$ne":
-			subFilter, ok := exp.(map[string]interface{})
-			if !ok {
-				// This case should have been caught by validateFilter
+			if reflect.DeepEqual(getField(payload, parentKey), exp) {
 				return false
 			}
-			return !matchFilter(subFilter, payload, parentKey)
 		case "$gt":
 			n1, ok1 := isNumber(exp)
-			n2, ok2 := isNumber(getField(parentKey, payload))
-			return ok1 && ok2 && (n1 > n2)
+			n2, ok2 := isNumber(getField(payload, parentKey))
+			if !(ok1 && ok2 && (n1 < n2)) {
+				return false
+			}
 		case "$gte":
 			n1, ok1 := isNumber(exp)
-			n2, ok2 := isNumber(getField(parentKey, payload))
-			return ok1 && ok2 && (n1 >= n2)
+			n2, ok2 := isNumber(getField(payload, parentKey))
+			if !(ok1 && ok2 && (n1 <= n2)) {
+				return false
+			}
 		case "$lt":
 			n1, ok1 := isNumber(exp)
-			n2, ok2 := isNumber(getField(parentKey, payload))
-			return ok1 && ok2 && (n1 < n2)
+			n2, ok2 := isNumber(getField(payload, parentKey))
+			if !(ok1 && ok2 && (n1 > n2)) {
+				return false
+			}
 		case "$lte":
 			n1, ok1 := isNumber(exp)
-			n2, ok2 := isNumber(getField(parentKey, payload))
-			return ok1 && ok2 && (n1 <= n2)
+			n2, ok2 := isNumber(getField(payload, parentKey))
+			if !(ok1 && ok2 && (n1 >= n2)) {
+				return false
+			}
 		case "$in":
-			if !isIn(exp, getField(parentKey, payload)) {
+			if !isIn(exp, getField(payload, parentKey)) {
 				return false
 			}
 		case "$nin":
-			if isIn(exp, getField(parentKey, payload)) {
+			if isIn(exp, getField(payload, parentKey)) {
 				return false
 			}
 		case "$or":
@@ -213,7 +251,7 @@ func matchFilter(f map[string]interface{}, payload map[string]interface{}, paren
 				if !matchFilter(subFilter, payload, key) {
 					return false
 				}
-			} else if !reflect.DeepEqual(getField(key, payload), exp) {
+			} else if !reflect.DeepEqual(getField(payload, key), exp) {
 				return false
 			}
 		}

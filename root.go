@@ -21,7 +21,7 @@ func New() *RootResource {
 
 // Bind a resource at the specified endpoint name
 func (r *RootResource) Bind(name string, s *Resource) *Resource {
-	assertNotBound(name, s.resources, nil)
+	assertNotBound(name, r.resources, nil)
 	r.resources[name] = &subResource{resource: s}
 	return s
 }
@@ -51,10 +51,7 @@ func (r *RootResource) GetResource(path string) *Resource {
 func compileResourceGraph(resources map[string]*subResource) error {
 	for field, subResource := range resources {
 		if err := subResource.resource.Compile(); err != nil {
-			if subResource.field == "" {
-				return fmt.Errorf("%s%s", field, err)
-			}
-			return fmt.Errorf("%s.%s%s", subResource.field, field, err)
+			return fmt.Errorf("%s.%s", field, err)
 		}
 	}
 	return nil
