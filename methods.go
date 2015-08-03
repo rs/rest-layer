@@ -299,11 +299,18 @@ func (r *requestHandler) handleItemRequestPUT(ctx context.Context, route route) 
 	// we are still replacing the same version of the object as handler is
 	// supposed check the original etag before storing when an original object
 	// is provided.
-	if err := route.resource.handler.Update(item, original, ctx); err != nil {
-		r.sendError(err)
+	if original != nil {
+		if err := route.resource.handler.Update(item, original, ctx); err != nil {
+			r.sendError(err)
+			return
+		}
 	} else {
-		r.sendItem(status, item)
+		if err := route.resource.handler.Insert([]*Item{item}, ctx); err != nil {
+			r.sendError(err)
+			return
+		}
 	}
+	r.sendItem(status, item)
 }
 
 // handleItemRequestPATCH handles PATCH resquests on an item URL
