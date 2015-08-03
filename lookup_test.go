@@ -9,7 +9,6 @@ import (
 
 func TestNewLookup(t *testing.T) {
 	l := NewLookup()
-	assert.Equal(t, map[string]interface{}{}, l.Fields)
 	assert.Nil(t, l.Filter)
 	assert.Equal(t, []string{}, l.Sort)
 }
@@ -77,20 +76,4 @@ func TestLookupMatch(t *testing.T) {
 	l.SetFilter("{\"foo\": \"bar\"}", s)
 	assert.True(t, l.Match(map[string]interface{}{"foo": "bar"}))
 	assert.False(t, l.Match(map[string]interface{}{"foo": "baz"}))
-}
-
-func TestLookupMatchFields(t *testing.T) {
-	l := NewLookup()
-	l.Fields["id"] = "123"
-	assert.True(t, l.Match(map[string]interface{}{"id": "123"}))
-	assert.False(t, l.Match(map[string]interface{}{"id": 123}))
-}
-
-func TestLookupApplyFields(t *testing.T) {
-	l := NewLookup()
-	l.Fields["id"] = "123"
-	l.Fields["user"] = "john"
-	p := map[string]interface{}{"id": "321", "name": "John Doe"}
-	l.applyFields(p)
-	assert.Equal(t, map[string]interface{}{"id": "123", "user": "john", "name": "John Doe"}, p)
 }

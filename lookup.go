@@ -3,7 +3,6 @@ package rest
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/rs/rest-layer/schema"
@@ -11,10 +10,6 @@ import (
 
 // Lookup holds key/value pairs used to select items on a resource
 type Lookup struct {
-	// Fields are field=>value pairs that must be equal. The main difference with the
-	// Filter field is that Fields are set by the route while Filter is defined by the
-	// "filter" parameter.
-	Fields map[string]interface{}
 	// The client supplied filter. Filter is a MongoDB inspired query with a more limited
 	// set of capabilities. See [README](https://github.com/rs/rest-layer#filtering)
 	// for more info.
@@ -28,7 +23,7 @@ type Lookup struct {
 // NewLookup creates an empty lookup object
 func NewLookup() *Lookup {
 	return &Lookup{
-		Fields: map[string]interface{}{},
+		Filter: schema.Query{},
 		Sort:   []string{},
 	}
 }
@@ -70,20 +65,7 @@ func (l *Lookup) SetFilter(filter string, validator schema.Validator) error {
 	return nil
 }
 
-// Match evaluates lookup's fields and filter on the provided payload
-// and tells if it match
+// Match evaluates lookup's filter on the provided payload and tells if it match
 func (l *Lookup) Match(payload map[string]interface{}) bool {
-	for field, value := range l.Fields {
-		if !reflect.DeepEqual(payload[field], value) {
-			return false
-		}
-	}
 	return l.Filter.Match(payload)
-}
-
-// applyFields appends lookup fields to a payload
-func (l *Lookup) applyFields(payload map[string]interface{}) {
-	for field, value := range l.Fields {
-		payload[field] = value
-	}
 }

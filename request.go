@@ -12,7 +12,6 @@ import (
 
 // requestHandler handles the request life cycle
 type requestHandler struct {
-	ctx      context.Context
 	root     *RootResource
 	req      *http.Request
 	res      http.ResponseWriter
@@ -71,7 +70,7 @@ func (r *requestHandler) checkIntegrityRequest(original *Item) *Error {
 }
 
 // checkReferences checks that fields with the Reference validator reference an existing object
-func (r *requestHandler) checkReferences(payload map[string]interface{}, s schema.Validator) *Error {
+func (r *requestHandler) checkReferences(ctx context.Context, payload map[string]interface{}, s schema.Validator) *Error {
 	for name, value := range payload {
 		field := s.GetField(name)
 		if field == nil {
@@ -84,9 +83,8 @@ func (r *requestHandler) checkReferences(payload map[string]interface{}, s schem
 				if resource == nil {
 					return &Error{500, fmt.Sprintf("Invalid resource reference for field `%s': %s", name, ref.Path), nil}
 				}
-				lookup := NewLookup()
-				lookup.Fields["id"] = value
-				list, _ := resource.handler.Find(lookup, 1, 1, r.ctx)
+				lookup := Lookup{Filter: schema.Query{"id": value}}
+				list, _ := resource.handler.Find(&lookup, 1, 1, ctx)
 				if len(list.Items) == 0 {
 					return &Error{404, fmt.Sprintf("Resource reference not found for field `%s'", name), nil}
 				}
@@ -95,7 +93,7 @@ func (r *requestHandler) checkReferences(payload map[string]interface{}, s schem
 		// Check sub-schema if any
 		if field.Schema != nil && value != nil {
 			if subPayload, ok := value.(map[string]interface{}); ok {
-				if err := r.checkReferences(subPayload, field.Schema); err != nil {
+				if err := r.checkReferences(ctx, subPayload, field.Schema); err != nil {
 					return err
 				}
 			}

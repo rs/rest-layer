@@ -79,14 +79,19 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx, err := h.getContext(w, r)
 	if err != nil {
 		h.ResponseSender.SendError(w, err, skipBody)
+		return
+	}
+	route, err := h.root.findRoute(ctx, r)
+	if err != nil {
+		h.ResponseSender.SendError(w, err, skipBody)
+		return
 	}
 	req := &requestHandler{
-		ctx:      ctx,
 		root:     h.root,
 		req:      r,
 		res:      w,
 		s:        h.ResponseSender,
 		skipBody: skipBody,
 	}
-	req.route(r.URL.Path, NewLookup(), h.root.resources)
+	req.handleRoute(ctx, route)
 }

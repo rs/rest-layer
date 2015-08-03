@@ -10,6 +10,15 @@ import (
 // Query defines an expression against a schema to perform a match schema's data
 type Query map[string]interface{}
 
+// NewQuery returns a new query with the provided key/value
+func NewQuery(q map[string]interface{}) Query {
+	nq := Query{}
+	for key, exp := range q {
+		nq[key] = exp
+	}
+	return nq
+}
+
 // ParseQuery parses and validate a query as string
 func ParseQuery(query string, validator Validator) (Query, error) {
 	var j interface{}
