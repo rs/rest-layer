@@ -51,7 +51,11 @@ func (r *RootResource) GetResource(path string) *Resource {
 func compileResourceGraph(resources map[string]*subResource) error {
 	for field, subResource := range resources {
 		if err := subResource.resource.Compile(); err != nil {
-			return fmt.Errorf("%s.%s", field, err)
+			sep := "."
+			if err.Error()[0] == ':' {
+				sep = ""
+			}
+			return fmt.Errorf("%s%s%s", field, sep, err)
 		}
 	}
 	return nil

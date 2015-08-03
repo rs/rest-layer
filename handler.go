@@ -1,11 +1,18 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"golang.org/x/net/context"
 )
+
+// resourceRouter is used to let Handler be used with a mocked RootResource for testing
+type resourceRouter interface {
+	GetResource(path string) *Resource
+	findRoute(ctx context.Context, req *http.Request) (route, *Error)
+}
 
 // Handler is an HTTP handler used to serve the configured REST API
 type Handler struct {
@@ -15,7 +22,7 @@ type Handler struct {
 	// is abandonned. The default value is no timeout.
 	RequestTimeout time.Duration
 	// root stores the root resource
-	root *RootResource
+	root resourceRouter
 }
 
 // NewHandler creates an new REST API HTTP handler with the specified root resource
@@ -44,10 +51,6 @@ func (h *Handler) getTimeout(r *http.Request) (time.Duration, error) {
 // server configuration. The context will automatically be canceled as soon as passed
 // request connection will be closed.
 func (h *Handler) getContext(w http.ResponseWriter, r *http.Request) (context.Context, *Error) {
-	// Handle canceled requests using net/context by passing a context
-	// to the request handler that will be canceled as soon as the client
-	// connection is closed
-	notify := w.(http.CloseNotifier).CloseNotify()
 	var (
 		ctx    context.Context
 		cancel context.CancelFunc
@@ -55,7 +58,7 @@ func (h *Handler) getContext(w http.ResponseWriter, r *http.Request) (context.Co
 	// Get request timeout request or server config
 	timeout, err := h.getTimeout(r)
 	if err != nil {
-		return nil, &Error{422, "Cannot parse timeout parameter", nil}
+		return nil, &Error{422, fmt.Sprintf("Cannot parse timeout parameter: %s", err), nil}
 	}
 	if timeout > 0 {
 		// Setup a net/context with timeout if time has been specified in either request
@@ -64,11 +67,17 @@ func (h *Handler) getContext(w http.ResponseWriter, r *http.Request) (context.Co
 	} else {
 		ctx, cancel = context.WithCancel(context.Background())
 	}
-	go func() {
-		// When client close the connection, cancel the context
-		<-notify
-		cancel()
-	}()
+	// Handle canceled requests using net/context by passing a context
+	// to the request handler that will be canceled as soon as the client
+	// connection is closed
+	if wcn, ok := w.(http.CloseNotifier); ok {
+		notify := wcn.CloseNotify()
+		go func() {
+			// When client close the connection, cancel the context
+			<-notify
+			cancel()
+		}()
+	}
 	return ctx, nil
 }
 
@@ -86,12 +95,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.ResponseSender.SendError(w, err, skipBody)
 		return
 	}
-	req := &requestHandler{
+	req := &request{
 		root:     h.root,
 		req:      r,
 		res:      w,
 		s:        h.ResponseSender,
 		skipBody: skipBody,
 	}
-	req.handleRoute(ctx, route)
+	serveRequest(ctx, route, req)
 }

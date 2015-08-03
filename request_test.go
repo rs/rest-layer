@@ -29,7 +29,7 @@ func (r *testResponseSender) SendList(w http.ResponseWriter, l *ItemList, skipBo
 
 func TestRequestSend(t *testing.T) {
 	s := &testResponseSender{}
-	r := requestHandler{
+	r := request{
 		s: s,
 	}
 	r.send(200, "")
@@ -47,7 +47,7 @@ func TestRequestSend(t *testing.T) {
 }
 
 func TestRequestDecodePayload(t *testing.T) {
-	r := requestHandler{
+	r := request{
 		req: &http.Request{
 			Body: ioutil.NopCloser(bytes.NewBufferString("{\"foo\":\"bar\"}")),
 		},
@@ -59,7 +59,7 @@ func TestRequestDecodePayload(t *testing.T) {
 }
 
 func TestRequestDecodePayloadWrongContentType(t *testing.T) {
-	r := requestHandler{
+	r := request{
 		req: &http.Request{
 			Header: map[string][]string{"Content-Type": []string{"text/plain"}},
 			Body:   ioutil.NopCloser(bytes.NewBufferString("{\"foo\":\"bar\"}")),
@@ -71,7 +71,7 @@ func TestRequestDecodePayloadWrongContentType(t *testing.T) {
 }
 
 func TestRequestDecodePayloadInvalidJSON(t *testing.T) {
-	r := requestHandler{
+	r := request{
 		req: &http.Request{
 			Body: ioutil.NopCloser(bytes.NewBufferString("{\"foo\":\"")),
 		},

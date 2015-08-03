@@ -31,7 +31,7 @@ func (r *RootResource) findRoute(ctx context.Context, req *http.Request) (route,
 // findRoute recursively route a (sub)resource request
 func findRoute(ctx context.Context, path string, resources map[string]*subResource, route *route) *Error {
 	// Split the path into path components
-	c := strings.Split(path, "/")
+	c := strings.Split(strings.Trim(path, "/"), "/")
 
 	if len(c) == 0 {
 		return nil

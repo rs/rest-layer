@@ -10,30 +10,52 @@ import (
 	"golang.org/x/net/context"
 )
 
-// requestHandler handles the request life cycle
-type requestHandler struct {
-	root     *RootResource
+type requestHandler interface {
+	itemGet(ctx context.Context, route route)
+	itemPut(ctx context.Context, route route)
+	itemPatch(ctx context.Context, route route)
+	itemDelete(ctx context.Context, route route)
+	listGet(ctx context.Context, route route)
+	listPost(ctx context.Context, route route)
+	listDelete(ctx context.Context, route route)
+	setHeader(key, value string)
+	send(status int, data interface{})
+	sendError(err error)
+	sendItem(status int, i *Item)
+	sendList(l *ItemList)
+}
+
+// request handles the request life cycle
+type request struct {
+	root     resourceRouter
 	req      *http.Request
 	res      http.ResponseWriter
 	s        ResponseSender
 	skipBody bool
 }
 
-func (r *requestHandler) send(status int, data interface{}) {
+func (r *request) setHeader(key, value string) {
+	r.res.Header().Set(key, value)
+}
+
+func (r *request) send(status int, data interface{}) {
 	r.s.Send(r.res, status, data)
 }
-func (r *requestHandler) sendError(err error) {
+
+func (r *request) sendError(err error) {
 	r.s.SendError(r.res, err, r.skipBody)
 }
-func (r *requestHandler) sendItem(status int, i *Item) {
+
+func (r *request) sendItem(status int, i *Item) {
 	r.s.SendItem(r.res, status, i, r.skipBody)
 }
-func (r *requestHandler) sendList(l *ItemList) {
+
+func (r *request) sendList(l *ItemList) {
 	r.s.SendList(r.res, l, r.skipBody)
 }
 
 // decodePayload decodes the payload from the provided request
-func (r *requestHandler) decodePayload(payload *map[string]interface{}) *Error {
+func (r *request) decodePayload(payload *map[string]interface{}) *Error {
 	// Check content-type, if not specified, assume it's JSON and fail later
 	if ct := r.req.Header.Get("Content-Type"); ct != "" && ct != "application/json" {
 		return &Error{501, fmt.Sprintf("Invalid Content-Type header: `%s' not supported", ct), nil}
@@ -48,7 +70,7 @@ func (r *requestHandler) decodePayload(payload *map[string]interface{}) *Error {
 
 // checkIntegrityRequest ensures that orignal item exists and complies with conditions
 // expressed by If-Match and/or If-Unmodified-Since headers if present.
-func (r *requestHandler) checkIntegrityRequest(original *Item) *Error {
+func (r *request) checkIntegrityRequest(original *Item) *Error {
 	ifMatch := r.req.Header.Get("If-Match")
 	ifUnmod := r.req.Header.Get("If-Unmodified-Since")
 	if ifMatch != "" || ifUnmod != "" {
@@ -70,7 +92,7 @@ func (r *requestHandler) checkIntegrityRequest(original *Item) *Error {
 }
 
 // checkReferences checks that fields with the Reference validator reference an existing object
-func (r *requestHandler) checkReferences(ctx context.Context, payload map[string]interface{}, s schema.Validator) *Error {
+func (r *request) checkReferences(ctx context.Context, payload map[string]interface{}, s schema.Validator) *Error {
 	for name, value := range payload {
 		field := s.GetField(name)
 		if field == nil {
