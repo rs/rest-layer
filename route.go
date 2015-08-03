@@ -71,7 +71,7 @@ func findRoute(ctx context.Context, path string, resources map[string]*subResour
 						return err
 					}
 				} else {
-					return &Error{404, "Resource not found", nil}
+					return &Error{404, "Resource Not Found", nil}
 				}
 				return nil
 			}
@@ -84,16 +84,15 @@ func findRoute(ctx context.Context, path string, resources map[string]*subResour
 						route.params.Add(key, value)
 					}
 				}
-				return nil
+			} else {
+				// Set the id route field
+				route.fields["id"] = id
 			}
-
-			// Set the id route field
-			route.fields["id"] = id
 		}
 		route.resource = resource
 		return nil
 	}
-	return &Error{404, "Resource not found", nil}
+	return &Error{404, "Resource Not Found", nil}
 }
 
 // lookup builds a Lookup object from the current route

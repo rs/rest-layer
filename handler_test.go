@@ -106,7 +106,7 @@ func TestHandlerServeHTTPNotFound(t *testing.T) {
 	h.ServeHTTP(w, &http.Request{Method: "GET", URL: u})
 	assert.Equal(t, 404, w.Code)
 	b, _ := ioutil.ReadAll(w.Body)
-	assert.Equal(t, "{\"code\":404,\"message\":\"Resource not found\"}", string(b))
+	assert.Equal(t, "{\"code\":404,\"message\":\"Resource Not Found\"}", string(b))
 }
 
 func TestHandlerServeHTTPInvalidTimeout(t *testing.T) {
