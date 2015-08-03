@@ -9,7 +9,7 @@ import (
 
 func TestNewLookup(t *testing.T) {
 	l := NewLookup()
-	assert.Nil(t, l.Filter)
+	assert.Equal(t, schema.Query{}, l.Filter)
 	assert.Equal(t, []string{}, l.Sort)
 }
 
