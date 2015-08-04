@@ -7,7 +7,7 @@ import (
 
 	"github.com/rs/cors"
 	"github.com/rs/rest-layer"
-	"github.com/rs/rest-layer/mem"
+	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/schema"
 )
 

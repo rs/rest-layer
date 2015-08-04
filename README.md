@@ -76,7 +76,7 @@ REST Layer is an opinionated framework. Unlike many web frameworks, you don't di
 
 ### Storage Handlers
 
-- [x] Memory (test only)
+- [x] [Memory](http://github.com/rs/rest-layer-mem) (test only)
 - [ ] MongoDB
 - [ ] ElasticSearch
 - [ ] Redis
@@ -94,7 +94,7 @@ import (
 
 	"github.com/rs/cors"
 	"github.com/rs/rest-layer"
-	"github.com/rs/rest-layer/mem"
+	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/schema"
 )
 
