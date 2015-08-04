@@ -27,6 +27,14 @@ type Field struct {
 	OnUpdate *func(value interface{}) interface{}
 	// Validator is used to validate the field's format.
 	Validator FieldValidator
+	// Filterable defines that the field can be used with the `filter` parameter.
+	// When this property is set to `true`, you may want to ensure the backend
+	// database has this field indexed.
+	Filterable bool
+	// Sortable defines that the field can be used with the `sort` paramter.
+	// When this property is set to `true`, you may want to ensure the backend
+	// database has this field indexed.
+	Sortable bool
 	// Schema can be set to a sub-schema to allow multi-level schema.
 	Schema *Schema
 }

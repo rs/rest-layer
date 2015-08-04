@@ -43,8 +43,12 @@ func (l *Lookup) SetSort(sort string, validator schema.Validator) error {
 			i = 1
 		}
 		// Make sure the field exists
-		if field := validator.GetField(f[i:]); field == nil {
+		field := validator.GetField(f[i:])
+		if field == nil {
 			return fmt.Errorf("invalid sort field: %s", f[i:])
+		}
+		if !field.Sortable {
+			return fmt.Errorf("field is not sortable: %s", f[i:])
 		}
 		sorts = append(sorts, f)
 	}

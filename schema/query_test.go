@@ -47,11 +47,18 @@ func TestParseQuery(t *testing.T) {
 	var err error
 	s := Schema{
 		"foo": Field{
+			Filterable: true,
 			Schema: &Schema{
-				"bar": Field{Validator: String{}},
+				"bar": Field{
+					Validator:  String{},
+					Filterable: true,
+				},
 			},
 		},
-		"baz": Field{Validator: Integer{}},
+		"baz": Field{
+			Validator:  Integer{},
+			Filterable: true,
+		},
 	}
 	q, err = ParseQuery("{\"foo\": \"bar\"}", s)
 	assert.NoError(t, err)
@@ -73,6 +80,18 @@ func TestParseQuery(t *testing.T) {
 	assert.Equal(t, Query{"foo": Query{"$in": []interface{}{"bar", "baz"}}}, q)
 }
 
+func TestParseQueryUnfilterableField(t *testing.T) {
+	var err error
+	s := Schema{
+		"foo": Field{
+			Filterable: false,
+			Validator:  String{},
+		},
+	}
+	_, err = ParseQuery("{\"foo\": \"bar\"}", s)
+	assert.EqualError(t, err, "field is not filterable: foo")
+}
+
 func TestParseQueryUnknownField(t *testing.T) {
 	var err error
 	s := Schema{}
@@ -89,8 +108,8 @@ func TestParseQueryUnknownField(t *testing.T) {
 func TestQueryInvalidType(t *testing.T) {
 	var err error
 	s := Schema{
-		"foo": Field{Validator: String{}},
-		"bar": Field{Validator: Integer{}},
+		"foo": Field{Validator: String{}, Filterable: true},
+		"bar": Field{Validator: Integer{}, Filterable: true},
 	}
 	_, err = ParseQuery("{", s)
 	assert.EqualError(t, err, "must be a JSON object")
@@ -123,8 +142,8 @@ func TestQueryInvalidType(t *testing.T) {
 func TestParseQueryInvalidHierarchy(t *testing.T) {
 	var err error
 	s := Schema{
-		"foo": Field{Validator: String{}},
-		"bar": Field{Validator: Integer{}},
+		"foo": Field{Validator: String{}, Filterable: true},
+		"bar": Field{Validator: Integer{}, Filterable: true},
 	}
 	_, err = ParseQuery("{\"foo\": {\"bar\": 1}}", s)
 	assert.EqualError(t, err, "foo: invalid expression")
@@ -139,8 +158,8 @@ func TestParseQueryInvalidHierarchy(t *testing.T) {
 func TestQueryMatch(t *testing.T) {
 	var q Query
 	s := Schema{
-		"foo": Field{Validator: String{}},
-		"bar": Field{Validator: Integer{}},
+		"foo": Field{Validator: String{}, Filterable: true},
+		"bar": Field{Validator: Integer{}, Filterable: true},
 	}
 	q, _ = ParseQuery("{\"foo\": \"bar\"}", s)
 	assert.True(t, q.Match(map[string]interface{}{"foo": "bar"}))

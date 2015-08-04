@@ -110,20 +110,28 @@ var (
 			// The schema.NewID hook is a provided hook to generate a
 			// unique id when no value is provided.
 			OnInit: &schema.NewID,
+			// The Filterable and Sortable allows usage of filter and sort
+			// on this field in requests.
+			Filterable: true,
+			Sortable:   true,
 			Validator: &schema.String{
 				Regexp: "^[0-9a-f]{32}$",
 			},
 		},
 		"created": schema.Field{
-			Required:  true,
-			ReadOnly:  true,
-			OnInit:    &schema.Now,
-			Validator: &schema.Time{},
+			Required:   true,
+			ReadOnly:   true,
+			Filterable: true,
+			Sortable:   true,
+			OnInit:     &schema.Now,
+			Validator:  &schema.Time{},
 		},
 		"updated": schema.Field{
-			Required: true,
-			ReadOnly: true,
-			OnInit:   &schema.Now,
+			Required:   true,
+			ReadOnly:   true,
+			Filterable: true,
+			Sortable:   true,
+			OnInit:     &schema.Now,
 			// The OnUpdate hook is called when the item is edited. Here we use
 			// provided Now hook which just return the current time.
 			OnUpdate:  &schema.Now,
@@ -131,7 +139,8 @@ var (
 		},
 		// Define a name field as required with a string validator
 		"name": schema.Field{
-			Required: true,
+			Required:   true,
+			Filterable: true,
 			Validator: &schema.String{
 				MaxLen: 150,
 			},
@@ -148,13 +157,15 @@ var (
 		// See bellow, the content of this field is enforced by the fact
 		// that posts is a sub-resource of users.
 		"user": schema.Field{
-			Required: true,
+			Required:   true,
+			Filterable: true,
 			Validator: &schema.Reference{
 				Path: "users",
 			},
 		},
 		"public": schema.Field{
-			Validator: &schema.Bool{},
+			Filterable: true,
+			Validator:  &schema.Bool{},
 		},
 		// Sub-documents are handled via a sub-schema
 		"meta": schema.Field{
@@ -386,15 +397,17 @@ For REST Layer to be able to expose resources, you have to first define what fie
 
 Resource field configuration is performed thru the [schema](https://godoc.org/github.com/rs/rest-layer/schema) package. A schema is a map of field name pointing to field definition. The field definition contains the following properties:
 
-| Property    | Description
-| ----------- | -------------
-| `Required`  | If `true`, the field must be provided when the resource is created and can't be set to `null`. The client may be` able` to omit a required field if a `Default` or a hook sets its content.
-| `ReadOnly`  | If `true`, the field can not be set by the client, only a `Default` or a hook can alter its value. You may specify a value for a read-only field in your mutation request if the value is equal to the old value, REST Layer won't complain about it. This let your client to `PUT` the same document it `GET` without having to take care of removing read-only fields.
-| `Default`   | The value to be set when resource is created and the client didn't provided a value for the field. The content of` this` variable must still pass validation.
-| `OnInit`    | A function to be executed when the resource is created. The function gets the current value of the field (a`fter` `Default` has been set if any) and returns the new value to be set.
-| `OnUpdate`  | A function to be executed when the resource is updated. The function gets the current (updated) value of the fi`eld` and returns the new value to be set.
-| `Validator` | A `schema.FieldValidator` to validate the content of the field.
-| `Schema`    | An optional sub schema to validate hierarchical documents.
+| Property     | Description
+| ------------ | -------------
+| `Required`   | If `true`, the field must be provided when the resource is created and can't be set to `null`. The client may be able to omit a required field if a `Default` or a hook sets its content.
+| `ReadOnly`   | If `true`, the field can not be set by the client, only a `Default` or a hook can alter its value. You may specify a value for a read-only field in your mutation request if the value is equal to the old value, REST Layer won't complain about it. This let your client to `PUT` the same document it `GET` without having to take care of removing read-only fields.
+| `Default`    | The value to be set when resource is created and the client didn't provide a value for the field. The content of` this` variable must still pass validation.
+| `OnInit`     | A function to be executed when the resource is created. The function gets the current value of the field (a`fter` `Default` has been set if any) and returns the new value to be set.
+| `OnUpdate`   | A function to be executed when the resource is updated. The function gets the current (updated) value of the fi`eld` and returns the new value to be set.
+| `Validator`  | A `schema.FieldValidator` to validate the content of the field.
+| `Filterable` | If `true`, the field can be used with the `filter` parameter. You may want to ensure the backend database has this field indexed when enabled.
+| `Sortable`   | If `true`, the field can be used with the `sort` parameter. You may want to ensure the backend database has this field indexed when enabled.
+| `Schema`     | An optional sub schema to validate hierarchical documents.
 
 REST Layer comes with a set of validators. You can add your own by implementing the `schema.FieldValidator` interface. Here is the list of provided validators:
 
@@ -440,6 +453,7 @@ post = schema.Schema{
 	// that posts is a sub-resource of users.
 	"user": schema.Field{
 		Required: true,
+		Filterable: true,
 		Validator: &schema.Reference{
 			Path: "users",
 		},
@@ -533,6 +547,8 @@ When performing a `GET` on `/posts/:post_id/comments`, it is like adding the fil
 
 To filter resources, use the `filter` query-string parameter. The format of the parameter is inspired the [MongoDB query format](http://docs.mongodb.org/manual/tutorial/query-documents/). The `filter` parameter can be used with `GET` and `DELETE` methods on collection URLs.
 
+To use a resource field with the `filter` parameter, the field must be defined on the resource and the `Filterable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
+
 To specify equality condition, use the query `{<field>: <value>}` to select all items with `<field>` equal `<value>`. REST Layer will complain with a `422` HTTP error if any field queried is not defined in the resource schema or is using an operator incompatible with field type (i.e.: `$lt` on a string field).
 
 A query can specify conditions for more than one field. Implicitly, a logical `AND` conjunction connects the clauses so that the query selects the items that match all the conditions.
@@ -564,6 +580,8 @@ The following numeric comparisons operators are supported: `$lt`, `$lte`, `$gt`,
 ## Sorting
 
 Sorting is of resource items is defined thru the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (,). To invert a field's sort, you can prefix it's with a minus (-) character.
+
+To use a resource field with the `filter` parameter, the field must be defined on the resource and the `Sortable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
 
 Here we sort the result by ascending quantity and descending date:
 

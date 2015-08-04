@@ -29,9 +29,11 @@ var (
 
 	// IDField is a common schema field configuration that generate an UUID for new item id.
 	IDField = Field{
-		Required: true,
-		ReadOnly: true,
-		OnInit:   &NewID,
+		Required:   true,
+		ReadOnly:   true,
+		OnInit:     &NewID,
+		Filterable: true,
+		Sortable:   true,
 		Validator: &String{
 			Regexp: "^[0-9a-f]{32}$",
 		},
@@ -43,6 +45,7 @@ var (
 		Required:  true,
 		ReadOnly:  true,
 		OnInit:    &Now,
+		Sortable:  true,
 		Validator: &Time{},
 	}
 
@@ -53,6 +56,7 @@ var (
 		ReadOnly:  true,
 		OnInit:    &Now,
 		OnUpdate:  &Now,
+		Sortable:  true,
 		Validator: &Time{},
 	}
 )

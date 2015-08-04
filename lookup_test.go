@@ -18,11 +18,12 @@ func TestLookupSetSort(t *testing.T) {
 	l := NewLookup()
 	s := schema.Schema{
 		"foo": schema.Field{
+			Sortable: true,
 			Schema: &schema.Schema{
-				"bar": schema.Field{},
+				"bar": schema.Field{Sortable: true},
 			},
 		},
-		"baz": schema.Field{},
+		"baz": schema.Field{Sortable: true},
 	}
 	err = l.SetSort("foo", s)
 	assert.NoError(t, err)
@@ -35,10 +36,18 @@ func TestLookupSetSort(t *testing.T) {
 	assert.Equal(t, []string{"foo.bar", "-baz"}, l.Sort)
 }
 
+func TestLookupSetSortUnsortableField(t *testing.T) {
+	var err error
+	l := NewLookup()
+	s := schema.Schema{"foo": schema.Field{Sortable: false}}
+	err = l.SetSort("foo", s)
+	assert.EqualError(t, err, "field is not sortable: foo")
+}
+
 func TestLookupSetSortInvalidField(t *testing.T) {
 	var err error
 	l := NewLookup()
-	s := schema.Schema{"foo": schema.Field{}}
+	s := schema.Schema{"foo": schema.Field{Sortable: true}}
 	err = l.SetSort("bar", s)
 	assert.EqualError(t, err, "invalid sort field: bar")
 	err = l.SetSort("", s)
@@ -54,11 +63,18 @@ func TestLookupSetFilter(t *testing.T) {
 	l := NewLookup()
 	s := schema.Schema{
 		"foo": schema.Field{
+			Filterable: true,
 			Schema: &schema.Schema{
-				"bar": schema.Field{Validator: schema.String{}},
+				"bar": schema.Field{
+					Validator:  schema.String{},
+					Filterable: true,
+				},
 			},
 		},
-		"baz": schema.Field{Validator: schema.Integer{}},
+		"baz": schema.Field{
+			Validator:  schema.Integer{},
+			Filterable: true,
+		},
 	}
 	err = l.SetFilter("{\"foo\": \"bar\"}", s)
 	assert.NoError(t, err)
@@ -70,8 +86,14 @@ func TestLookupSetFilter(t *testing.T) {
 func TestLookupMatch(t *testing.T) {
 	l := NewLookup()
 	s := schema.Schema{
-		"foo": schema.Field{Validator: schema.String{}},
-		"bar": schema.Field{Validator: schema.Integer{}},
+		"foo": schema.Field{
+			Validator:  schema.String{},
+			Filterable: true,
+		},
+		"bar": schema.Field{
+			Validator:  schema.Integer{},
+			Filterable: true,
+		},
 	}
 	l.SetFilter("{\"foo\": \"bar\"}", s)
 	assert.True(t, l.Match(map[string]interface{}{"foo": "bar"}))

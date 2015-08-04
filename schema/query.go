@@ -48,8 +48,6 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 						return fmt.Errorf("invalid query expression for field `%s': %s", parentKey, err)
 					}
 				}
-			} else {
-				return fmt.Errorf("unknown query field: %s", parentKey)
 			}
 		case "$gt", "$gte", "$lt", "$lte":
 			op := key
@@ -70,8 +68,6 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 						return fmt.Errorf("%s: cannot apply %s operation on a non numerical field", parentKey, op)
 					}
 				}
-			} else {
-				return fmt.Errorf("unknown query field: %s", parentKey)
 			}
 		case "$in", "$nin":
 			op := key
@@ -93,8 +89,6 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 						}
 					}
 				}
-			} else {
-				return fmt.Errorf("unknown query field: %s", parentKey)
 			}
 		case "$or":
 			var subQueries []interface{}
@@ -118,7 +112,14 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 			}
 			q[key] = castedExp
 		default:
-			// Exact match
+			// Field query
+			field := validator.GetField(key)
+			if field == nil {
+				return fmt.Errorf("unknown query field: %s", key)
+			}
+			if !field.Filterable {
+				return fmt.Errorf("field is not filterable: %s", key)
+			}
 			if parentKey != "" {
 				return fmt.Errorf("%s: invalid expression", parentKey)
 			}
@@ -129,14 +130,11 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 				// Cast map to Query object
 				q[key] = Query(subQuery)
 			} else {
-				if field := validator.GetField(key); field != nil {
-					if field.Validator != nil {
-						if _, err := field.Validator.Validate(exp); err != nil {
-							return fmt.Errorf("invalid query expression for field `%s': %s", key, err)
-						}
+				// Exact match
+				if field.Validator != nil {
+					if _, err := field.Validator.Validate(exp); err != nil {
+						return fmt.Errorf("invalid query expression for field `%s': %s", key, err)
 					}
-				} else {
-					return fmt.Errorf("unknown query field: %s", key)
 				}
 			}
 		}
