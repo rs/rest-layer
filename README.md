@@ -724,3 +724,31 @@ If the the operation not immediate, the method must listen for cancellation on t
 See [rest.ResourceHandler](https://godoc.org/github.com/rs/rest-layer#ResourceHandler) documentation for more information on resource handler implementation details.
 
 ## Custom Response Sender
+
+REST Layer let you extend or replace the default response sender. To write a new response sender, you need to implement the `rest.ResponseSender` interface:
+
+```go
+type ResponseSender interface {
+	Send(w http.ResponseWriter, status int, data interface{})
+	SendError(w http.ResponseWriter, err error, skipBody bool)
+	SendItem(w http.ResponseWriter, status int, i *Item, skipBody bool)
+	SendList(w http.ResponseWriter, l *ItemList, skipBody bool)
+}
+```
+
+Then set you response sender on the REST Layer HTTP handler like this:
+
+```go
+api, _ := rest.NewHandler(root)
+api.ResponseSender = &myResponseSender{}
+```
+
+You may also extend the `DefaultResponseSender` if you just want to wrap or sligly modify the default behavior:
+
+```go
+type myResponseSender {
+	DefaultResponseSender
+}
+
+// Overwrite methods you want to extend
+```
