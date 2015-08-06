@@ -33,7 +33,7 @@ func (r *request) listPost(ctx context.Context, route route) {
 		return
 	}
 	// TODO: add support for batch insert
-	if err := route.resource.handler.Insert([]*Item{item}, ctx); err != nil {
+	if err := route.resource.handler.Insert(ctx, []*Item{item}); err != nil {
 		r.sendError(err)
 		return
 	}

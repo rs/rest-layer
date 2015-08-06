@@ -106,7 +106,7 @@ func (r *request) checkReferences(ctx context.Context, payload map[string]interf
 					return &Error{500, fmt.Sprintf("Invalid resource reference for field `%s': %s", name, ref.Path), nil}
 				}
 				lookup := Lookup{Filter: schema.Query{"id": value}}
-				list, _ := resource.handler.Find(&lookup, 1, 1, ctx)
+				list, _ := resource.handler.Find(ctx, &lookup, 1, 1)
 				if len(list.Items) == 0 {
 					return &Error{404, fmt.Sprintf("Resource reference not found for field `%s'", name), nil}
 				}

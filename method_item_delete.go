@@ -8,7 +8,7 @@ func (r *request) itemDelete(ctx context.Context, route route) {
 	if err != nil {
 		r.sendError(err)
 	}
-	l, err := route.resource.handler.Find(lookup, 1, 1, ctx)
+	l, err := route.resource.handler.Find(ctx, lookup, 1, 1)
 	if err != nil {
 		r.sendError(err)
 		return
@@ -23,7 +23,7 @@ func (r *request) itemDelete(ctx context.Context, route route) {
 		r.sendError(err)
 		return
 	}
-	if err := route.resource.handler.Delete(original, ctx); err != nil {
+	if err := route.resource.handler.Delete(ctx, original); err != nil {
 		r.sendError(err)
 	} else {
 		r.send(204, map[string]interface{}{})

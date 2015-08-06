@@ -12,7 +12,7 @@ func (r *request) listDelete(ctx context.Context, route route) {
 	if err != nil {
 		r.sendError(err)
 	}
-	if total, err := route.resource.handler.Clear(lookup, ctx); err != nil {
+	if total, err := route.resource.handler.Clear(ctx, lookup); err != nil {
 		r.sendError(err)
 	} else {
 		r.res.Header().Set("X-Total", strconv.FormatInt(int64(total), 10))

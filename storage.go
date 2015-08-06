@@ -15,7 +15,7 @@ type ResourceHandler interface {
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the rest.ContextError() with the ctx.Err() as
 	// argument.
-	Find(lookup *Lookup, page, perPage int, ctx context.Context) (*ItemList, *Error)
+	Find(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, *Error)
 	// Insert stores new items in the backend store. If any of the items does already exist,
 	// no item should be inserted and a rest.ConflictError must be returned. The insertion
 	// of the items must be performed atomically. If more than one item is provided and the
@@ -26,7 +26,7 @@ type ResourceHandler interface {
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the rest.ContextError() with the ctx.Err() as
 	// argument.
-	Insert(items []*Item, ctx context.Context) *Error
+	Insert(ctx context.Context, items []*Item) *Error
 	// Update replace an item in the backend store by a new version. The ResourceHandler must
 	// ensure that the original item exists in the database and has the same Etag field.
 	// This check should be performed atomically. If the original item is not
@@ -41,7 +41,7 @@ type ResourceHandler interface {
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the rest.ContextError() with the ctx.Err() as
 	// argument.
-	Update(item *Item, original *Item, ctx context.Context) *Error
+	Update(ctx context.Context, item *Item, original *Item) *Error
 	// Delete deletes the provided item by its ID. The Etag of the item stored in the
 	// backend store must match the Etag of the provided item or a rest.ConflictError
 	// must be returned. This check should be performed atomically.
@@ -53,7 +53,7 @@ type ResourceHandler interface {
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the rest.ContextError() with the ctx.Err() as
 	// argument.
-	Delete(item *Item, ctx context.Context) *Error
+	Delete(ctx context.Context, item *Item) *Error
 	// Clear removes all items maching the lookup. When possible, the number of items
 	// removed is returned, otherwise -1 is return as the first value.
 	//
@@ -61,5 +61,5 @@ type ResourceHandler interface {
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the rest.ContextError() with the ctx.Err() as
 	// argument.
-	Clear(lookup *Lookup, ctx context.Context) (int, *Error)
+	Clear(ctx context.Context, lookup *Lookup) (int, *Error)
 }

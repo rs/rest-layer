@@ -17,7 +17,7 @@ func (r *request) itemPut(ctx context.Context, route route) {
 	}
 	// Fetch original item if exist (PUT can be used to create a document with a manual id)
 	var original *Item
-	if l, err := route.resource.handler.Find(lookup, 1, 1, ctx); err != nil && err != NotFoundError {
+	if l, err := route.resource.handler.Find(ctx, lookup, 1, 1); err != nil && err != NotFoundError {
 		r.sendError(err)
 		return
 	} else if len(l.Items) == 1 {
@@ -78,12 +78,12 @@ func (r *request) itemPut(ctx context.Context, route route) {
 	// supposed check the original etag before storing when an original object
 	// is provided.
 	if original != nil {
-		if err := route.resource.handler.Update(item, original, ctx); err != nil {
+		if err := route.resource.handler.Update(ctx, item, original); err != nil {
 			r.sendError(err)
 			return
 		}
 	} else {
-		if err := route.resource.handler.Insert([]*Item{item}, ctx); err != nil {
+		if err := route.resource.handler.Insert(ctx, []*Item{item}); err != nil {
 			r.sendError(err)
 			return
 		}

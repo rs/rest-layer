@@ -17,7 +17,7 @@ func (r *request) itemPatch(ctx context.Context, route route) {
 	}
 	// Get original item if any
 	var original *Item
-	if l, err := route.resource.handler.Find(lookup, 1, 1, ctx); err != nil {
+	if l, err := route.resource.handler.Find(ctx, lookup, 1, 1); err != nil {
 		// If item can't be fetch, return an error
 		r.sendError(err)
 		return
@@ -55,7 +55,7 @@ func (r *request) itemPatch(ctx context.Context, route route) {
 	// handler to ensure the stored document didn't change between in the
 	// interval. An PreconditionFailedError will be thrown in case of race condition
 	// (i.e.: another thread modified the document between the Find() and the Store())
-	if err := route.resource.handler.Update(item, original, ctx); err != nil {
+	if err := route.resource.handler.Update(ctx, item, original); err != nil {
 		r.sendError(err)
 	} else {
 		r.sendItem(200, item)

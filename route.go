@@ -33,10 +33,6 @@ func findRoute(ctx context.Context, path string, resources map[string]*subResour
 	// Split the path into path components
 	c := strings.Split(strings.Trim(path, "/"), "/")
 
-	if len(c) == 0 {
-		return nil
-	}
-
 	// Shift the resource name from the path components
 	name, c := c[0], c[1:]
 
@@ -57,7 +53,7 @@ func findRoute(ctx context.Context, path string, resources map[string]*subResour
 					// Check if the item exists before going farther
 					q := schema.NewQuery(route.fields)
 					q["id"] = id
-					l, err := resource.handler.Find(&Lookup{Filter: q}, 1, 1, ctx)
+					l, err := resource.handler.Find(ctx, &Lookup{Filter: q}, 1, 1)
 					if err != nil {
 						return err
 					} else if len(l.Items) == 0 {

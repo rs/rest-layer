@@ -42,7 +42,7 @@ func (r *request) listGet(ctx context.Context, route route) {
 		r.sendError(err)
 		return
 	}
-	list, err := route.resource.handler.Find(lookup, page, perPage, ctx)
+	list, err := route.resource.handler.Find(ctx, lookup, page, perPage)
 	if err != nil {
 		r.sendError(err)
 		return

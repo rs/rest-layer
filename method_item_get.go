@@ -12,7 +12,7 @@ func (r *request) itemGet(ctx context.Context, route route) {
 	if err != nil {
 		r.sendError(err)
 	}
-	l, err := route.resource.handler.Find(lookup, 1, 1, ctx)
+	l, err := route.resource.handler.Find(ctx, lookup, 1, 1)
 	if err != nil {
 		r.sendError(err)
 		return
