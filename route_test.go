@@ -16,19 +16,19 @@ type mockHandler struct {
 	err   *Error
 }
 
-func (m *mockHandler) Insert(items []*Item, ctx context.Context) *Error {
+func (m *mockHandler) Insert(ctx context.Context, items []*Item) *Error {
 	return NotImplementedError
 }
-func (m *mockHandler) Update(item *Item, original *Item, ctx context.Context) *Error {
+func (m *mockHandler) Update(ctx context.Context, item *Item, original *Item) *Error {
 	return NotImplementedError
 }
-func (m *mockHandler) Delete(item *Item, ctx context.Context) *Error {
+func (m *mockHandler) Delete(ctx context.Context, item *Item) *Error {
 	return NotImplementedError
 }
-func (m *mockHandler) Clear(lookup *Lookup, ctx context.Context) (int, *Error) {
+func (m *mockHandler) Clear(ctx context.Context, lookup *Lookup) (int, *Error) {
 	return 0, NotImplementedError
 }
-func (m *mockHandler) Find(lookup *Lookup, page, perPage int, ctx context.Context) (*ItemList, *Error) {
+func (m *mockHandler) Find(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, *Error) {
 	if m.err != nil {
 		return nil, m.err
 	}
