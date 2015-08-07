@@ -86,12 +86,16 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	skipBody := r.Method == "HEAD"
 	ctx, err := h.getContext(w, r)
 	if err != nil {
-		h.ResponseSender.SendError(context.Background(), w, err.Code, err, skipBody)
+		headers := http.Header{}
+		ctx, body := h.ResponseSender.SendError(context.Background(), headers, err, skipBody)
+		h.ResponseSender.Send(ctx, w, err.Code, headers, body)
 		return
 	}
 	route, err := h.router.FindRoute(ctx, r)
 	if err != nil {
-		h.ResponseSender.SendError(ctx, w, err.Code, err, skipBody)
+		headers := http.Header{}
+		ctx, body := h.ResponseSender.SendError(ctx, headers, err, skipBody)
+		h.ResponseSender.Send(ctx, w, err.Code, headers, body)
 		return
 	}
 	// Store the route and the router in the context
@@ -100,28 +104,29 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx, status, headers, res := h.callMiddlewares(ctx, r, func(ctx context.Context) (context.Context, int, http.Header, interface{}) {
 		status, headers, body := processRequest(ctx, route, &request{r})
+		if headers == nil {
+			headers = http.Header{}
+		}
 		return ctx, status, headers, body
 	})
-	// Apply returned headers to the response
-	for key, values := range headers {
-		for _, value := range values {
-			w.Header().Set(key, value)
-		}
-	}
-	// Route the type of response on the right response sender method
+	// Route the type of response on the right response sender method for
+	// internally supported types.
+	var body interface{}
 	switch res := res.(type) {
 	case *Item:
-		h.ResponseSender.SendItem(ctx, w, status, res, skipBody)
+		ctx, body = h.ResponseSender.SendItem(ctx, headers, res, skipBody)
 	case *ItemList:
-		h.ResponseSender.SendList(ctx, w, status, res, skipBody)
+		ctx, body = h.ResponseSender.SendList(ctx, headers, res, skipBody)
 	case *Error:
-		h.ResponseSender.SendError(ctx, w, status, res, skipBody)
+		ctx, body = h.ResponseSender.SendError(ctx, headers, res, skipBody)
 	case error:
-		h.ResponseSender.SendError(ctx, w, status, res, skipBody)
+		ctx, body = h.ResponseSender.SendError(ctx, headers, res, skipBody)
 	default:
 		// Let the response handler handle all other types of responses.
 		// Even if the default response sender doesn't know how to handle
 		// a type, nothing prevents a custom response sender from handling it.
-		h.ResponseSender.Send(ctx, w, status, res)
+		body = res
 	}
+	// Send the ResponseWriter
+	h.ResponseSender.Send(ctx, w, status, headers, body)
 }

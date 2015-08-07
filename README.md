@@ -728,11 +728,17 @@ See [rest.ResourceHandler](https://godoc.org/github.com/rs/rest-layer#ResourceHa
 REST Layer let you extend or replace the default response sender. To write a new response sender, you need to implement the `rest.ResponseSender` interface:
 
 ```go
+// ResponseSender defines an interface responsible for formating, serializing and sending the response
+// to the http.ResponseWriter.
 type ResponseSender interface {
-	Send(w http.ResponseWriter, status int, data interface{})
-	SendError(w http.ResponseWriter, err error, skipBody bool)
-	SendItem(w http.ResponseWriter, status int, i *Item, skipBody bool)
-	SendList(w http.ResponseWriter, l *ItemList, skipBody bool)
+	// Send serialize the body, sets the given headers and write everything to the provided response writer
+	Send(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, body interface{})
+	// SendError formats a REST formated error or a simple error in a format ready to be serialized by Send
+	SendError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{})
+	// SendItem formats a single item in a format ready to be serialized by Send
+	SendItem(ctx context.Context, headers http.Header, i *rest.Item, skipBody bool) (context.Context, interface{})
+	// SendItem formats a list of items in a format ready to be serialized by Send
+	SendList(ctx context.Context, headers http.Header, l *rest.ItemList, skipBody bool) (context.Context, interface{})
 }
 ```
 
@@ -746,13 +752,22 @@ api.ResponseSender = &myResponseSender{}
 You may also extend the `DefaultResponseSender` if you just want to wrap or sligly modify the default behavior:
 
 ```go
-type myResponseSender {
-	DefaultResponseSender
+type myResponseSender struct {
+	rest.DefaultResponseSender
 }
 
-// Overwrite methods you want to extend
+// Add a wrapper around the list with pagination info
+func (r myResponseSender) SendList(ctx context.Context, headers http.Header, l *rest.ItemList, skipBody bool) (context.Context, interface{}) {
+	ctx, data := r.DefaultResponseSender.SendList(ctx, headers, l, skipBody)
+	return ctx, map[string]interface{}{
+		"meta": map[string]int{
+			"total": l.Total,
+			"page":  l.Page,
+		},
+		"list": data,
+	}
+}
 ```
-
 
 ## Middleware
 
