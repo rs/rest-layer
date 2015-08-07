@@ -1,31 +1,31 @@
 package rest
 
-import "golang.org/x/net/context"
+import (
+	"net/http"
+
+	"golang.org/x/net/context"
+)
 
 // itemDelete handles DELETE resquests on an item URL
-func (r *request) itemDelete(ctx context.Context, route route) {
-	lookup, err := route.lookup()
+func (r *request) itemDelete(ctx context.Context, route RouteMatch) (status int, headers http.Header, body interface{}) {
+	lookup, err := route.Lookup()
 	if err != nil {
-		r.sendError(err)
+		return err.Code, nil, err
 	}
-	l, err := route.resource.handler.Find(ctx, lookup, 1, 1)
+	l, err := route.Resource().handler.Find(ctx, lookup, 1, 1)
 	if err != nil {
-		r.sendError(err)
-		return
+		return err.Code, nil, err
 	}
 	if len(l.Items) == 0 {
-		r.sendError(NotFoundError)
-		return
+		return NotFoundError.Code, nil, NotFoundError
 	}
 	original := l.Items[0]
 	// If-Match / If-Unmodified-Since handling
 	if err := r.checkIntegrityRequest(original); err != nil {
-		r.sendError(err)
-		return
+		return err.Code, nil, err
 	}
-	if err := route.resource.handler.Delete(ctx, original); err != nil {
-		r.sendError(err)
-	} else {
-		r.send(204, map[string]interface{}{})
+	if err := route.Resource().handler.Delete(ctx, original); err != nil {
+		return err.Code, nil, err
 	}
+	return 204, nil, nil
 }

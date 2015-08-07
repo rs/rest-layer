@@ -35,7 +35,7 @@ func TestNewHandler(t *testing.T) {
 	h, err := NewHandler(r)
 	assert.NoError(t, err)
 	assert.Equal(t, DefaultResponseSender{}, h.ResponseSender)
-	assert.Equal(t, r, h.root)
+	assert.Equal(t, r, h.router)
 }
 
 func TestNewHandlerNoCompile(t *testing.T) {

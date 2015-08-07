@@ -1,40 +1,36 @@
 package rest
 
 import (
+	"net/http"
 	"time"
 
 	"golang.org/x/net/context"
 )
 
 // itemGet handles GET and HEAD resquests on an item URL
-func (r *request) itemGet(ctx context.Context, route route) {
-	lookup, err := route.lookup()
+func (r *request) itemGet(ctx context.Context, route RouteMatch) (status int, headers http.Header, body interface{}) {
+	lookup, err := route.Lookup()
 	if err != nil {
-		r.sendError(err)
+		return err.Code, nil, err
 	}
-	l, err := route.resource.handler.Find(ctx, lookup, 1, 1)
+	l, err := route.Resource().handler.Find(ctx, lookup, 1, 1)
 	if err != nil {
-		r.sendError(err)
-		return
+		return err.Code, nil, err
 	} else if len(l.Items) == 0 {
-		r.sendError(NotFoundError)
-		return
+		return NotFoundError.Code, nil, NotFoundError
 	}
 	item := l.Items[0]
 	// Handle conditional request: If-None-Match
 	if r.req.Header.Get("If-None-Match") == item.Etag {
-		r.send(304, nil)
-		return
+		return 304, nil, nil
 	}
 	// Handle conditional request: If-Modified-Since
 	if r.req.Header.Get("If-Modified-Since") != "" {
 		if ifModTime, err := time.Parse(time.RFC1123, r.req.Header.Get("If-Modified-Since")); err != nil {
-			r.sendError(&Error{400, "Invalid If-Modified-Since header", nil})
-			return
+			return 400, nil, &Error{400, "Invalid If-Modified-Since header", nil}
 		} else if item.Updated.Equal(ifModTime) || item.Updated.Before(ifModTime) {
-			r.send(304, nil)
-			return
+			return 304, nil, nil
 		}
 	}
-	r.sendItem(200, item)
+	return 200, nil, item
 }

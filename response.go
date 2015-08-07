@@ -15,11 +15,11 @@ type ResponseSender interface {
 	// Send sends headers with the given status and marshal the data in JSON
 	Send(w http.ResponseWriter, status int, data interface{})
 	// SendError writes a REST formated error on the http.ResponseWriter
-	SendError(w http.ResponseWriter, err error, skipBody bool)
+	SendError(w http.ResponseWriter, status int, err error, skipBody bool)
 	// SendItem sends a single item REST response on http.ResponseWriter
 	SendItem(w http.ResponseWriter, status int, i *Item, skipBody bool)
 	// SendList sends a list of items as REST response on http.ResponseWriter.
-	SendList(w http.ResponseWriter, l *ItemList, skipBody bool)
+	SendList(w http.ResponseWriter, status int, l *ItemList, skipBody bool)
 }
 
 // DefaultResponseSender provides a base response sender to be used by default. This sender can
@@ -46,8 +46,8 @@ func (s DefaultResponseSender) Send(w http.ResponseWriter, status int, data inte
 }
 
 // SendError writes a REST formated error on the http.ResponseWriter
-func (s DefaultResponseSender) SendError(w http.ResponseWriter, err error, skipBody bool) {
-	code := 500
+func (s DefaultResponseSender) SendError(w http.ResponseWriter, status int, err error, skipBody bool) {
+	code := status
 	message := "Server Error"
 	if err != nil {
 		message = err.Error()
@@ -55,7 +55,7 @@ func (s DefaultResponseSender) SendError(w http.ResponseWriter, err error, skipB
 			code = e.Code
 		}
 	}
-	if code >= 500 {
+	if status >= 500 {
 		log.Print(err.Error())
 	}
 	if !skipBody {
@@ -68,9 +68,9 @@ func (s DefaultResponseSender) SendError(w http.ResponseWriter, err error, skipB
 				payload["issues"] = e.Issues
 			}
 		}
-		s.Send(w, code, payload)
+		s.Send(w, status, payload)
 	} else {
-		s.Send(w, code, nil)
+		s.Send(w, status, nil)
 	}
 }
 
@@ -90,7 +90,7 @@ func (s DefaultResponseSender) SendItem(w http.ResponseWriter, status int, i *It
 }
 
 // SendList sends a list of items as REST response on http.ResponseWriter
-func (s DefaultResponseSender) SendList(w http.ResponseWriter, l *ItemList, skipBody bool) {
+func (s DefaultResponseSender) SendList(w http.ResponseWriter, status int, l *ItemList, skipBody bool) {
 	if l.Total >= 0 {
 		w.Header().Set("X-Total", strconv.FormatInt(int64(l.Total), 10))
 	}
@@ -108,9 +108,9 @@ func (s DefaultResponseSender) SendList(w http.ResponseWriter, l *ItemList, skip
 			d["_etag"] = item.Etag
 			payload[i] = d
 		}
-		s.Send(w, 200, payload)
+		s.Send(w, status, payload)
 	} else {
-		s.Send(w, 200, nil)
+		s.Send(w, status, nil)
 
 	}
 }

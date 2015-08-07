@@ -1,21 +1,23 @@
 package rest
 
 import (
+	"net/http"
 	"strconv"
 
 	"golang.org/x/net/context"
 )
 
 // listDelete handles DELETE resquests on a resource URL
-func (r *request) listDelete(ctx context.Context, route route) {
-	lookup, err := route.lookup()
+func (r *request) listDelete(ctx context.Context, route RouteMatch) (status int, headers http.Header, body interface{}) {
+	lookup, err := route.Lookup()
 	if err != nil {
-		r.sendError(err)
+		return err.Code, nil, err
 	}
-	if total, err := route.resource.handler.Clear(ctx, lookup); err != nil {
-		r.sendError(err)
-	} else {
-		r.res.Header().Set("X-Total", strconv.FormatInt(int64(total), 10))
-		r.send(204, map[string]interface{}{})
+	total, err := route.Resource().handler.Clear(ctx, lookup)
+	if err != nil {
+		return err.Code, nil, err
 	}
+	headers = http.Header{}
+	headers.Set("X-Total", strconv.FormatInt(int64(total), 10))
+	return 204, headers, nil
 }

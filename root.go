@@ -31,21 +31,23 @@ func (r *RootResource) Compile() error {
 	return compileResourceGraph(r.resources)
 }
 
-// GetResource retrives a given resource by it's path.
+// GetResource retrives a given resource and its parent field identifier by it's path.
 // For instance if a resource user has a sub-resource posts,
 // a users.posts path can be use to retrieve the posts resource.
-func (r *RootResource) GetResource(path string) *Resource {
+func (r *RootResource) GetResource(path string) (*Resource, string, bool) {
 	resources := r.resources
+	field := ""
 	var resource *Resource
 	for _, comp := range strings.Split(path, ".") {
 		if subResource, found := resources[comp]; found {
 			resource = subResource.resource
+			field = subResource.field
 			resources = resource.resources
 		} else {
-			return nil
+			return nil, "", false
 		}
 	}
-	return resource
+	return resource, field, true
 }
 
 func compileResourceGraph(resources map[string]*subResource) error {

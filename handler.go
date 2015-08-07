@@ -8,12 +8,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-// resourceRouter is used to let Handler be used with a mocked RootResource for testing
-type resourceRouter interface {
-	GetResource(path string) *Resource
-	findRoute(ctx context.Context, req *http.Request) (route, *Error)
-}
-
 // Handler is an HTTP handler used to serve the configured REST API
 type Handler struct {
 	// ResponseSender can be changed to extend the DefaultResponseSender
@@ -21,8 +15,8 @@ type Handler struct {
 	// RequestTimeout is the default timeout for requests after which the whole request
 	// is abandonned. The default value is no timeout.
 	RequestTimeout time.Duration
-	// root stores the root resource
-	root resourceRouter
+	// router stores the resource router
+	router ResourceRouter
 }
 
 // NewHandler creates an new REST API HTTP handler with the specified root resource
@@ -32,7 +26,7 @@ func NewHandler(r *RootResource) (*Handler, error) {
 	}
 	h := &Handler{
 		ResponseSender: DefaultResponseSender{},
-		root:           r,
+		router:         r,
 	}
 	return h, nil
 }
@@ -87,20 +81,33 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	skipBody := r.Method == "HEAD"
 	ctx, err := h.getContext(w, r)
 	if err != nil {
-		h.ResponseSender.SendError(w, err, skipBody)
+		h.ResponseSender.SendError(w, err.Code, err, skipBody)
 		return
 	}
-	route, err := h.root.findRoute(ctx, r)
+	route, err := h.router.FindRoute(ctx, r)
 	if err != nil {
-		h.ResponseSender.SendError(w, err, skipBody)
+		h.ResponseSender.SendError(w, err.Code, err, skipBody)
 		return
 	}
-	req := &request{
-		root:     h.root,
-		req:      r,
-		res:      w,
-		s:        h.ResponseSender,
-		skipBody: skipBody,
+	// Store the route and the router in the context
+	ctx = contextWithRoute(ctx, route)
+	ctx = contextWithRouter(ctx, h.router)
+	status, headers, res := processRequest(ctx, route, &request{r})
+	for key, values := range headers {
+		for _, value := range values {
+			w.Header().Set(key, value)
+		}
 	}
-	serveRequest(ctx, route, req)
+	switch res := res.(type) {
+	case *Item:
+		h.ResponseSender.SendItem(w, status, res, skipBody)
+	case *ItemList:
+		h.ResponseSender.SendList(w, status, res, skipBody)
+	case *Error:
+		h.ResponseSender.SendError(w, status, res, skipBody)
+	case error:
+		h.ResponseSender.SendError(w, status, res, skipBody)
+	default:
+		h.ResponseSender.Send(w, status, res)
+	}
 }

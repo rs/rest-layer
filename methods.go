@@ -1,99 +1,101 @@
 package rest
 
 import (
+	"net/http"
 	"strings"
 
 	"golang.org/x/net/context"
 )
 
-// serveRequest calls the right method on a requestHandler for the given route
-func serveRequest(ctx context.Context, route route, r requestHandler) {
-	if route.resource.handler == nil {
-		r.sendError(&Error{501, "No handler defined", nil})
-		return
+// processRequest calls the right method on a requestHandler for the given route and return
+// either an Item, an ItemList, nil or an Error
+func processRequest(ctx context.Context, route RouteMatch, r requestHandler) (status int, headers http.Header, body interface{}) {
+	resource := route.Resource()
+	if resource == nil {
+		return 404, nil, &Error{404, "Resource Not Found", nil}
 	}
-	if _, found := route.fields["id"]; found {
+	if resource.handler == nil {
+		return 501, nil, &Error{501, "No handler defined", nil}
+	}
+	if id := route.ResourceID(); id != nil {
 		// Item request
-		switch route.method {
+		switch route.Method {
 		case "OPTIONS":
+			headers = http.Header{}
 			methods := []string{}
-			if route.resource.conf.isModeAllowed(Read) {
+			if resource.conf.isModeAllowed(Read) {
 				methods = append(methods, "HEAD", "GET")
 			}
-			if route.resource.conf.isModeAllowed(Create) || route.resource.conf.isModeAllowed(Replace) {
+			if resource.conf.isModeAllowed(Create) || resource.conf.isModeAllowed(Replace) {
 				methods = append(methods, "PUT")
 			}
-			if route.resource.conf.isModeAllowed(Update) {
+			if resource.conf.isModeAllowed(Update) {
 				methods = append(methods, "PATCH")
 				// See http://tools.ietf.org/html/rfc5789#section-3
-				r.setHeader("Allow-Patch", "application/json")
+				headers.Set("Allow-Patch", "application/json")
 			}
-			if route.resource.conf.isModeAllowed(Update) {
+			if resource.conf.isModeAllowed(Update) {
 				methods = append(methods, "DELETE")
 			}
-			r.setHeader("Allow", strings.Join(methods, ", "))
+			headers.Set("Allow", strings.Join(methods, ", "))
+			return 200, headers, nil
 		case "HEAD", "GET":
-			if !route.resource.conf.isModeAllowed(Read) {
-				r.sendError(InvalidMethodError)
-				return
+			if !resource.conf.isModeAllowed(Read) {
+				return InvalidMethodError.Code, nil, InvalidMethodError
 			}
-			r.itemGet(ctx, route)
+			return r.itemGet(ctx, route)
 		case "PUT":
-			if !route.resource.conf.isModeAllowed(Create) && !route.resource.conf.isModeAllowed(Replace) {
-				r.sendError(InvalidMethodError)
-				return
+			if !resource.conf.isModeAllowed(Create) && !resource.conf.isModeAllowed(Replace) {
+				return InvalidMethodError.Code, nil, InvalidMethodError
 			}
-			r.itemPut(ctx, route)
+			return r.itemPut(ctx, route)
 		case "PATCH":
-			if !route.resource.conf.isModeAllowed(Update) {
-				r.sendError(InvalidMethodError)
-				return
+			if !resource.conf.isModeAllowed(Update) {
+				return InvalidMethodError.Code, nil, InvalidMethodError
 			}
-			r.itemPatch(ctx, route)
+			return r.itemPatch(ctx, route)
 		case "DELETE":
-			if !route.resource.conf.isModeAllowed(Delete) {
-				r.sendError(InvalidMethodError)
-				return
+			if !resource.conf.isModeAllowed(Delete) {
+				return InvalidMethodError.Code, nil, InvalidMethodError
 			}
-			r.itemDelete(ctx, route)
+			return r.itemDelete(ctx, route)
 		default:
-			r.sendError(InvalidMethodError)
+			return InvalidMethodError.Code, nil, InvalidMethodError
 		}
 	} else {
 		// Collection request
-		switch route.method {
+		switch route.Method {
 		case "OPTIONS":
+			headers = http.Header{}
 			methods := []string{}
-			if route.resource.conf.isModeAllowed(List) {
+			if resource.conf.isModeAllowed(List) {
 				methods = append(methods, "HEAD", "GET")
 			}
-			if route.resource.conf.isModeAllowed(Create) {
+			if resource.conf.isModeAllowed(Create) {
 				methods = append(methods, "POST")
 			}
-			if route.resource.conf.isModeAllowed(Clear) {
+			if resource.conf.isModeAllowed(Clear) {
 				methods = append(methods, "DELETE")
 			}
-			r.setHeader("Allow", strings.Join(methods, ", "))
+			headers.Set("Allow", strings.Join(methods, ", "))
+			return 200, headers, nil
 		case "HEAD", "GET":
-			if !route.resource.conf.isModeAllowed(List) {
-				r.sendError(InvalidMethodError)
-				return
+			if !resource.conf.isModeAllowed(List) {
+				return InvalidMethodError.Code, nil, InvalidMethodError
 			}
-			r.listGet(ctx, route)
+			return r.listGet(ctx, route)
 		case "POST":
-			if !route.resource.conf.isModeAllowed(Create) {
-				r.sendError(InvalidMethodError)
-				return
+			if !resource.conf.isModeAllowed(Create) {
+				return InvalidMethodError.Code, nil, InvalidMethodError
 			}
-			r.listPost(ctx, route)
+			return r.listPost(ctx, route)
 		case "DELETE":
-			if !route.resource.conf.isModeAllowed(Clear) {
-				r.sendError(InvalidMethodError)
-				return
+			if !resource.conf.isModeAllowed(Clear) {
+				return InvalidMethodError.Code, nil, InvalidMethodError
 			}
-			r.listDelete(ctx, route)
+			return r.listDelete(ctx, route)
 		default:
-			r.sendError(InvalidMethodError)
+			return InvalidMethodError.Code, nil, InvalidMethodError
 		}
 	}
 }

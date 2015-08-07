@@ -11,47 +11,18 @@ import (
 )
 
 type requestHandler interface {
-	itemGet(ctx context.Context, route route)
-	itemPut(ctx context.Context, route route)
-	itemPatch(ctx context.Context, route route)
-	itemDelete(ctx context.Context, route route)
-	listGet(ctx context.Context, route route)
-	listPost(ctx context.Context, route route)
-	listDelete(ctx context.Context, route route)
-	setHeader(key, value string)
-	send(status int, data interface{})
-	sendError(err error)
-	sendItem(status int, i *Item)
-	sendList(l *ItemList)
+	itemGet(ctx context.Context, route RouteMatch) (int, http.Header, interface{})
+	itemPut(ctx context.Context, route RouteMatch) (int, http.Header, interface{})
+	itemPatch(ctx context.Context, route RouteMatch) (int, http.Header, interface{})
+	itemDelete(ctx context.Context, route RouteMatch) (int, http.Header, interface{})
+	listGet(ctx context.Context, route RouteMatch) (int, http.Header, interface{})
+	listPost(ctx context.Context, route RouteMatch) (int, http.Header, interface{})
+	listDelete(ctx context.Context, route RouteMatch) (int, http.Header, interface{})
 }
 
 // request handles the request life cycle
 type request struct {
-	root     resourceRouter
-	req      *http.Request
-	res      http.ResponseWriter
-	s        ResponseSender
-	skipBody bool
-}
-
-func (r *request) setHeader(key, value string) {
-	r.res.Header().Set(key, value)
-}
-
-func (r *request) send(status int, data interface{}) {
-	r.s.Send(r.res, status, data)
-}
-
-func (r *request) sendError(err error) {
-	r.s.SendError(r.res, err, r.skipBody)
-}
-
-func (r *request) sendItem(status int, i *Item) {
-	r.s.SendItem(r.res, status, i, r.skipBody)
-}
-
-func (r *request) sendList(l *ItemList) {
-	r.s.SendList(r.res, l, r.skipBody)
+	req *http.Request
 }
 
 // decodePayload decodes the payload from the provided request
@@ -101,8 +72,12 @@ func (r *request) checkReferences(ctx context.Context, payload map[string]interf
 		// Check reference if validator is of type Reference
 		if field.Validator != nil {
 			if ref, ok := field.Validator.(*schema.Reference); ok {
-				resource := r.root.GetResource(ref.Path)
-				if resource == nil {
+				router, ok := RouterFromContext(ctx)
+				if !ok {
+					return &Error{500, "Router not available in context", nil}
+				}
+				resource, _, found := router.GetResource(ref.Path)
+				if !found {
 					return &Error{500, fmt.Sprintf("Invalid resource reference for field `%s': %s", name, ref.Path), nil}
 				}
 				lookup := Lookup{Filter: schema.Query{"id": value}}
