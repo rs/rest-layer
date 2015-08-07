@@ -205,8 +205,8 @@ func main() {
 	}))
 
 	// Add a friendly alias to public posts
-	// (equivalent to /users/:user_id/posts?filter=public=true)
-	posts.Alias("public", url.Values{"filter": []string{"public=true"}})
+	// (equivalent to /users/:user_id/posts?filter={"public":true})
+	posts.Alias("public", url.Values{"filter": []string{"{\"public\"=true}"}})
 
 	// Create API HTTP handler for the resource graph
 	api, err := rest.NewHandler(root)
