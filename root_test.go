@@ -10,41 +10,51 @@ import (
 )
 
 func TestNewRootResource(t *testing.T) {
-	r := New()
-	assert.Equal(t, map[string]*subResource{}, r.resources)
+	r, ok := New().(*rootResource)
+	if assert.True(t, ok) {
+		assert.Equal(t, map[string]*subResource{}, r.resources)
+	}
 }
 
 func TestRootBind(t *testing.T) {
-	r := New()
-	r.Bind("foo", NewResource(nil, nil, DefaultConf))
-	assert.Len(t, r.resources, 1)
-	log.SetOutput(ioutil.Discard)
-	assert.Panics(t, func() {
+	r, ok := New().(*rootResource)
+	if assert.True(t, ok) {
 		r.Bind("foo", NewResource(nil, nil, DefaultConf))
-	})
+		assert.Len(t, r.resources, 1)
+		log.SetOutput(ioutil.Discard)
+		assert.Panics(t, func() {
+			r.Bind("foo", NewResource(nil, nil, DefaultConf))
+		})
+	}
 }
 
 func TestRootCompile(t *testing.T) {
-	r := New()
-	s := schema.Schema{"f": schema.Field{}}
-	r.Bind("foo", NewResource(s, nil, DefaultConf))
-	assert.NoError(t, r.Compile())
+	r, ok := New().(*rootResource)
+	if assert.True(t, ok) {
+		s := schema.Schema{"f": schema.Field{}}
+		r.Bind("foo", NewResource(s, nil, DefaultConf))
+		assert.NoError(t, r.Compile())
+	}
 }
 
 func TestRootCompileError(t *testing.T) {
-	r := New()
-	s := schema.Schema{"f": schema.Field{Validator: schema.String{Regexp: "["}}}
-	r.Bind("foo", NewResource(s, nil, DefaultConf))
-	assert.Error(t, r.Compile())
+	r, ok := New().(*rootResource)
+	if assert.True(t, ok) {
+		s := schema.Schema{"f": schema.Field{Validator: schema.String{Regexp: "["}}}
+		r.Bind("foo", NewResource(s, nil, DefaultConf))
+		assert.Error(t, r.Compile())
+	}
 }
 
 func TestRootCompileSubError(t *testing.T) {
-	r := New()
-	foo := r.Bind("foo", NewResource(schema.Schema{"f": schema.Field{}}, nil, DefaultConf))
-	bar := foo.Bind("bar", "f", NewResource(schema.Schema{"f": schema.Field{}}, nil, DefaultConf))
-	s := schema.Schema{"f": schema.Field{Validator: &schema.String{Regexp: "["}}}
-	bar.Bind("baz", "f", NewResource(s, nil, DefaultConf))
-	assert.EqualError(t, r.Compile(), "foo.bar.baz: schema compilation error: f: invalid regexp: error parsing regexp: missing closing ]: `[`")
+	r, ok := New().(*rootResource)
+	if assert.True(t, ok) {
+		foo := r.Bind("foo", NewResource(schema.Schema{"f": schema.Field{}}, nil, DefaultConf))
+		bar := foo.Bind("bar", "f", NewResource(schema.Schema{"f": schema.Field{}}, nil, DefaultConf))
+		s := schema.Schema{"f": schema.Field{Validator: &schema.String{Regexp: "["}}}
+		bar.Bind("baz", "f", NewResource(s, nil, DefaultConf))
+		assert.EqualError(t, r.Compile(), "foo.bar.baz: schema compilation error: f: invalid regexp: error parsing regexp: missing closing ]: `[`")
+	}
 }
 
 func TestRootGetResource(t *testing.T) {

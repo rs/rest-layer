@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rs/rest-layer/schema"
 	"golang.org/x/net/context"
 )
 
@@ -22,9 +23,11 @@ type Handler struct {
 }
 
 // NewHandler creates an new REST API HTTP handler with the specified root resource
-func NewHandler(r *RootResource) (*Handler, error) {
-	if err := r.Compile(); err != nil {
-		return nil, err
+func NewHandler(r ResourceRouter) (*Handler, error) {
+	if c, ok := r.(schema.Compiler); ok {
+		if err := c.Compile(); err != nil {
+			return nil, err
+		}
 	}
 	h := &Handler{
 		ResponseSender: DefaultResponseSender{},

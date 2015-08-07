@@ -10,6 +10,7 @@ import (
 
 // ResourceRouter is an interface to a type able to find a Resource from a resource path
 type ResourceRouter interface {
+	Bind(name string, s *Resource) *Resource
 	GetResource(path string) (*Resource, string, bool)
 	FindRoute(ctx context.Context, req *http.Request) (RouteMatch, *Error)
 }
@@ -60,7 +61,7 @@ func RouterFromContext(ctx context.Context) (ResourceRouter, bool) {
 }
 
 // FindRoute returns the REST route for the given request
-func (r *RootResource) FindRoute(ctx context.Context, req *http.Request) (RouteMatch, *Error) {
+func (r *rootResource) FindRoute(ctx context.Context, req *http.Request) (RouteMatch, *Error) {
 	route := RouteMatch{
 		Method:       req.Method,
 		ResourcePath: ResourcePath{},

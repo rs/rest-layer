@@ -7,34 +7,34 @@ import (
 	"strings"
 )
 
-// RootResource is the root of the resource graph
-type RootResource struct {
+// rootResource is the root of the resource graph
+type rootResource struct {
 	resources map[string]*subResource
 }
 
 // New creates a new root resource
-func New() *RootResource {
-	return &RootResource{
+func New() ResourceRouter {
+	return &rootResource{
 		resources: map[string]*subResource{},
 	}
 }
 
 // Bind a resource at the specified endpoint name
-func (r *RootResource) Bind(name string, s *Resource) *Resource {
+func (r *rootResource) Bind(name string, s *Resource) *Resource {
 	assertNotBound(name, r.resources, nil)
 	r.resources[name] = &subResource{resource: s}
 	return s
 }
 
 // Compile the resource graph and report any error
-func (r *RootResource) Compile() error {
+func (r *rootResource) Compile() error {
 	return compileResourceGraph(r.resources)
 }
 
 // GetResource retrives a given resource and its parent field identifier by it's path.
 // For instance if a resource user has a sub-resource posts,
 // a users.posts path can be use to retrieve the posts resource.
-func (r *RootResource) GetResource(path string) (*Resource, string, bool) {
+func (r *rootResource) GetResource(path string) (*Resource, string, bool) {
 	resources := r.resources
 	field := ""
 	var resource *Resource
