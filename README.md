@@ -479,7 +479,7 @@ post = schema.Schema{
 
 ### Binding
 
-Now you just need to bind this schema at a specific endpoint on the `rest.Handler` object:
+Now you just need to bind this schema at a specific endpoint on the [rest.Handler](https://godoc.org/github.com/rs/rest-layer#Handler) object:
 
 ```go
 root := rest.New()
@@ -488,7 +488,7 @@ posts := root.Bind("posts", rest.NewResource(post, mem.NewHandler(), rest.Defaul
 
 This tells the `rest.Handler` to bind the `post` schema at the `posts` endpoint. The resource collection URL is then `/posts` and item URLs are `/posts/<post_id>`.
 
-The `rest.DefaultConf` variable is a pre-defined `rest.Conf` type with sensible default. You can customize the resource behavoir using a custom configuration.
+The [rest.DefaultConf](https://godoc.org/github.com/rs/rest-layer#pkg-variables) variable is a pre-defined [rest.Conf](https://godoc.org/github.com/rs/rest-layer#Conf) type with sensible default. You can customize the resource behavoir using a custom configuration.
 
 The `rest.Conf` type has the following customizable properties:
 
@@ -662,7 +662,7 @@ In the example above, the document did not validate so the request has been reje
 
 ### Nullable Values
 
-To allow `null` value in addition the field type, you can use `schema.AnyOf` validator:
+To allow `null` value in addition the field type, you can use [schema.AnyOf](https://godoc.org/github.com/rs/rest-layer/schema#AnyOf) validator:
 
 ```go
 "nullable_field": schema.AnyOf{
@@ -673,7 +673,7 @@ To allow `null` value in addition the field type, you can use `schema.AnyOf` val
 
 ### Extensible Data Validation
 
-It is very easy to add new validators. You just need to implement the `schema.FieldValidator`:
+It is very easy to add new validators. You just need to implement the [schema.FieldValidator](https://godoc.org/github.com/rs/rest-layer/schema#FieldValidator):
 
 ```go
 type FieldValidator interface {
@@ -683,7 +683,7 @@ type FieldValidator interface {
 
 The `Validate` method takes the value as argument and must either return the value back with some eventual transformation or an `error` if the validation failed.
 
-Your validator may also implement the optional `schema.Compiler` interface:
+Your validator may also implement the optional [schema.Compiler](https://godoc.org/github.com/rs/rest-layer/schema#Compiler) interface:
 
 ```go
 type Compiler interface {
@@ -697,15 +697,15 @@ When a field validator implements this interface, the `Compile` method is called
 
 REST Layer handles client request cancellation using [net/context](https://golang.org/x/net/context). In case the client closes the connection before the server has finish processing the request, the context is canceled. This context is passed to the resource handler so it can listen for those cancelations and stop the processing (see [Data Storage Handler](#data-storage-handler) section for more information about how to implement resource handlers.
 
-Timeout is implement the same way. If a timeout is set at server level through `rest.Handler` `RequestTimeout` property or if the `timeout` query-string parameter is passed with a duration value compatible with `time.ParseDuration`, the context will be set with a deadline set to that value.
+Timeout is implement the same way. If a timeout is set at server level through [rest.Handler](https://godoc.org/github.com/rs/rest-layer#Handler) `RequestTimeout` property or if the `timeout` query-string parameter is passed with a duration value compatible with [time.ParseDuration](http://golang.org/pkg/time/#ParseDuration), the context will be set with a deadline set to that value.
 
 When a request is stopped because the client closed the connection, the response HTTP status is set to `499 Client Closed Request` (for logging purpose). When a timeout is set and the request has reached this timeout, the response HTTP status is set to `509 Gateway Timeout`.
 
 ## Data Storage Handler
 
-REST Layer doesn't handle storage of resources directly. A `mem.MemoryHandler` is provided as an example but should be used for testing only.
+REST Layer doesn't handle storage of resources directly. A [mem.MemoryHandler](https://godoc.org/github.com/rs/rest-layer-mem#MemoryHandler) is provided as an example but should be used for testing only.
 
-A resource handler is easy to write though. Some handlers for popular databases are available (soon), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the `rest.ResourceHandler` interface:
+A resource handler is easy to write though. Some handlers for popular databases are available (soon), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the [rest.ResourceHandler](https://godoc.org/github.com/rs/rest-layer#ResourceHandler) interface:
 
 ```go
 type ResourceHandler interface {
@@ -717,18 +717,18 @@ type ResourceHandler interface {
 }
 ```
 
-Mutation methods like `Update` and `Delete` must ensure they are atomically mutating the same item as specified in argument by checking their `ETag` (the stored `ETag` must match the `ETag` of the provided item). In case the handler can't guarantee that, the storage must be left untouched, and a `rest.ConflictError` must be returned.
+Mutation methods like `Update` and `Delete` must ensure they are atomically mutating the same item as specified in argument by checking their `ETag` (the stored `ETag` must match the `ETag` of the provided item). In case the handler can't guarantee that, the storage must be left untouched, and a [rest.ConflictError](https://godoc.org/github.com/rs/rest-layer#pkg-variables) must be returned.
 
-If the the operation not immediate, the method must listen for cancellation on the passed `ctx`. If the operation is stopped due to context cancellation, the function must return the result of the `rest.ContextError()` with the `ctx.Err()` as argument. See [this blog post](https://blog.golang.org/context) for more information about how `net/context` works.
+If the the operation not immediate, the method must listen for cancellation on the passed `ctx`. If the operation is stopped due to context cancellation, the function must return the result of the [rest.ContextError()](https://godoc.org/github.com/rs/rest-layer#ContextError) with the [ctx.Err()](https://godoc.org/golang.org/x/net/context#Context) as argument. See [this blog post](https://blog.golang.org/context) for more information about how `net/context` works.
 
 See [rest.ResourceHandler](https://godoc.org/github.com/rs/rest-layer#ResourceHandler) documentation for more information on resource handler implementation details.
 
 ## Custom Response Sender
 
-REST Layer let you extend or replace the default response sender. To write a new response sender, you need to implement the `rest.ResponseSender` interface:
+REST Layer let you extend or replace the default response sender. To write a new response sender, you need to implement the [rest.ResponseSender](https://godoc.org/github.com/rs/rest-layer#ResponseSender) interface:
 
 ```go
-// ResponseSender defines an interface responsible for formating, serializing and sending the response
+// ResponseSender defines an interface responsible for formatting, serializing and sending the response
 // to the http.ResponseWriter.
 type ResponseSender interface {
 	// Send serialize the body, sets the given headers and write everything to the provided response writer
@@ -749,7 +749,7 @@ api, _ := rest.NewHandler(root)
 api.ResponseSender = &myResponseSender{}
 ```
 
-You may also extend the `DefaultResponseSender` if you just want to wrap or sligly modify the default behavior:
+You may also extend the [DefaultResponseSender](https://godoc.org/github.com/rs/rest-layer#DefaultResponseSender) if you just want to wrap or slightly modify the default behavior:
 
 ```go
 type myResponseSender struct {
@@ -773,7 +773,7 @@ func (r myResponseSender) SendList(ctx context.Context, headers http.Header, l *
 
 A middleware is a piece of custom code wrapped around the REST Layer's request processing logic, just after the routing handler found the targeted resource. You can insert you own logic to extend the framework like adding access control, logging, etc.
 
-Middlewares are guaranteed to be able to get the found `rest.RouteMatch` and the current `rest.ResourceRouter` from the context by respectively calling `rest.RouteFromContext` and `rest.RouterFromContext`.
+Middlewares are guaranteed to be able to get the found [rest.RouteMatch](https://godoc.org/github.com/rs/rest-layer#RouteMatch) and the current [rest.ResourceRouter](https://godoc.org/github.com/rs/rest-layer#ResourceRouter) from the context by respectively calling [rest.RouteFromContext](https://godoc.org/github.com/rs/rest-layer#RouteFromContext) and [rest.RouterFromContext](https://godoc.org/github.com/rs/rest-layer#RouterFromContext).
 
 A middleware can also augment the context by adding its own values so other middlewares, resource storage handlers or response sender can read it. See [net/context](https://golang.org/x/net/context) documentation to find out more about this technic.
 
