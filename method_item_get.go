@@ -21,7 +21,7 @@ func (r *request) itemGet(ctx context.Context, route RouteMatch) (status int, he
 	}
 	item := l.Items[0]
 	// Handle conditional request: If-None-Match
-	if r.req.Header.Get("If-None-Match") == item.Etag {
+	if r.req.Header.Get("If-None-Match") == item.ETag {
 		return 304, nil, nil
 	}
 	// Handle conditional request: If-Modified-Since

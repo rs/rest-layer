@@ -709,11 +709,11 @@ A resource handler is easy to write though. Some handlers for popular databases 
 
 ```go
 type ResourceHandler interface {
-	Find(ctx context.Context, lookup *rest.Lookup, page, perPage int) (*rest.ItemList, *rest.Error)
+	Find(ctx context.Context, lookup rest.Lookup, page, perPage int) (*rest.ItemList, *rest.Error)
 	Insert(ctx context.Context, items []*Item) *Error
 	Update(ctx context.Context, item *Item, original *Item) *Error
 	Delete(ctx context.Context, item *rest.Item) *rest.Error
-	Clear(ctx context.Context, lookup *rest.Lookup) (int, *rest.Error)
+	Clear(ctx context.Context, lookup rest.Lookup) (int, *rest.Error)
 }
 ```
 

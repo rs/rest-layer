@@ -25,7 +25,7 @@ type ResponseSender interface {
 }
 
 // DefaultResponseSender provides a base response sender to be used by default. This sender can
-// easily be extended or replaced.
+// easily be extended or replaced by implementing ResponseSender interface and setting it on Handler.ResponseSender.
 type DefaultResponseSender struct {
 }
 
@@ -83,8 +83,8 @@ func (s DefaultResponseSender) SendError(ctx context.Context, headers http.Heade
 
 // SendItem sends a single item REST response on http.ResponseWriter
 func (s DefaultResponseSender) SendItem(ctx context.Context, headers http.Header, i *Item, skipBody bool) (context.Context, interface{}) {
-	if i.Etag != "" {
-		headers.Set("Etag", i.Etag)
+	if i.ETag != "" {
+		headers.Set("Etag", i.ETag)
 	}
 	if !i.Updated.IsZero() {
 		headers.Set("Last-Modified", i.Updated.In(time.UTC).Format("Mon, 02 Jan 2006 15:04:05 GMT"))
@@ -111,7 +111,7 @@ func (s DefaultResponseSender) SendList(ctx context.Context, headers http.Header
 			for k, v := range item.Payload {
 				d[k] = v
 			}
-			d["_etag"] = item.Etag
+			d["_etag"] = item.ETag
 			payload[i] = d
 		}
 		return ctx, payload

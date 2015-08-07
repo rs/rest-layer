@@ -10,7 +10,7 @@ type Conf struct {
 	PaginationDefaultLimit int
 }
 
-// Mode defines CRUDL modes
+// Mode defines CRUDL modes to be used with Conf.AllowedModes.
 type Mode int
 
 const (

@@ -79,8 +79,8 @@ func (r *Resource) Bind(name, field string, s *Resource) *Resource {
 // Alias adds an pre-built resource query on /<resource>/<alias>.
 //
 //     // Add a friendly alias to public posts on /users/:user_id/posts/public
-//     // (equivalent to /users/:user_id/posts?filter=public=true)
-//     posts.Alias("public", url.Values{"where": []string{"public=true"}})
+//     // (equivalent to /users/:user_id/posts?filter={"public":true})
+//     posts.Alias("public", url.Values{"where": []string{"{\"public\":true}"}})
 //
 // This method will panic an alias or a resource with the same name is already bound
 func (r *Resource) Alias(name string, v url.Values) {

@@ -8,16 +8,29 @@ import (
 
 // Item represents an instance of an item
 type Item struct {
-	ID      interface{}
-	Etag    string
+	// ID is used to uniquely identify the item in the resource collection.
+	ID interface{}
+	// ETag is an opaque identifier assigned by REST Layer to a specific version of the item.
+	//
+	// This ETag is used perform conditional requests and to ensure storage handler doesn't
+	// update an outdated version of the resource.
+	ETag string
+	// Updated stores the last time the item was updated. This field is used to populate the
+	// Last-Modified header and to handle conditional requests.
 	Updated time.Time
+	// Payload the actual data of the item
 	Payload map[string]interface{}
 }
 
 // ItemList represents a list of items
 type ItemList struct {
+	// Total defines the total number of items in the collection matching the current
+	// context. If the storage handler cannot compute this value, -1 is set.
 	Total int
-	Page  int
+	// Page is the current page represented by this ItemList.
+	Page int
+	// Items is the list of items contained in the current page given the current
+	// context.
 	Items []*Item
 }
 
@@ -33,7 +46,7 @@ func NewItem(payload map[string]interface{}) (*Item, error) {
 	}
 	item := &Item{
 		ID:      id,
-		Etag:    etag,
+		ETag:    etag,
 		Updated: time.Now(),
 		Payload: payload,
 	}

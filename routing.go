@@ -10,16 +10,24 @@ import (
 
 // ResourceRouter is an interface to a type able to find a Resource from a resource path
 type ResourceRouter interface {
+	// Bind a new resource at the "name" endpoint
 	Bind(name string, s *Resource) *Resource
+	// GetResource retrives a given resource and its parent field identifier by it's path.
+	// For instance if a resource user has a sub-resource posts,
+	// a users.posts path can be use to retrieve the posts resource.
 	GetResource(path string) (*Resource, string, bool)
+	// FindRoute returns the REST route for the given request
 	FindRoute(ctx context.Context, req *http.Request) (RouteMatch, *Error)
 }
 
 // RouteMatch represent a REST request's matched resource with the method to apply and its parameters
 type RouteMatch struct {
-	Method       string
+	// Method is the HTTP method used on the resource.
+	Method string
+	// ResourcePath is the list of intermediate resources followed by the targetted resource.
 	ResourcePath ResourcePath
-	Params       url.Values
+	// Params is the list of client provided parameters (thru query-string or alias).
+	Params url.Values
 }
 
 // ResourcePath is the list of ResourcePathComponent leading to the requested resource
@@ -27,9 +35,13 @@ type ResourcePath []ResourcePathComponent
 
 // ResourcePathComponent represents the path of resource and sub-resources of a given request's resource
 type ResourcePathComponent struct {
-	Name     string
-	Field    string
-	Value    interface{}
+	// Name is the endpoint name used to bind the resource
+	Name string
+	// Field is the resource's field used to filter targetted resource
+	Field string
+	// Value holds the resource's id value
+	Value interface{}
+	// Resource references the resource
 	Resource *Resource
 }
 
@@ -102,17 +114,17 @@ func findRoute(ctx context.Context, path string, router ResourceRouter, route *R
 				subResourcePath := strings.Join([]string{resourcePath, c[0]}, ".")
 				if _, field, found := router.GetResource(subResourcePath); found {
 					// Check if the current (intermediate) item exists before going farther
-					lookup := NewLookup()
+					l := newLookup()
 					for _, rp := range route.ResourcePath {
 						if rp.Value != nil {
-							lookup.Filter[rp.Field] = rp.Value
+							l.filter[rp.Field] = rp.Value
 						}
 					}
-					lookup.Filter["id"] = id
-					l, err := resource.handler.Find(ctx, lookup, 1, 1)
+					l.filter["id"] = id
+					list, err := resource.handler.Find(ctx, l, 1, 1)
 					if err != nil {
 						return err
-					} else if len(l.Items) == 0 {
+					} else if len(list.Items) == 0 {
 						return NotFoundError
 					}
 					rp.Field = field
@@ -182,16 +194,16 @@ func (r RouteMatch) ResourceID() interface{} {
 }
 
 // Lookup builds a Lookup object from the matched route
-func (r RouteMatch) Lookup() (*Lookup, *Error) {
-	lookup := NewLookup()
+func (r RouteMatch) Lookup() (Lookup, *Error) {
+	l := newLookup()
 	if sort := r.Params.Get("sort"); sort != "" {
-		if err := lookup.SetSort(sort, r.Resource().schema); err != nil {
+		if err := l.setSort(sort, r.Resource().schema); err != nil {
 			return nil, &Error{422, "Invalid `sort` paramter", nil}
 		}
 	}
 	// TODO: Handle multiple filter param
 	if filter := r.Params.Get("filter"); filter != "" {
-		if err := lookup.SetFilter(filter, r.Resource().schema); err != nil {
+		if err := l.setFilter(filter, r.Resource().schema); err != nil {
 			return nil, &Error{422, "Invalid `filter` parameter", nil}
 		}
 	}
@@ -199,10 +211,10 @@ func (r RouteMatch) Lookup() (*Lookup, *Error) {
 	for _, rp := range r.ResourcePath {
 		// TODO: handle collisions
 		if rp.Value != nil {
-			lookup.Filter[rp.Field] = rp.Value
+			l.filter[rp.Field] = rp.Value
 		}
 	}
-	return lookup, nil
+	return l, nil
 }
 
 // applyFields appends lookup fields to a payload

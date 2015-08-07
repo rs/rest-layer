@@ -8,28 +8,47 @@ import (
 	"github.com/rs/rest-layer/schema"
 )
 
-// Lookup holds key/value pairs used to select items on a resource
-type Lookup struct {
+// Lookup holds filter and sort used to select items in a resource collection
+type Lookup interface {
 	// The client supplied filter. Filter is a MongoDB inspired query with a more limited
 	// set of capabilities. See [README](https://github.com/rs/rest-layer#filtering)
 	// for more info.
-	Filter schema.Query
+	Filter() schema.Query
 	// The client supplied soft. Sort is a list of resource fields or sub-fields separated
 	// by comas (,). To invert the sort, a minus (-) can be prefixed.
 	// See [README](https://github.com/rs/rest-layer#sorting) for more info.
-	Sort []string
+	Sort() []string
 }
 
-// NewLookup creates an empty lookup object
-func NewLookup() *Lookup {
-	return &Lookup{
-		Filter: schema.Query{},
-		Sort:   []string{},
+type lookup struct {
+	// The client supplied filter. Filter is a MongoDB inspired query with a more limited
+	// set of capabilities. See [README](https://github.com/rs/rest-layer#filtering)
+	// for more info.
+	filter schema.Query
+	// The client supplied soft. Sort is a list of resource fields or sub-fields separated
+	// by comas (,). To invert the sort, a minus (-) can be prefixed.
+	// See [README](https://github.com/rs/rest-layer#sorting) for more info.
+	sort []string
+}
+
+// newLookup creates an empty lookup object
+func newLookup() *lookup {
+	return &lookup{
+		filter: schema.Query{},
+		sort:   []string{},
 	}
 }
 
-// SetSort parses and validate a sort parameter and set it as lookup's Sort
-func (l *Lookup) SetSort(sort string, validator schema.Validator) error {
+func (l *lookup) Sort() []string {
+	return l.sort
+}
+
+func (l *lookup) Filter() schema.Query {
+	return l.filter
+}
+
+// setSort parses and validate a sort parameter and set it as lookup's Sort
+func (l *lookup) setSort(sort string, validator schema.Validator) error {
 	sorts := []string{}
 	for _, f := range strings.Split(sort, ",") {
 		f = strings.Trim(f, " ")
@@ -52,24 +71,19 @@ func (l *Lookup) SetSort(sort string, validator schema.Validator) error {
 		}
 		sorts = append(sorts, f)
 	}
-	l.Sort = sorts
+	l.sort = sorts
 	return nil
 }
 
-// SetFilter parses and validate a filter parameter and set it as lookup's Filter
+// setFilter parses and validate a filter parameter and set it as lookup's Filter
 //
 // The filter query is validated against the provided validator to ensure all queried
 // fields exists and are of the right type.
-func (l *Lookup) SetFilter(filter string, validator schema.Validator) error {
+func (l *lookup) setFilter(filter string, validator schema.Validator) error {
 	f, err := schema.ParseQuery(filter, validator)
 	if err != nil {
 		return err
 	}
-	l.Filter = f
+	l.filter = f
 	return nil
-}
-
-// Match evaluates lookup's filter on the provided payload and tells if it match
-func (l *Lookup) Match(payload map[string]interface{}) bool {
-	return l.Filter.Match(payload)
 }

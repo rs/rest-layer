@@ -9,7 +9,7 @@ import (
 func TestNewItem(t *testing.T) {
 	i, err := NewItem(map[string]interface{}{"id": 1})
 	assert.NoError(t, err)
-	assert.Equal(t, "d2ce28b9a7fd7e4407e2b0fd499b7fe4", i.Etag)
+	assert.Equal(t, "d2ce28b9a7fd7e4407e2b0fd499b7fe4", i.ETag)
 }
 
 func TestNewItemNoID(t *testing.T) {

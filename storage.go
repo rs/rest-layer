@@ -15,7 +15,7 @@ type ResourceHandler interface {
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the rest.ContextError() with the ctx.Err() as
 	// argument.
-	Find(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, *Error)
+	Find(ctx context.Context, lookup Lookup, page, perPage int) (*ItemList, *Error)
 	// Insert stores new items in the backend store. If any of the items does already exist,
 	// no item should be inserted and a rest.ConflictError must be returned. The insertion
 	// of the items must be performed atomically. If more than one item is provided and the
@@ -61,5 +61,5 @@ type ResourceHandler interface {
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the rest.ContextError() with the ctx.Err() as
 	// argument.
-	Clear(ctx context.Context, lookup *Lookup) (int, *Error)
+	Clear(ctx context.Context, lookup Lookup) (int, *Error)
 }

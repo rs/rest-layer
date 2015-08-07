@@ -25,7 +25,7 @@ var (
 	UnknownError = &Error{520, "Unknown Error", nil}
 )
 
-// Error defines a REST error
+// Error defines a REST error with optional per fields error details
 type Error struct {
 	// Code defines the error code to be used for the error and for the HTTP status
 	Code int
@@ -36,7 +36,10 @@ type Error struct {
 }
 
 // ContextError takes a context.Context error returned by ctx.Err() and return the
-// appropriate rest.Error
+// appropriate rest.Error.
+//
+// This method is to be used with `net/context` when the context's deadline is reached.
+// Pass the output or `ctx.Err()` to this method to get the corresponding rest.Error.
 func ContextError(err error) *Error {
 	switch err {
 	case context.Canceled:
@@ -46,7 +49,7 @@ func ContextError(err error) *Error {
 	case nil:
 		return nil
 	default:
-		return UnknownError
+		return &Error{520, err.Error(), nil}
 	}
 }
 

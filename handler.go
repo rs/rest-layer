@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-// Handler is an HTTP handler used to serve the configured REST API
+// Handler is a net/http compatible handler used to serve the configured REST API
 type Handler struct {
 	// ResponseSender can be changed to extend the DefaultResponseSender
 	ResponseSender ResponseSender

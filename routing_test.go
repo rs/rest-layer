@@ -25,10 +25,10 @@ func (m *mockHandler) Update(ctx context.Context, item *Item, original *Item) *E
 func (m *mockHandler) Delete(ctx context.Context, item *Item) *Error {
 	return NotImplementedError
 }
-func (m *mockHandler) Clear(ctx context.Context, lookup *Lookup) (int, *Error) {
+func (m *mockHandler) Clear(ctx context.Context, lookup Lookup) (int, *Error) {
 	return 0, NotImplementedError
 }
-func (m *mockHandler) Find(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, *Error) {
+func (m *mockHandler) Find(ctx context.Context, lookup Lookup, page, perPage int) (*ItemList, *Error) {
 	if m.err != nil {
 		return nil, m.err
 	}

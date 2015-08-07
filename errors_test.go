@@ -12,7 +12,7 @@ func TestContextError(t *testing.T) {
 	assert.Equal(t, ClientClosedRequestError, ContextError(context.Canceled))
 	assert.Equal(t, GatewayTimeoutError, ContextError(context.DeadlineExceeded))
 	assert.Nil(t, ContextError(nil))
-	assert.Equal(t, UnknownError, ContextError(errors.New("test")))
+	assert.Equal(t, &Error{520, "test", nil}, ContextError(errors.New("test")))
 }
 
 func TestError(t *testing.T) {
