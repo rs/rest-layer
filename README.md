@@ -752,3 +752,28 @@ type myResponseSender {
 
 // Overwrite methods you want to extend
 ```
+
+
+## Middleware
+
+A middleware is a piece of custom code wrapped around the REST Layer's request processing logic, just after the routing handler found the targeted resource. You can insert you own logic to extend the framework like adding access control, logging, etc.
+
+Middlewares are guaranteed to be able to get the found `rest.RouteMatch` and the current `rest.ResourceRouter` from the context by respectively calling `rest.RouteFromContext` and `rest.RouterFromContext`.
+
+A middleware can also augment the context by adding its own values so other middlewares, resource storage handlers or response sender can read it. See [net/context](https://golang.org/x/net/context) documentation to find out more about this technic.
+
+```go
+// Add a very basic auth using a middleware
+api.Use(func(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{}) {
+	if u, p, ok := r.BasicAuth(); ok && validateCredentials(u, p) {
+		// Store the authen user in the context
+		ctx = context.WithValue(ctx, "user", u)
+		// Pass to the next middleware
+		return next(ctx)
+	}
+	// Stop the middleware chain and return a 401 HTTP error
+	headers := http.Header{}
+	headers.Set("WWW-Authenticate", "Basic realm=\"API\"")
+	return ctx, 401, headers, &rest.Error{401, "Please provide proper credentials", nil}
+})
+```

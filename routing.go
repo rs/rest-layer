@@ -39,7 +39,7 @@ const (
 	routerKey
 )
 
-func contextWithRoute(ctx context.Context, route RouteMatch) context.Context {
+func contextWithRoute(ctx context.Context, route *RouteMatch) context.Context {
 	return context.WithValue(ctx, routeKey, route)
 }
 
@@ -48,8 +48,8 @@ func contextWithRouter(ctx context.Context, router ResourceRouter) context.Conte
 }
 
 // RouteFromContext extracts the matched route from the given net/context
-func RouteFromContext(ctx context.Context) (RouteMatch, bool) {
-	route, ok := ctx.Value(routeKey).(RouteMatch)
+func RouteFromContext(ctx context.Context) (*RouteMatch, bool) {
+	route, ok := ctx.Value(routeKey).(*RouteMatch)
 	return route, ok
 }
 

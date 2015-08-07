@@ -7,19 +7,21 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"golang.org/x/net/context"
 )
 
 // ResponseSender defines an interface responsible for serializing and sending the response
 // to the http.ResponseWriter.
 type ResponseSender interface {
 	// Send sends headers with the given status and marshal the data in JSON
-	Send(w http.ResponseWriter, status int, data interface{})
+	Send(ctx context.Context, w http.ResponseWriter, status int, data interface{})
 	// SendError writes a REST formated error on the http.ResponseWriter
-	SendError(w http.ResponseWriter, status int, err error, skipBody bool)
+	SendError(ctx context.Context, w http.ResponseWriter, status int, err error, skipBody bool)
 	// SendItem sends a single item REST response on http.ResponseWriter
-	SendItem(w http.ResponseWriter, status int, i *Item, skipBody bool)
+	SendItem(ctx context.Context, w http.ResponseWriter, status int, i *Item, skipBody bool)
 	// SendList sends a list of items as REST response on http.ResponseWriter.
-	SendList(w http.ResponseWriter, status int, l *ItemList, skipBody bool)
+	SendList(ctx context.Context, w http.ResponseWriter, status int, l *ItemList, skipBody bool)
 }
 
 // DefaultResponseSender provides a base response sender to be used by default. This sender can
@@ -28,7 +30,7 @@ type DefaultResponseSender struct {
 }
 
 // Send sends headers with the given status and marshal the data in JSON
-func (s DefaultResponseSender) Send(w http.ResponseWriter, status int, data interface{}) {
+func (s DefaultResponseSender) Send(ctx context.Context, w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
@@ -46,7 +48,7 @@ func (s DefaultResponseSender) Send(w http.ResponseWriter, status int, data inte
 }
 
 // SendError writes a REST formated error on the http.ResponseWriter
-func (s DefaultResponseSender) SendError(w http.ResponseWriter, status int, err error, skipBody bool) {
+func (s DefaultResponseSender) SendError(ctx context.Context, w http.ResponseWriter, status int, err error, skipBody bool) {
 	code := status
 	message := "Server Error"
 	if err != nil {
@@ -68,14 +70,14 @@ func (s DefaultResponseSender) SendError(w http.ResponseWriter, status int, err 
 				payload["issues"] = e.Issues
 			}
 		}
-		s.Send(w, status, payload)
+		s.Send(ctx, w, status, payload)
 	} else {
-		s.Send(w, status, nil)
+		s.Send(ctx, w, status, nil)
 	}
 }
 
 // SendItem sends a single item REST response on http.ResponseWriter
-func (s DefaultResponseSender) SendItem(w http.ResponseWriter, status int, i *Item, skipBody bool) {
+func (s DefaultResponseSender) SendItem(ctx context.Context, w http.ResponseWriter, status int, i *Item, skipBody bool) {
 	if i.Etag != "" {
 		w.Header().Set("Etag", i.Etag)
 	}
@@ -83,14 +85,14 @@ func (s DefaultResponseSender) SendItem(w http.ResponseWriter, status int, i *It
 		w.Header().Set("Last-Modified", i.Updated.In(time.UTC).Format("Mon, 02 Jan 2006 15:04:05 GMT"))
 	}
 	if skipBody {
-		s.Send(w, status, nil)
+		s.Send(ctx, w, status, nil)
 	} else {
-		s.Send(w, status, i.Payload)
+		s.Send(ctx, w, status, i.Payload)
 	}
 }
 
 // SendList sends a list of items as REST response on http.ResponseWriter
-func (s DefaultResponseSender) SendList(w http.ResponseWriter, status int, l *ItemList, skipBody bool) {
+func (s DefaultResponseSender) SendList(ctx context.Context, w http.ResponseWriter, status int, l *ItemList, skipBody bool) {
 	if l.Total >= 0 {
 		w.Header().Set("X-Total", strconv.FormatInt(int64(l.Total), 10))
 	}
@@ -108,9 +110,9 @@ func (s DefaultResponseSender) SendList(w http.ResponseWriter, status int, l *It
 			d["_etag"] = item.Etag
 			payload[i] = d
 		}
-		s.Send(w, status, payload)
+		s.Send(ctx, w, status, payload)
 	} else {
-		s.Send(w, status, nil)
+		s.Send(ctx, w, status, nil)
 
 	}
 }
