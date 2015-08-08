@@ -166,7 +166,7 @@ var (
 				Path: "users",
 			},
 		},
-		"publishded": schema.Field{
+		"published": schema.Field{
 			Filterable: true,
 			Validator:  &schema.Bool{},
 		},

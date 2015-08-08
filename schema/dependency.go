@@ -48,7 +48,7 @@ func (s Schema) validateDependencies(changes map[string]interface{}, doc map[str
 	for name, value := range changes {
 		path := prefix + name
 		field := s.GetField(path)
-		if field.Dependency != nil {
+		if field != nil && field.Dependency != nil {
 			if !field.Dependency.q.Match(doc) {
 				addFieldError(errs, name, fmt.Sprintf("does not match dependency: %s", field.Dependency.s))
 			}
