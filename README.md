@@ -166,7 +166,7 @@ var (
 				Path: "users",
 			},
 		},
-		"public": schema.Field{
+		"publishded": schema.Field{
 			Filterable: true,
 			Validator:  &schema.Bool{},
 		},
@@ -180,6 +180,9 @@ var (
 					},
 				},
 				"body": schema.Field{
+					// Dependency defines that body field can't be changed if
+					// the published field is not "false".
+					Dependency: schema.Q("{\"published\": false}"),
 					Validator: &schema.String{
 						MaxLen: 100000,
 					},
@@ -208,8 +211,8 @@ func main() {
 	}))
 
 	// Add a friendly alias to public posts
-	// (equivalent to /users/:user_id/posts?filter={"public":true})
-	posts.Alias("public", url.Values{"filter": []string{"{\"public\":true}"}})
+	// (equivalent to /users/:user_id/posts?filter={"published":true})
+	posts.Alias("public", url.Values{"filter": []string{"{\"published\":true}"}})
 
 	// Create API HTTP handler for the resource graph
 	api, err := rest.NewHandler(root)
@@ -408,6 +411,7 @@ Resource field configuration is performed thru the [schema](https://godoc.org/gi
 | `OnInit`     | A function to be executed when the resource is created. The function gets the current value of the field (a`fter` `Default` has been set if any) and returns the new value to be set.
 | `OnUpdate`   | A function to be executed when the resource is updated. The function gets the current (updated) value of the fi`eld` and returns the new value to be set.
 | `Validator`  | A `schema.FieldValidator` to validate the content of the field.
+| `Dependency` | A query using `filter` format created with `schema.Q("{\"field\": \"value\"}")`. If the query doesn't match the document, the field generates a dependency error.
 | `Filterable` | If `true`, the field can be used with the `filter` parameter. You may want to ensure the backend database has this field indexed when enabled.
 | `Sortable`   | If `true`, the field can be used with the `sort` parameter. You may want to ensure the backend database has this field indexed when enabled.
 | `Schema`     | An optional sub schema to validate hierarchical documents.
@@ -545,6 +549,24 @@ The second argument `"post"` defines the field in the `comments` resource that r
 	/posts/:post_id/comments[/:comment_id]
 
 When performing a `GET` on `/posts/:post_id/comments`, it is like adding the filter `{"post":"<post_id>"}` to the request to comments resource.
+
+### Dependency
+
+Fields can depends on other field in order to be changed. To configure dependency, set a filter on the `Dependency` property of the field using the [schema.Q()](https://godoc.org/github.com/rs/rest-layer/schema#Q) method.
+
+In this example, the `body` field can't be changed if the `published` field is not set to `true`:
+
+```go
+post = schema.Schema{
+	"publishded": schema.Field{
+		Validator:  &schema.Bool{},
+	},
+	"body": schema.Field{
+		Dependency: schema.Q("{\"published\": false}"),
+		Validator:  &schema.String{},
+	},
+}
+```
 
 ## Filtering
 

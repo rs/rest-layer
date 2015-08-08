@@ -76,7 +76,7 @@ var (
 				Path: "users",
 			},
 		},
-		"public": schema.Field{
+		"publishded": schema.Field{
 			Filterable: true,
 			Validator:  &schema.Bool{},
 		},
@@ -90,6 +90,9 @@ var (
 					},
 				},
 				"body": schema.Field{
+					// Dependency defines that body field can't be changed if
+					// the published field is not "false".
+					Dependency: schema.Q("{\"published\": false}"),
 					Validator: &schema.String{
 						MaxLen: 100000,
 					},
@@ -110,8 +113,6 @@ func main() {
 		AllowedModes: rest.ReadWrite,
 	}))
 
-	users.Alias("public", url.Values{"filter": []string{"{\"name\":\"bob\"}"}})
-
 	// Bind a sub resource on /users/:user_id/posts[/:post_id]
 	// and reference the user on each post using the "user" field of the posts resource.
 	posts := users.Bind("posts", "user", rest.NewResource(post, mem.NewHandler(), rest.Conf{
@@ -120,8 +121,8 @@ func main() {
 	}))
 
 	// Add a friendly alias to public posts
-	// (equivalent to /users/:user_id/posts?filter={"public":true})
-	posts.Alias("public", url.Values{"filter": []string{"{\"public\":true}"}})
+	// (equivalent to /users/:user_id/posts?filter={"published":true})
+	posts.Alias("public", url.Values{"filter": []string{"{\"published\":true}"}})
 
 	// Create API HTTP handler for the resource graph
 	api, err := rest.NewHandler(root)

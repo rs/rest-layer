@@ -27,6 +27,9 @@ type Field struct {
 	OnUpdate *func(value interface{}) interface{}
 	// Validator is used to validate the field's format.
 	Validator FieldValidator
+	// Dependency rejects the field if the schema query doesn't match the document.
+	// Use schema.Q("{\"field\": \"value\"}") to populate this field.
+	Dependency *PreQuery
 	// Filterable defines that the field can be used with the `filter` parameter.
 	// When this property is set to `true`, you may want to ensure the backend
 	// database has this field indexed.

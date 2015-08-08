@@ -23,22 +23,40 @@ type Compiler interface {
 	Compile() error
 }
 
+// remove type is used to mark a field for removal
+type remove struct{}
+
 func addFieldError(errs map[string][]interface{}, field string, err interface{}) {
 	errs[field] = append(errs[field], err)
 }
 
+func mergeFieldErrors(errs map[string][]interface{}, mergeErrs map[string][]interface{}) {
+	// TODO recursive merge
+	for field, values := range mergeErrs {
+		if dest, found := errs[field]; found {
+			for _, value := range values {
+				dest = append(dest, value)
+			}
+		} else {
+			errs[field] = values
+		}
+	}
+}
+
 // Compile implements Compiler interface and call the same function on each field
 func (s Schema) Compile() error {
+	// Search for all Dependecy on fields, and compile then
+	if err := compileDependencies(s, s); err != nil {
+		return err
+	}
 	for field, def := range s {
+		// Compile each field
 		if err := def.Compile(); err != nil {
 			return fmt.Errorf("%s%s", field, err.Error())
 		}
 	}
 	return nil
 }
-
-// remove type is used to mark a field for removal
-type remove struct{}
 
 // GetField returns the validator for the field if the given field name is present
 // in the schema.
@@ -185,6 +203,9 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 // and generate an result document with the changes applied to the base document.
 // All errors in the process are reported in the returned errs value.
 func (s Schema) Validate(changes map[string]interface{}, base map[string]interface{}) (doc map[string]interface{}, errs map[string][]interface{}) {
+	return s.validate(changes, base, true)
+}
+func (s Schema) validate(changes map[string]interface{}, base map[string]interface{}, isRoot bool) (doc map[string]interface{}, errs map[string][]interface{}) {
 	doc = map[string]interface{}{}
 	errs = map[string][]interface{}{}
 	for field, def := range s {
@@ -219,6 +240,11 @@ func (s Schema) Validate(changes map[string]interface{}, base map[string]interfa
 			doc[field] = value
 		}
 	}
+	// Validate all dependency from the root schema only as dependencies can refers to parent schemas
+	if isRoot {
+		mergeErrs := s.validateDependencies(changes, doc, "")
+		mergeFieldErrors(errs, mergeErrs)
+	}
 	for field, value := range doc {
 		// Check invalid field (fields provided in the payload by not present in the schema)
 		def, found := s[field]
@@ -247,7 +273,7 @@ func (s Schema) Validate(changes map[string]interface{}, base map[string]interfa
 				}
 			}
 			// Validate sub document and add the result to the current doc's field
-			if subDoc, subErrs := def.Schema.Validate(subChanges, subBase); len(subErrs) > 0 {
+			if subDoc, subErrs := def.Schema.validate(subChanges, subBase, false); len(subErrs) > 0 {
 				addFieldError(errs, field, subErrs)
 			} else {
 				doc[field] = subDoc
