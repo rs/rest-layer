@@ -15,7 +15,7 @@ func TestNewLookup(t *testing.T) {
 	assert.Equal(t, []string{}, l.Sort())
 }
 
-func TestLookupsetSort(t *testing.T) {
+func TestLookupSetSort(t *testing.T) {
 	var err error
 	l := newLookup()
 	s := schema.Schema{
@@ -38,7 +38,7 @@ func TestLookupsetSort(t *testing.T) {
 	assert.Equal(t, []string{"foo.bar", "-baz"}, l.sort)
 }
 
-func TestLookupsetSortUnsortableField(t *testing.T) {
+func TestLookupSetSortUnsortableField(t *testing.T) {
 	var err error
 	l := newLookup()
 	s := schema.Schema{"foo": schema.Field{Sortable: false}}
@@ -46,7 +46,7 @@ func TestLookupsetSortUnsortableField(t *testing.T) {
 	assert.EqualError(t, err, "field is not sortable: foo")
 }
 
-func TestLookupsetSortInvalidField(t *testing.T) {
+func TestLookupSetSortInvalidField(t *testing.T) {
 	var err error
 	l := newLookup()
 	s := schema.Schema{"foo": schema.Field{Sortable: true}}
@@ -60,7 +60,7 @@ func TestLookupsetSortInvalidField(t *testing.T) {
 	assert.EqualError(t, err, "empty soft field")
 }
 
-func TestLookupsetFilter(t *testing.T) {
+func TestLookupAddFilter(t *testing.T) {
 	var err error
 	l := newLookup()
 	s := schema.Schema{
@@ -78,9 +78,15 @@ func TestLookupsetFilter(t *testing.T) {
 			Filterable: true,
 		},
 	}
-	err = l.setFilter("{\"foo\": \"bar\"}", s)
+	err = l.addFilter("{\"foo\": \"", s)
+	assert.Error(t, err)
+	err = l.addFilter("{\"foo\": \"bar\"}", s)
 	assert.NoError(t, err)
 	assert.Equal(t, schema.Query{"foo": "bar"}, l.filter)
-	err = l.setFilter("{\"foo\": \"", s)
-	assert.Error(t, err)
+	err = l.addFilter("{\"baz\": 1}", s)
+	assert.NoError(t, err)
+	assert.Equal(t, schema.Query{"$and": []schema.Query{schema.Query{"foo": "bar"}, schema.Query{"baz": float64(1)}}}, l.filter)
+	err = l.addFilter("{\"baz\": 2}", s)
+	assert.NoError(t, err)
+	assert.Equal(t, schema.Query{"$and": []schema.Query{schema.Query{"foo": "bar"}, schema.Query{"baz": float64(1)}, schema.Query{"baz": float64(2)}}}, l.filter)
 }

@@ -90,21 +90,22 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 					}
 				}
 			}
-		case "$or":
+		case "$or", "$and":
+			op := key
 			var subQueries []interface{}
 			var ok bool
 			if subQueries, ok = exp.([]interface{}); !ok {
-				return errors.New("value for $or must be an array of dicts")
+				return fmt.Errorf("value for %s must be an array of dicts", op)
 			}
 			if len(subQueries) < 2 {
-				return errors.New("$or must contain at least to elements")
+				return fmt.Errorf("%s must contain at least to elements", op)
 			}
 			// Cast map to Query object
 			castedExp := make([]Query, len(subQueries))
 			for i, subQuery := range subQueries {
 				sq, ok := subQuery.(map[string]interface{})
 				if !ok {
-					return errors.New("value for $or must be an array of dicts")
+					return fmt.Errorf("value for %s must be an array of dicts", op)
 				} else if err := validateQuery(sq, validator, ""); err != nil {
 					return err
 				}
@@ -199,6 +200,15 @@ func matchQuery(q Query, payload map[string]interface{}, parentKey string) bool 
 			}
 			if !pass {
 				return false
+			}
+		case "$and":
+			if subQueries, ok := exp.([]Query); ok {
+				// Run each sub queries like a root query, stop/pass on first match
+				for _, subQuery := range subQueries {
+					if !matchQuery(subQuery, payload, "") {
+						return false
+					}
+				}
 			}
 		default:
 			// Exact match

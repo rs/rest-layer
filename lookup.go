@@ -75,15 +75,27 @@ func (l *lookup) setSort(sort string, validator schema.Validator) error {
 	return nil
 }
 
-// setFilter parses and validate a filter parameter and set it as lookup's Filter
+// addFilter parses and validate a filter parameter and add it to lookup's filter
 //
 // The filter query is validated against the provided validator to ensure all queried
 // fields exists and are of the right type.
-func (l *lookup) setFilter(filter string, validator schema.Validator) error {
+func (l *lookup) addFilter(filter string, validator schema.Validator) error {
 	f, err := schema.ParseQuery(filter, validator)
 	if err != nil {
 		return err
 	}
-	l.filter = f
+	l.addQuery(f)
 	return nil
+}
+
+func (l *lookup) addQuery(query schema.Query) {
+	if l.filter == nil || len(l.filter) == 0 {
+		l.filter = query
+		return
+	}
+	if and, ok := l.filter["$and"].([]schema.Query); ok {
+		l.filter["$and"] = append(and, query)
+	} else {
+		l.filter = schema.Query{"$and": []schema.Query{l.filter, query}}
+	}
 }

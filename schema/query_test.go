@@ -75,6 +75,9 @@ func TestParseQuery(t *testing.T) {
 	q, err = ParseQuery("{\"$or\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
 	assert.NoError(t, err)
 	assert.Equal(t, Query{"$or": []Query{Query{"foo": "bar"}, Query{"foo": "baz"}}}, q)
+	q, err = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
+	assert.NoError(t, err)
+	assert.Equal(t, Query{"$and": []Query{Query{"foo": "bar"}, Query{"foo": "baz"}}}, q)
 	q, err = ParseQuery("{\"foo\": {\"$in\": [\"bar\", \"baz\"]}}", s)
 	assert.NoError(t, err)
 	assert.Equal(t, Query{"foo": Query{"$in": []interface{}{"bar", "baz"}}}, q)
@@ -137,6 +140,15 @@ func TestQueryInvalidType(t *testing.T) {
 	assert.EqualError(t, err, "value for $or must be an array of dicts")
 	_, err = ParseQuery("{\"$or\": [{\"foo\": \"bar\"}, {\"bar\": \"baz\"}]}", s)
 	assert.EqualError(t, err, "invalid query expression for field `bar': not an integer")
+	_, err = ParseQuery("{\"$and\": \"foo\"}", s)
+	assert.EqualError(t, err, "value for $and must be an array of dicts")
+	_, err = ParseQuery("{\"$and\": [\"foo\"]}", s)
+	assert.EqualError(t, err, "$and must contain at least to elements")
+	_, err = ParseQuery("{\"$and\": [\"foo\", \"bar\"]}", s)
+	assert.EqualError(t, err, "value for $and must be an array of dicts")
+	_, err = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"bar\": \"baz\"}]}", s)
+	assert.EqualError(t, err, "invalid query expression for field `bar': not an integer")
+
 }
 
 func TestParseQueryInvalidHierarchy(t *testing.T) {
@@ -190,4 +202,12 @@ func TestQueryMatch(t *testing.T) {
 	assert.False(t, q.Match(map[string]interface{}{"foo": "foo"}))
 	assert.True(t, q.Match(map[string]interface{}{"bar": float64(1)}))
 	assert.False(t, q.Match(map[string]interface{}{"bar": "foo"}))
+	q, _ = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"bar\": 1}]}", s)
+	assert.False(t, q.Match(map[string]interface{}{"foo": "bar"}))
+	assert.False(t, q.Match(map[string]interface{}{"bar": float64(1)}))
+	assert.True(t, q.Match(map[string]interface{}{"foo": "bar", "bar": float64(1)}))
+	q, _ = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
+	assert.False(t, q.Match(map[string]interface{}{"foo": "bar"}))
+	assert.False(t, q.Match(map[string]interface{}{"foo": "baz"}))
+	assert.False(t, q.Match(map[string]interface{}{"bar": float64(1)}))
 }

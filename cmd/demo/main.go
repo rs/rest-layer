@@ -110,6 +110,8 @@ func main() {
 		AllowedModes: rest.ReadWrite,
 	}))
 
+	users.Alias("public", url.Values{"filter": []string{"{\"name\":\"bob\"}"}})
+
 	// Bind a sub resource on /users/:user_id/posts[/:post_id]
 	// and reference the user on each post using the "user" field of the posts resource.
 	posts := users.Bind("posts", "user", rest.NewResource(post, mem.NewHandler(), rest.Conf{
@@ -119,7 +121,7 @@ func main() {
 
 	// Add a friendly alias to public posts
 	// (equivalent to /users/:user_id/posts?filter={"public":true})
-	posts.Alias("public", url.Values{"filter": []string{"{\"public\"=true}"}})
+	posts.Alias("public", url.Values{"filter": []string{"{\"public\":true}"}})
 
 	// Create API HTTP handler for the resource graph
 	api, err := rest.NewHandler(root)

@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/rs/rest-layer/schema"
 	"golang.org/x/net/context"
 )
 
@@ -196,22 +197,24 @@ func (r RouteMatch) ResourceID() interface{} {
 // Lookup builds a Lookup object from the matched route
 func (r RouteMatch) Lookup() (Lookup, *Error) {
 	l := newLookup()
+	// Append route fields to the query
+	for _, rp := range r.ResourcePath {
+		if rp.Value != nil {
+			l.addQuery(schema.Query{rp.Field: rp.Value})
+		}
+	}
+	// Parse query string params
 	if sort := r.Params.Get("sort"); sort != "" {
 		if err := l.setSort(sort, r.Resource().schema); err != nil {
 			return nil, &Error{422, "Invalid `sort` paramter", nil}
 		}
 	}
-	// TODO: Handle multiple filter param
-	if filter := r.Params.Get("filter"); filter != "" {
-		if err := l.setFilter(filter, r.Resource().schema); err != nil {
-			return nil, &Error{422, "Invalid `filter` parameter", nil}
-		}
-	}
-	// Append route fields to the query
-	for _, rp := range r.ResourcePath {
-		// TODO: handle collisions
-		if rp.Value != nil {
-			l.filter[rp.Field] = rp.Value
+	if filters, found := r.Params["filter"]; found {
+		// If several filter parameters are present, merge them using $and (see lookup.addFilter)
+		for _, filter := range filters {
+			if err := l.addFilter(filter, r.Resource().schema); err != nil {
+				return nil, &Error{422, "Invalid `filter` parameter", nil}
+			}
 		}
 	}
 	return l, nil
