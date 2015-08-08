@@ -1,4 +1,6 @@
-# REST Layer [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer)
+# REST Layer
+
+[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer)
 
 REST Layer is a REST API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It lets you automatically generate a comprehensive, customizable, and secure REST API on top of any backend storage with no boiler plate code. You can focus on your business logic now.
 
@@ -8,7 +10,7 @@ REST Layer is an opinionated framework. Unlike many web frameworks, you don't di
 
 <!-- TOC depth:6 withLinks:1 updateOnSave:1 orderedList:0 -->
 
-- [REST Layer [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer)](#rest-layer-godochttpimgshieldsiobadgegodoc-reference-bluesvgstyleflathttpsgodocorggithubcomrsrest-layer-licensehttpimgshieldsiobadgelicense-mit-redsvgstyleflathttpsrawgithubusercontentcomrsrest-layermasterlicense-buildhttpsimgshieldsiotravisrsrest-layersvgstyleflathttpstravis-ciorgrsrest-layer)
+- [REST Layer](#rest-layer)
 	- [Features](#features)
 		- [Extensions](#extensions)
 		- [Storage Handlers](#storage-handlers)
@@ -29,6 +31,7 @@ REST Layer is an opinionated framework. Unlike many web frameworks, you don't di
 	- [Timeout and Request Cancellation](#timeout-and-request-cancellation)
 	- [Data Storage Handler](#data-storage-handler)
 	- [Custom Response Sender](#custom-response-sender)
+	- [Middleware](#middleware)
 <!-- /TOC -->
 
 ## Features
@@ -777,9 +780,19 @@ Middlewares are guaranteed to be able to get the found [rest.RouteMatch](https:/
 
 A middleware can also augment the context by adding its own values so other middlewares, resource storage handlers or response sender can read it. See [net/context](https://golang.org/x/net/context) documentation to find out more about this technic.
 
+To implement a middleware, you must implement the [rest.Middleware](https://godoc.org/github.com/rs/rest-layer#Middleware) interface:
+
+```go
+type Middleware interface {
+	Handle(ctx context.Context, r *http.Request, next Next) (context.Context, int, http.Header, interface{})
+}
+```
+
+You may also directly attach the `Handle` function using `UseFunc`:
+
 ```go
 // Add a very basic auth using a middleware
-api.Use(func(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{}) {
+api.UseFunc(func(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{}) {
 	if u, p, ok := r.BasicAuth(); ok && validateCredentials(u, p) {
 		// Store the authen user in the context
 		ctx = context.WithValue(ctx, "user", u)

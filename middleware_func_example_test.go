@@ -12,12 +12,12 @@ func validateCredentials(u, p string) bool {
 	return true
 }
 
-func ExampleMiddleware() {
+func ExampleHandler_UseFunc() {
 	root := rest.New()
 	api, _ := rest.NewHandler(root)
 
 	// Add a very basic auth using a middleware
-	api.Use(func(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{}) {
+	api.UseFunc(func(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{}) {
 		if u, p, ok := r.BasicAuth(); ok && validateCredentials(u, p) {
 			// Store the authen user in the context
 			ctx = context.WithValue(ctx, "user", u)
