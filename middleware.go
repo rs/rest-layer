@@ -35,20 +35,17 @@ func (m middlewareFuncWrapper) Handle(ctx context.Context, r *http.Request, next
 	return m.handleFunc(ctx, r, next)
 }
 
+// NewMiddleware wraps a standalone middleware Handle function into a struct implementing the Middleware interface
+func NewMiddleware(handle func(ctx context.Context, r *http.Request, next Next) (context.Context, int, http.Header, interface{})) Middleware {
+	return middlewareFuncWrapper{handle}
+}
+
 // Use adds a middleware the the middleware chain
 //
 // WARNING: this method is not thread safe. You should never add a middleware while
 // the http.Handler is serving requests.
 func (h *Handler) Use(m Middleware) {
 	h.mw = append(h.mw, m)
-}
-
-// UseFunc adds a middleware the the middleware chain as a function
-//
-// WARNING: this method is not thread safe. You should never add a middleware while
-// the http.Handler is serving requests.
-func (h *Handler) UseFunc(f func(ctx context.Context, r *http.Request, next Next) (context.Context, int, http.Header, interface{})) {
-	h.mw = append(h.mw, &middlewareFuncWrapper{f})
 }
 
 func (h *Handler) callMiddlewares(ctx context.Context, r *http.Request, last Next) (context.Context, int, http.Header, interface{}) {
