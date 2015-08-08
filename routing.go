@@ -118,10 +118,10 @@ func findRoute(ctx context.Context, path string, router ResourceRouter, route *R
 					l := newLookup()
 					for _, rp := range route.ResourcePath {
 						if rp.Value != nil {
-							l.filter[rp.Field] = rp.Value
+							l.filter = append(l.filter, schema.Equal{Field: rp.Field, Value: rp.Value})
 						}
 					}
-					l.filter["id"] = id
+					l.filter = append(l.filter, schema.Equal{Field: "id", Value: id})
 					list, err := resource.handler.Find(ctx, l, 1, 1)
 					if err != nil {
 						return err
@@ -200,7 +200,7 @@ func (r RouteMatch) Lookup() (Lookup, *Error) {
 	// Append route fields to the query
 	for _, rp := range r.ResourcePath {
 		if rp.Value != nil {
-			l.addQuery(schema.Query{rp.Field: rp.Value})
+			l.addQuery(schema.Query{schema.Equal{Field: rp.Field, Value: rp.Value}})
 		}
 	}
 	// Parse query string params

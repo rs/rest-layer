@@ -7,16 +7,76 @@ import (
 	"reflect"
 )
 
-// Query defines an expression against a schema to perform a match schema's data
-type Query map[string]interface{}
+// Query defines an expression against a schema to perform a match on schema's data.
+type Query []Expression
 
-// NewQuery returns a new query with the provided key/value
-func NewQuery(q map[string]interface{}) Query {
-	nq := Query{}
-	for key, exp := range q {
-		nq[key] = exp
-	}
-	return nq
+// Expression is a query or query component that can be matched agains a payoad.
+type Expression interface {
+	Match(payload map[string]interface{}) bool
+}
+
+// Value represents any kind of value to use in query
+type Value interface{}
+
+// And joins query clauses with a logical AND, returns all documents
+// that match the conditions of both clauses.
+type And []Expression
+
+// Or joins query clauses with a logical OR, returns all documents that
+// match the conditions of either clause.
+type Or []Expression
+
+// In natches any of the values specified in an array.
+type In struct {
+	Field  string
+	Values []Value
+}
+
+// NotIn matches none of the values specified in an array.
+type NotIn struct {
+	Field  string
+	Values []Value
+}
+
+// Equal matches all values that are equal to a specified value.
+type Equal struct {
+	Field string
+	Value Value
+}
+
+// NotEqual matches all values that are not equal to a specified value.
+type NotEqual struct {
+	Field string
+	Value Value
+}
+
+// GreaterThan matches values that are greater than a specified value.
+type GreaterThan struct {
+	Field string
+	Value float64
+}
+
+// GreaterOrEqual matches values that are greater than or equal to a specified value.
+type GreaterOrEqual struct {
+	Field string
+	Value float64
+}
+
+// LowerThan matches values that are less than a specified value.
+type LowerThan struct {
+	Field string
+	Value float64
+}
+
+// LowerOrEqual matches values that are less than or equal to a specified value.
+type LowerOrEqual struct {
+	Field string
+	Value float64
+}
+
+// NewQuery returns a new query with the provided key/value validated against validator
+func NewQuery(q map[string]interface{}, validator Validator) (Query, error) {
+	return validateQuery(q, validator, "")
 }
 
 // ParseQuery parses and validate a query as string
@@ -27,199 +87,235 @@ func ParseQuery(query string, validator Validator) (Query, error) {
 	if !ok {
 		return nil, errors.New("must be a JSON object")
 	}
-	if err := validateQuery(q, validator, ""); err != nil {
-		return nil, err
-	}
-	return q, nil
+	return validateQuery(q, validator, "")
 }
 
-// validateQuery recursively validates the format of a query
-func validateQuery(q map[string]interface{}, validator Validator, parentKey string) error {
+// validateQuery recursively validates and cast a query
+func validateQuery(q map[string]interface{}, validator Validator, parentKey string) (Query, error) {
+	queries := Query{}
 	for key, exp := range q {
 		switch key {
 		case "$ne":
 			op := key
 			if parentKey == "" {
-				return fmt.Errorf("%s can't be at first level", op)
+				return nil, fmt.Errorf("%s can't be at first level", op)
 			}
 			if field := validator.GetField(parentKey); field != nil {
 				if field.Validator != nil {
 					if _, err := field.Validator.Validate(exp); err != nil {
-						return fmt.Errorf("invalid query expression for field `%s': %s", parentKey, err)
+						return nil, fmt.Errorf("invalid query expression for field `%s': %s", parentKey, err)
 					}
 				}
 			}
+			queries = append(queries, NotEqual{Field: parentKey, Value: exp})
 		case "$gt", "$gte", "$lt", "$lte":
 			op := key
 			if parentKey == "" {
-				return fmt.Errorf("%s can't be at first level", op)
+				return nil, fmt.Errorf("%s can't be at first level", op)
 			}
-			if _, ok := isNumber(exp); !ok {
-				return fmt.Errorf("%s: value for %s must be a number", parentKey, op)
+			n, ok := isNumber(exp)
+			if !ok {
+				return nil, fmt.Errorf("%s: value for %s must be a number", parentKey, op)
 			}
 			if field := validator.GetField(parentKey); field != nil {
 				if field.Validator != nil {
 					switch field.Validator.(type) {
 					case Integer, Float:
 						if _, err := field.Validator.Validate(exp); err != nil {
-							return fmt.Errorf("invalid query expression for field `%s': %s", parentKey, err)
+							return nil, fmt.Errorf("invalid query expression for field `%s': %s", parentKey, err)
 						}
 					default:
-						return fmt.Errorf("%s: cannot apply %s operation on a non numerical field", parentKey, op)
+						return nil, fmt.Errorf("%s: cannot apply %s operation on a non numerical field", parentKey, op)
 					}
 				}
+			}
+			switch op {
+			case "$gt":
+				queries = append(queries, GreaterThan{Field: parentKey, Value: n})
+			case "$gte":
+				queries = append(queries, GreaterOrEqual{Field: parentKey, Value: n})
+			case "$lt":
+				queries = append(queries, LowerThan{Field: parentKey, Value: n})
+			case "$lte":
+				queries = append(queries, LowerOrEqual{Field: parentKey, Value: n})
 			}
 		case "$in", "$nin":
 			op := key
 			if parentKey == "" {
-				return fmt.Errorf("%s can't be at first level", op)
+				return nil, fmt.Errorf("%s can't be at first level", op)
 			}
 			if _, ok := exp.(map[string]interface{}); ok {
-				return fmt.Errorf("%s: value for %s can't be a dict", parentKey, op)
+				return nil, fmt.Errorf("%s: value for %s can't be a dict", parentKey, op)
 			}
+			values := []Value{}
 			if field := validator.GetField(parentKey); field != nil {
+				vals, ok := exp.([]interface{})
+				if !ok {
+					vals = []interface{}{exp}
+				}
 				if field.Validator != nil {
-					values, ok := exp.([]interface{})
-					if !ok {
-						values = []interface{}{exp}
-					}
-					for _, value := range values {
-						if _, err := field.Validator.Validate(value); err != nil {
-							return fmt.Errorf("invalid query expression (%s) for field `%s': %s", value, parentKey, err)
+					for _, v := range vals {
+						if _, err := field.Validator.Validate(v); err != nil {
+							return nil, fmt.Errorf("invalid query expression (%s) for field `%s': %s", v, parentKey, err)
 						}
 					}
 				}
+				for _, v := range vals {
+					values = append(values, v)
+				}
+			}
+			switch op {
+			case "$in":
+				queries = append(queries, In{Field: parentKey, Values: values})
+			case "$nin":
+				queries = append(queries, NotIn{Field: parentKey, Values: values})
 			}
 		case "$or", "$and":
 			op := key
 			var subQueries []interface{}
 			var ok bool
 			if subQueries, ok = exp.([]interface{}); !ok {
-				return fmt.Errorf("value for %s must be an array of dicts", op)
+				return nil, fmt.Errorf("value for %s must be an array of dicts", op)
 			}
 			if len(subQueries) < 2 {
-				return fmt.Errorf("%s must contain at least to elements", op)
+				return nil, fmt.Errorf("%s must contain at least to elements", op)
 			}
 			// Cast map to Query object
-			castedExp := make([]Query, len(subQueries))
-			for i, subQuery := range subQueries {
+			castedExp := []Expression{}
+			for _, subQuery := range subQueries {
 				sq, ok := subQuery.(map[string]interface{})
 				if !ok {
-					return fmt.Errorf("value for %s must be an array of dicts", op)
-				} else if err := validateQuery(sq, validator, ""); err != nil {
-					return err
+					return nil, fmt.Errorf("value for %s must be an array of dicts", op)
 				}
-				castedExp[i] = sq
+				query, err := validateQuery(sq, validator, "")
+				if err != nil {
+					return nil, err
+				}
+				castedExp = append(castedExp, query...)
 			}
-			q[key] = castedExp
+			switch op {
+			case "$or":
+				queries = append(queries, Or(castedExp))
+			case "$and":
+				queries = append(queries, And(castedExp))
+			}
 		default:
 			// Field query
 			field := validator.GetField(key)
 			if field == nil {
-				return fmt.Errorf("unknown query field: %s", key)
+				return nil, fmt.Errorf("unknown query field: %s", key)
 			}
 			if !field.Filterable {
-				return fmt.Errorf("field is not filterable: %s", key)
+				return nil, fmt.Errorf("field is not filterable: %s", key)
 			}
 			if parentKey != "" {
-				return fmt.Errorf("%s: invalid expression", parentKey)
+				return nil, fmt.Errorf("%s: invalid expression", parentKey)
 			}
 			if subQuery, ok := exp.(map[string]interface{}); ok {
-				if err := validateQuery(subQuery, validator, key); err != nil {
-					return err
+				sq, err := validateQuery(subQuery, validator, key)
+				if err != nil {
+					return nil, err
 				}
-				// Cast map to Query object
-				q[key] = Query(subQuery)
+				queries = append(queries, sq...)
 			} else {
 				// Exact match
 				if field.Validator != nil {
 					if _, err := field.Validator.Validate(exp); err != nil {
-						return fmt.Errorf("invalid query expression for field `%s': %s", key, err)
+						return nil, fmt.Errorf("invalid query expression for field `%s': %s", key, err)
 					}
 				}
+				queries = append(queries, Equal{Field: key, Value: exp})
 			}
 		}
 	}
-	return nil
+	return queries, nil
 }
 
-// Match executes the query on the given payload and tells if it match
-func (q Query) Match(payload map[string]interface{}) bool {
-	return matchQuery(q, payload, "")
-}
-
-func matchQuery(q Query, payload map[string]interface{}, parentKey string) bool {
-	for key, exp := range q {
-		switch key {
-		case "$ne":
-			if reflect.DeepEqual(getField(payload, parentKey), exp) {
-				return false
-			}
-		case "$gt":
-			n1, ok1 := isNumber(exp)
-			n2, ok2 := isNumber(getField(payload, parentKey))
-			if !(ok1 && ok2 && (n1 < n2)) {
-				return false
-			}
-		case "$gte":
-			n1, ok1 := isNumber(exp)
-			n2, ok2 := isNumber(getField(payload, parentKey))
-			if !(ok1 && ok2 && (n1 <= n2)) {
-				return false
-			}
-		case "$lt":
-			n1, ok1 := isNumber(exp)
-			n2, ok2 := isNumber(getField(payload, parentKey))
-			if !(ok1 && ok2 && (n1 > n2)) {
-				return false
-			}
-		case "$lte":
-			n1, ok1 := isNumber(exp)
-			n2, ok2 := isNumber(getField(payload, parentKey))
-			if !(ok1 && ok2 && (n1 >= n2)) {
-				return false
-			}
-		case "$in":
-			if !isIn(exp, getField(payload, parentKey)) {
-				return false
-			}
-		case "$nin":
-			if isIn(exp, getField(payload, parentKey)) {
-				return false
-			}
-		case "$or":
-			pass := false
-			if subQueries, ok := exp.([]Query); ok {
-				// Run each sub queries like a root query, stop/pass on first match
-				for _, subQuery := range subQueries {
-					if matchQuery(subQuery, payload, "") {
-						pass = true
-						break
-					}
-				}
-			}
-			if !pass {
-				return false
-			}
-		case "$and":
-			if subQueries, ok := exp.([]Query); ok {
-				// Run each sub queries like a root query, stop/pass on first match
-				for _, subQuery := range subQueries {
-					if !matchQuery(subQuery, payload, "") {
-						return false
-					}
-				}
-			}
-		default:
-			// Exact match
-			if subQuery, ok := exp.(Query); ok {
-				if !matchQuery(subQuery, payload, key) {
-					return false
-				}
-			} else if !reflect.DeepEqual(getField(payload, key), exp) {
-				return false
-			}
+// Match implements Expression interface
+func (e Query) Match(payload map[string]interface{}) bool {
+	// Run each sub queries like a root query, stop/pass on first match
+	for _, subQuery := range e {
+		if !subQuery.Match(payload) {
+			return false
 		}
 	}
 	return true
+}
+
+// Match implements Expression interface
+func (e And) Match(payload map[string]interface{}) bool {
+	// Run each sub queries like a root query, stop/pass on first match
+	for _, subQuery := range e {
+		if !subQuery.Match(payload) {
+			return false
+		}
+	}
+	return true
+}
+
+// Match implements Expression interface
+func (e Or) Match(payload map[string]interface{}) bool {
+	// Run each sub queries like a root query, stop/pass on first match
+	for _, subQuery := range e {
+		if subQuery.Match(payload) {
+			return true
+		}
+	}
+	return false
+}
+
+// Match implements Expression interface
+func (e In) Match(payload map[string]interface{}) bool {
+	value := getField(payload, e.Field)
+	for _, v := range e.Values {
+		if reflect.DeepEqual(v, value) {
+			return true
+		}
+	}
+	return false
+}
+
+// Match implements Expression interface
+func (e NotIn) Match(payload map[string]interface{}) bool {
+	value := getField(payload, e.Field)
+	for _, v := range e.Values {
+		if reflect.DeepEqual(v, value) {
+			return false
+		}
+	}
+	return true
+}
+
+// Match implements Expression interface
+func (e Equal) Match(payload map[string]interface{}) bool {
+	return reflect.DeepEqual(getField(payload, e.Field), e.Value)
+}
+
+// Match implements Expression interface
+func (e NotEqual) Match(payload map[string]interface{}) bool {
+	return !reflect.DeepEqual(getField(payload, e.Field), e.Value)
+}
+
+// Match implements Expression interface
+func (e GreaterThan) Match(payload map[string]interface{}) bool {
+	n, ok := isNumber(getField(payload, e.Field))
+	return ok && (n > e.Value)
+}
+
+// Match implements Expression interface
+func (e GreaterOrEqual) Match(payload map[string]interface{}) bool {
+	n, ok := isNumber(getField(payload, e.Field))
+	return ok && (n >= e.Value)
+}
+
+// Match implements Expression interface
+func (e LowerThan) Match(payload map[string]interface{}) bool {
+	n, ok := isNumber(getField(payload, e.Field))
+	return ok && (n < e.Value)
+}
+
+// Match implements Expression interface
+func (e LowerOrEqual) Match(payload map[string]interface{}) bool {
+	n, ok := isNumber(getField(payload, e.Field))
+	return ok && (n <= e.Value)
 }

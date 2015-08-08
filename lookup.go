@@ -89,13 +89,11 @@ func (l *lookup) addFilter(filter string, validator schema.Validator) error {
 }
 
 func (l *lookup) addQuery(query schema.Query) {
-	if l.filter == nil || len(l.filter) == 0 {
+	if l.filter == nil {
 		l.filter = query
 		return
 	}
-	if and, ok := l.filter["$and"].([]schema.Query); ok {
-		l.filter["$and"] = append(and, query)
-	} else {
-		l.filter = schema.Query{"$and": []schema.Query{l.filter, query}}
+	for _, exp := range query {
+		l.filter = append(l.filter, exp)
 	}
 }

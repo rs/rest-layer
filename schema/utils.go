@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 )
@@ -92,21 +91,6 @@ func isNumber(n interface{}) (float64, bool) {
 	default:
 		return 0, false
 	}
-}
-
-// isIn returns true if on the the elements in exp is equal to value.
-// The exp argument may be an item or a list of item to match.
-func isIn(exp interface{}, value interface{}) bool {
-	values, ok := exp.([]interface{})
-	if !ok {
-		values = []interface{}{exp}
-	}
-	for _, v := range values {
-		if reflect.DeepEqual(v, value) {
-			return true
-		}
-	}
-	return false
 }
 
 // getField gets the value of a given field by supporting sub-field path.

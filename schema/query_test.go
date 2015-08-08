@@ -36,10 +36,11 @@ func TestIsNumber(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestIsIn(t *testing.T) {
-	assert.True(t, isIn("foo", "foo"))
-	assert.True(t, isIn([]interface{}{"foo", "bar"}, "foo"))
-	assert.False(t, isIn([]interface{}{"foo", "bar"}, "baz"))
+func TestNewQuery(t *testing.T) {
+	s := Schema{"foo": Field{Filterable: true}}
+	q, err := NewQuery(map[string]interface{}{"foo": "bar"}, s)
+	assert.NoError(t, err)
+	assert.Equal(t, Query{Equal{Field: "foo", Value: "bar"}}, q)
 }
 
 func TestParseQuery(t *testing.T) {
@@ -62,25 +63,28 @@ func TestParseQuery(t *testing.T) {
 	}
 	q, err = ParseQuery("{\"foo\": \"bar\"}", s)
 	assert.NoError(t, err)
-	assert.Equal(t, Query{"foo": "bar"}, q)
+	assert.Equal(t, Query{Equal{Field: "foo", Value: "bar"}}, q)
 	q, err = ParseQuery("{\"foo.bar\": \"baz\"}", s)
 	assert.NoError(t, err)
-	assert.Equal(t, Query{"foo.bar": "baz"}, q)
+	assert.Equal(t, Query{Equal{Field: "foo.bar", Value: "baz"}}, q)
 	q, err = ParseQuery("{\"foo\": {\"$ne\": \"bar\"}}", s)
 	assert.NoError(t, err)
-	assert.Equal(t, Query{"foo": Query{"$ne": "bar"}}, q)
+	assert.Equal(t, Query{NotEqual{Field: "foo", Value: "bar"}}, q)
 	q, err = ParseQuery("{\"baz\": {\"$gt\": 1}}", s)
 	assert.NoError(t, err)
-	assert.Equal(t, Query{"baz": Query{"$gt": float64(1)}}, q)
+	assert.Equal(t, Query{GreaterThan{Field: "baz", Value: float64(1)}}, q)
 	q, err = ParseQuery("{\"$or\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
 	assert.NoError(t, err)
-	assert.Equal(t, Query{"$or": []Query{Query{"foo": "bar"}, Query{"foo": "baz"}}}, q)
+	assert.Equal(t, Query{Or{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}}, q)
 	q, err = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
 	assert.NoError(t, err)
-	assert.Equal(t, Query{"$and": []Query{Query{"foo": "bar"}, Query{"foo": "baz"}}}, q)
+	assert.Equal(t, Query{And{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}}, q)
 	q, err = ParseQuery("{\"foo\": {\"$in\": [\"bar\", \"baz\"]}}", s)
 	assert.NoError(t, err)
-	assert.Equal(t, Query{"foo": Query{"$in": []interface{}{"bar", "baz"}}}, q)
+	assert.Equal(t, Query{In{Field: "foo", Values: []Value{"bar", "baz"}}}, q)
+	q, err = ParseQuery("{\"foo\": {\"$nin\": [\"bar\", \"baz\"]}}", s)
+	assert.NoError(t, err)
+	assert.Equal(t, Query{NotIn{Field: "foo", Values: []Value{"bar", "baz"}}}, q)
 }
 
 func TestParseQueryUnfilterableField(t *testing.T) {
