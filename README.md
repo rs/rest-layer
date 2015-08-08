@@ -805,3 +805,16 @@ api.Use(rest.NewMiddleware(func(ctx context.Context, r *http.Request, next rest.
 	return ctx, 401, headers, &rest.Error{401, "Please provide proper credentials", nil}
 })
 ```
+
+You may want to execute some middlewares only under certain condition. To help you with that, REST Layer provides the `rest.If` middleware. This middleware takes a `Condition` function and based on its return, and forwards the execution to the `Then` or `Else` middleware:
+
+```go
+api.Use(rest.If{
+	Condition: func(ctx context.Context, r *http.Request) bool {
+		route, ok := rest.RouteFromContext(ctx)
+		// True if current resource endpoint is users
+		return ok && route.ResourcePath.Path() == "users"
+	},
+	Then: &SomeMiddleware{},
+})
+```
