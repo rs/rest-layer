@@ -6,8 +6,9 @@ import (
 	"net/url"
 
 	"github.com/rs/cors"
-	"github.com/rs/rest-layer"
 	"github.com/rs/rest-layer-mem"
+	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
 )
 
@@ -103,21 +104,21 @@ var (
 )
 
 func main() {
-	// Create a REST API root resource
-	root := rest.New()
+	// Create a REST API resource index
+	index := resource.NewIndex()
 
 	// Add a resource on /users[/:user_id]
-	users := root.Bind("users", rest.NewResource(user, mem.NewHandler(), rest.Conf{
+	users := index.Bind("users", resource.New(user, mem.NewHandler(), resource.Conf{
 		// We allow all REST methods
-		// (rest.ReadWrite is a shortcut for []rest.Mode{Create, Read, Update, Delete, List})
-		AllowedModes: rest.ReadWrite,
+		// (rest.ReadWrite is a shortcut for []resource.Mode{resource.Create, resource.Read, resource.Update, resource.Delete, resource,List})
+		AllowedModes: resource.ReadWrite,
 	}))
 
 	// Bind a sub resource on /users/:user_id/posts[/:post_id]
 	// and reference the user on each post using the "user" field of the posts resource.
-	posts := users.Bind("posts", "user", rest.NewResource(post, mem.NewHandler(), rest.Conf{
+	posts := users.Bind("posts", "user", resource.New(post, mem.NewHandler(), resource.Conf{
 		// Posts can only be read, created and deleted, not updated
-		AllowedModes: []rest.Mode{rest.Read, rest.List, rest.Create, rest.Delete},
+		AllowedModes: []resource.Mode{resource.Read, resource.List, resource.Create, resource.Delete},
 	}))
 
 	// Add a friendly alias to public posts
@@ -125,7 +126,7 @@ func main() {
 	posts.Alias("public", url.Values{"filter": []string{"{\"published\":true}"}})
 
 	// Create API HTTP handler for the resource graph
-	api, err := rest.NewHandler(root)
+	api, err := rest.NewHandler(index)
 	if err != nil {
 		log.Fatalf("Invalid API configuration: %s", err)
 	}

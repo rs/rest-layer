@@ -1,5 +1,5 @@
 /*
-Package rest layer is a REST API framework heavily inspired by the excellent
+Package rest_layer is a REST API framework heavily inspired by the excellent
 Python Eve (http://python-eve.org).
 
 It lets you automatically generate a comprehensive, customizable, and secure
@@ -18,5 +18,13 @@ you. A powerful and extensible validation engine make sure that data comes
 pre-validated to you resource handlers. Generic resource handlers for MongoDB and
 other databases are also available so you have few to no code to write to make
 the whole system work.
+
+REST Layer is composed of several sub-packages:
+
+ - rest: Holds the `net/http` handler responsible for the implementation of the RESTful API.
+ - schema: Provides a validation framework for the API resources.
+ - resource: Defines resources, manages the resource graph and manages the interface with resource storage handler.
+
+See http://github.com/rs/rest-layer for full REST Layer documentation.
 */
-package rest
+package rest_layer

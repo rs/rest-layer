@@ -1,4 +1,4 @@
-package rest_layer
+package rest_test
 
 import (
 	"log"

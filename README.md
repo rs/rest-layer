@@ -1,5 +1,7 @@
 # REST Layer
 
+REST APIs made easy.
+
 [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer)
 
 REST Layer is a REST API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It lets you automatically generate a comprehensive, customizable, and secure REST API on top of any backend storage with no boiler plate code. You can focus on your business logic now.
@@ -7,6 +9,12 @@ REST Layer is a REST API framework heavily inspired by the excellent [Python Eve
 Implemented as a `net/http` middleware, it plays well with other middlewares like [CORS](http://github.com/rs/cors).
 
 REST Layer is an opinionated framework. Unlike many web frameworks, you don't directly control the routing. You just expose resources and sub-resources, the framework automatically figures what routes to generate behind the scene. You don't have to take care of the HTTP headers and response, JSON encoding, etc. either. rest handles HTTP conditional requests, caching, integrity checking for you. A powerful and extensible validation engine make sure that data comes pre-validated to you resource handlers. Generic resource handlers for MongoDB and other databases are also available so you have few to no code to write to make the whole system work.
+
+REST Layer is composed of several sub-packages:
+
+* [rest](https://godoc.org/github.com/rs/rest-layer/rest): Holds the `net/http` handler responsible for the implementation of the RESTful API.
+* [schema](https://godoc.org/github.com/rs/rest-layer/schema): Provides a validation framework for the API resources.
+* [resource](https://godoc.org/github.com/rs/rest-layer/resource): Defines resources, manages the resource graph and manages the interface with resource storage handler.
 
 <!-- TOC depth:6 withLinks:1 updateOnSave:1 orderedList:0 -->
 
@@ -96,8 +104,9 @@ import (
 	"net/url"
 
 	"github.com/rs/cors"
-	"github.com/rs/rest-layer"
 	"github.com/rs/rest-layer-mem"
+	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
 )
 
@@ -193,21 +202,21 @@ var (
 )
 
 func main() {
-	// Create a REST API root resource
-	root := rest.New()
+	// Create a REST API resource index
+	index := resource.NewIndex()
 
 	// Add a resource on /users[/:user_id]
-	users := root.Bind("users", rest.NewResource(user, mem.NewHandler(), rest.Conf{
+	users := index.Bind("users", resource.New(user, mem.NewHandler(), resource.Conf{
 		// We allow all REST methods
-		// (rest.ReadWrite is a shortcut for []rest.Mode{Create, Read, Update, Delete, List})
-		AllowedModes: rest.ReadWrite,
+		// (rest.ReadWrite is a shortcut for []resource.Mode{resource.Create, resource.Read, resource.Update, resource.Delete, resource,List})
+		AllowedModes: resource.ReadWrite,
 	}))
 
 	// Bind a sub resource on /users/:user_id/posts[/:post_id]
 	// and reference the user on each post using the "user" field of the posts resource.
-	posts := users.Bind("posts", "user", rest.NewResource(post, mem.NewHandler(), rest.Conf{
+	posts := users.Bind("posts", "user", resource.New(post, mem.NewHandler(), resource.Conf{
 		// Posts can only be read, created and deleted, not updated
-		AllowedModes: []rest.Mode{rest.Read, rest.List, rest.Create, rest.Delete},
+		AllowedModes: []resource.Mode{resource.Read, resource.List, resource.Create, resource.Delete},
 	}))
 
 	// Add a friendly alias to public posts
@@ -215,7 +224,7 @@ func main() {
 	posts.Alias("public", url.Values{"filter": []string{"{\"published\":true}"}})
 
 	// Create API HTTP handler for the resource graph
-	api, err := rest.NewHandler(root)
+	api, err := rest.NewHandler(index)
 	if err != nil {
 		log.Fatalf("Invalid API configuration: %s", err)
 	}
@@ -499,22 +508,22 @@ post = schema.Schema{
 
 ### Binding
 
-Now you just need to bind this schema at a specific endpoint on the [rest.Handler](https://godoc.org/github.com/rs/rest-layer#Handler) object:
+Now you just need to bind this schema at a specific endpoint on the [resource.Index](https://godoc.org/github.com/rs/rest-layer/resource#Index) object:
 
 ```go
-root := rest.New()
-posts := root.Bind("posts", rest.NewResource(post, mem.NewHandler(), rest.DefaultConf)
+index := resource.NewIndex()
+posts := index.Bind("posts", resource.New(post, mem.NewHandler(), resource.DefaultConf)
 ```
 
-This tells the `rest.Handler` to bind the `post` schema at the `posts` endpoint. The resource collection URL is then `/posts` and item URLs are `/posts/<post_id>`.
+This tells the `resource.Index` to bind the `post` schema at the `posts` endpoint. The resource collection URL is then `/posts` and item URLs are `/posts/<post_id>`.
 
-The [rest.DefaultConf](https://godoc.org/github.com/rs/rest-layer#pkg-variables) variable is a pre-defined [rest.Conf](https://godoc.org/github.com/rs/rest-layer#Conf) type with sensible default. You can customize the resource behavoir using a custom configuration.
+The [resource.DefaultConf](https://godoc.org/github.com/rs/rest-layer/resource#pkg-variables) variable is a pre-defined [resource.Conf](https://godoc.org/github.com/rs/rest-layer/resource#Conf) type with sensible default. You can customize the resource behavior using a custom configuration.
 
-The `rest.Conf` type has the following customizable properties:
+The `resource.Conf` type has the following customizable properties:
 
 | Property                 | Description
 | ------------------------ | -------------
-| `AllowedModes`           | A list of `rest.Mode` allowed for the resource.
+| `AllowedModes`           | A list of `resource.Mode` allowed for the resource.
 | `PaginationDefaultLimit` | If set, pagination is enabled by default with a number of item per page defined here.
 
 
@@ -522,13 +531,13 @@ The `rest.Conf` type has the following customizable properties:
 
 REST Layer handles mapping of HTTP methods to your resource URLs automatically. With REST, there is two kind of resource URL pathes: collection and item URLs. Collection URLs (`/<resource>`) are pointing to the collection of items while item URL (`/<resource>/<item_id>`) points to a specific item in that collection. HTTP methods are used to perform CRUDL operations on those resource.
 
-You can easily dis/allow operation on a per resource basis using `rest.Conf` `AllowedModes` property. The use of modes instead of HTTP methods in the configuration adds a layer of abstraction necessary to handle specific cases like `PUT` HTTP method performing a `create` if the specified item does not exist or a `replace` if it does. This gives you precise control of what you want to allow or not.
+You can easily dis/allow operation on a per resource basis using `resource.Conf` `AllowedModes` property. The use of modes instead of HTTP methods in the configuration adds a layer of abstraction necessary to handle specific cases like `PUT` HTTP method performing a `create` if the specified item does not exist or a `replace` if it does. This gives you precise control of what you want to allow or not.
 
 Modes are passed as configuration to resources as follow:
 
 ```go
-users := api.Bind("users", rest.NewResource(user, mem.NewHandler(), rest.Conf{
-	AllowedModes: []rest.Mode{rest.Read, rest.List, rest.Create, rest.Delete},
+users := index.Bind("users", resource.New(user, mem.NewHandler(), resource.Conf{
+	AllowedModes: []resource.Mode{resource.Read, resource.List, resource.Create, resource.Delete},
 }))
 ```
 
@@ -552,9 +561,9 @@ Sub resources can be used to express a one-to-may parent-child relationship betw
 To create a sub-resource, you bind you resource on the object returned by the binding of the parent resource. For instance, here we bind a `comments` resource to a `posts` resource:
 
 ```go
-posts := root.Bind("posts", rest.NewResource(post, mem.NewHandler(), rest.DefaultConf)
+posts := index.Bind("posts", resource.New(post, mem.NewHandler(), resource.DefaultConf)
 // Bind comment as sub-resource of the posts resource
-posts.Bind("comments", "post", rest.NewResource(comment, mem.NewHandler(), rest.DefaultConf)
+posts.Bind("comments", "post", resource.New(comment, mem.NewHandler(), resource.DefaultConf)
 ```
 
 The second argument `"post"` defines the field in the `comments` resource that refers to the parent. This field must be present in the resource and the backend storage must support filtering on it. As a result, we get a new hierarchical route as follow:
@@ -735,7 +744,7 @@ When a field validator implements this interface, the `Compile` method is called
 
 REST Layer handles client request cancellation using [net/context](https://golang.org/x/net/context). In case the client closes the connection before the server has finish processing the request, the context is canceled. This context is passed to the resource handler so it can listen for those cancelations and stop the processing (see [Data Storage Handler](#data-storage-handler) section for more information about how to implement resource handlers.
 
-Timeout is implement the same way. If a timeout is set at server level through [rest.Handler](https://godoc.org/github.com/rs/rest-layer#Handler) `RequestTimeout` property or if the `timeout` query-string parameter is passed with a duration value compatible with [time.ParseDuration](http://golang.org/pkg/time/#ParseDuration), the context will be set with a deadline set to that value.
+Timeout is implement the same way. If a timeout is set at server level through [rest.Handler](https://godoc.org/github.com/rs/rest-layer/rest#Handler) `RequestTimeout` property or if the `timeout` query-string parameter is passed with a duration value compatible with [time.ParseDuration](http://golang.org/pkg/time/#ParseDuration), the context will be set with a deadline set to that value.
 
 When a request is stopped because the client closed the connection, the response HTTP status is set to `499 Client Closed Request` (for logging purpose). When a timeout is set and the request has reached this timeout, the response HTTP status is set to `509 Gateway Timeout`.
 
@@ -743,27 +752,28 @@ When a request is stopped because the client closed the connection, the response
 
 REST Layer doesn't handle storage of resources directly. A [mem.MemoryHandler](https://godoc.org/github.com/rs/rest-layer-mem#MemoryHandler) is provided as an example but should be used for testing only.
 
-A resource handler is easy to write though. Some handlers for popular databases are available (soon), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the [rest.ResourceHandler](https://godoc.org/github.com/rs/rest-layer#ResourceHandler) interface:
+A resource storage handler is easy to write though. Some handlers for popular databases are available (soon), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the [resource.Storer](https://godoc.org/github.com/rs/rest-layer/resource#Storer) interface:
 
 ```go
-type ResourceHandler interface {
-	Find(ctx context.Context, lookup rest.Lookup, page, perPage int) (*rest.ItemList, *rest.Error)
-	Insert(ctx context.Context, items []*Item) *Error
-	Update(ctx context.Context, item *Item, original *Item) *Error
-	Delete(ctx context.Context, item *rest.Item) *rest.Error
-	Clear(ctx context.Context, lookup rest.Lookup) (int, *rest.Error)
+type Storer interface {
+	Find(ctx context.Context, lookup *resource.Lookup, page, perPage int) (*resource.ItemList, error)
+	Insert(ctx context.Context, items []*resource.Item) error
+	Update(ctx context.Context, item *resource.Item, original *resource.Item) error
+	Delete(ctx context.Context, item *resource.Item) error
+	Clear(ctx context.Context, lookup *resource.Lookup) (int, error)
+}
 }
 ```
 
-Mutation methods like `Update` and `Delete` must ensure they are atomically mutating the same item as specified in argument by checking their `ETag` (the stored `ETag` must match the `ETag` of the provided item). In case the handler can't guarantee that, the storage must be left untouched, and a [rest.ConflictError](https://godoc.org/github.com/rs/rest-layer#pkg-variables) must be returned.
+Mutation methods like `Update` and `Delete` must ensure they are atomically mutating the same item as specified in argument by checking their `ETag` (the stored `ETag` must match the `ETag` of the provided item). In case the handler can't guarantee that, the storage must be left untouched, and a [resource.ErrConflict](https://godoc.org/github.com/rs/rest-layer/resource#pkg-variables) must be returned.
 
-If the the operation not immediate, the method must listen for cancellation on the passed `ctx`. If the operation is stopped due to context cancellation, the function must return the result of the [rest.ContextError()](https://godoc.org/github.com/rs/rest-layer#ContextError) with the [ctx.Err()](https://godoc.org/golang.org/x/net/context#Context) as argument. See [this blog post](https://blog.golang.org/context) for more information about how `net/context` works.
+If the the operation not immediate, the method must listen for cancellation on the passed `ctx`. If the operation is stopped due to context cancellation, the function must return the result of the [ctx.Err()](https://godoc.org/golang.org/x/net/context#Context) method. See [this blog post](https://blog.golang.org/context) for more information about how `net/context` works.
 
-See [rest.ResourceHandler](https://godoc.org/github.com/rs/rest-layer#ResourceHandler) documentation for more information on resource handler implementation details.
+See [resource.Storer](https://godoc.org/github.com/rs/rest-layer/resource#Storer) documentation for more information on resource storage handler implementation details.
 
 ## Custom Response Sender
 
-REST Layer let you extend or replace the default response sender. To write a new response sender, you need to implement the [rest.ResponseSender](https://godoc.org/github.com/rs/rest-layer#ResponseSender) interface:
+REST Layer let you extend or replace the default response sender. To write a new response sender, you need to implement the [rest.ResponseSender](https://godoc.org/github.com/rs/rest-layer/rest#ResponseSender) interface:
 
 ```go
 // ResponseSender defines an interface responsible for formatting, serializing and sending the response
@@ -774,20 +784,20 @@ type ResponseSender interface {
 	// SendError formats a REST formated error or a simple error in a format ready to be serialized by Send
 	SendError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{})
 	// SendItem formats a single item in a format ready to be serialized by Send
-	SendItem(ctx context.Context, headers http.Header, i *rest.Item, skipBody bool) (context.Context, interface{})
+	SendItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{})
 	// SendItem formats a list of items in a format ready to be serialized by Send
-	SendList(ctx context.Context, headers http.Header, l *rest.ItemList, skipBody bool) (context.Context, interface{})
+	SendList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{})
 }
 ```
 
 Then set you response sender on the REST Layer HTTP handler like this:
 
 ```go
-api, _ := rest.NewHandler(root)
+api, _ := rest.NewHandler(index)
 api.ResponseSender = &myResponseSender{}
 ```
 
-You may also extend the [DefaultResponseSender](https://godoc.org/github.com/rs/rest-layer#DefaultResponseSender) if you just want to wrap or slightly modify the default behavior:
+You may also extend the [DefaultResponseSender](https://godoc.org/github.com/rs/rest-layer/rest#DefaultResponseSender) if you just want to wrap or slightly modify the default behavior:
 
 ```go
 type myResponseSender struct {
@@ -795,7 +805,7 @@ type myResponseSender struct {
 }
 
 // Add a wrapper around the list with pagination info
-func (r myResponseSender) SendList(ctx context.Context, headers http.Header, l *rest.ItemList, skipBody bool) (context.Context, interface{}) {
+func (r myResponseSender) SendList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
 	ctx, data := r.DefaultResponseSender.SendList(ctx, headers, l, skipBody)
 	return ctx, map[string]interface{}{
 		"meta": map[string]int{
@@ -811,19 +821,19 @@ func (r myResponseSender) SendList(ctx context.Context, headers http.Header, l *
 
 A middleware is a piece of custom code wrapped around the REST Layer's request processing logic, just after the routing handler found the targeted resource. You can insert you own logic to extend the framework like adding access control, logging, etc.
 
-Middlewares are guaranteed to be able to get the found [rest.RouteMatch](https://godoc.org/github.com/rs/rest-layer#RouteMatch) and the current [rest.ResourceRouter](https://godoc.org/github.com/rs/rest-layer#ResourceRouter) from the context by respectively calling [rest.RouteFromContext](https://godoc.org/github.com/rs/rest-layer#RouteFromContext) and [rest.RouterFromContext](https://godoc.org/github.com/rs/rest-layer#RouterFromContext).
+Middlewares are guaranteed to be able to get the found [rest.RouteMatch](https://godoc.org/github.com/rs/rest-layer/rest#RouteMatch) and the current [resource.Index](https://godoc.org/github.com/rs/rest-layer/resource#Index) from the context by respectively calling [rest.RouteFromContext](https://godoc.org/github.com/rs/rest-layer/rest#RouteFromContext) and [rest.IndexFromContext](https://godoc.org/github.com/rs/rest-layer/rest#IndexFromContext).
 
 A middleware can also augment the context by adding its own values so other middlewares, resource storage handlers or response sender can read it. See [net/context](https://golang.org/x/net/context) documentation to find out more about this technic.
 
-To implement a middleware, you must implement the [rest.Middleware](https://godoc.org/github.com/rs/rest-layer#Middleware) interface:
+To implement a middleware, you must implement the [rest.Middleware](https://godoc.org/github.com/rs/rest-layer/rest#Middleware) interface:
 
 ```go
 type Middleware interface {
-	Handle(ctx context.Context, r *http.Request, next Next) (context.Context, int, http.Header, interface{})
+	Handle(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{})
 }
 ```
 
-You may also directly attach the `Handle` function using `UseFunc`:
+You may also directly attach the `Handle` function by wrapping it in [rest.NewMiddleware](https://godoc.org/github.com/rs/rest-layer/rest#NewMiddleware):
 
 ```go
 // Add a very basic auth using a middleware
@@ -841,7 +851,7 @@ api.Use(rest.NewMiddleware(func(ctx context.Context, r *http.Request, next rest.
 })
 ```
 
-You may want to execute some middlewares only under certain condition. To help you with that, REST Layer provides the `rest.If` middleware. This middleware takes a `Condition` function and based on its return, and forwards the execution to the `Then` or `Else` middleware:
+You may want to execute some middlewares only under certain condition. To help you with that, REST Layer provides the [rest.If](https://godoc.org/github.com/rs/rest-layer/rest#If) middleware. This middleware takes a `Condition` function and based on its return, and forwards the execution to the `Then` or `Else` middleware:
 
 ```go
 api.Use(rest.If{
