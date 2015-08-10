@@ -1,27 +1,25 @@
 package schema
 
 import (
-	"crypto/md5"
-	"crypto/rand"
-	"fmt"
 	"strings"
 	"time"
 )
 
 var (
 	// Now is a field hook handler that returns the current time, to be used in
-	// schema with OnInit and OnUpdate
+	// schema with OnInit and OnUpdate.
 	Now = func(value interface{}) interface{} {
 		return time.Now()
 	}
 
 	// NewID is a field hook handler that generates a new unique id if none exist,
-	// to be used in schema with OnInit
+	// to be used in schema with OnInit.
+	//
+	// The generated ID is a Mongo like hex object id (mgo/bson code has been embedded
+	// into this function to prevent dep)
 	NewID = func(value interface{}) interface{} {
 		if value == nil {
-			r := make([]byte, 128)
-			rand.Read(r)
-			value = fmt.Sprintf("%x", md5.Sum(r))
+			value = newID()
 		}
 		return value
 	}
@@ -34,7 +32,7 @@ var (
 		Filterable: true,
 		Sortable:   true,
 		Validator: &String{
-			Regexp: "^[0-9a-f]{32}$",
+			Regexp: "^[0-9a-f]{24}$",
 		},
 	}
 

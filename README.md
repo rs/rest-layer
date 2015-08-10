@@ -127,7 +127,7 @@ var (
 			Filterable: true,
 			Sortable:   true,
 			Validator: &schema.String{
-				Regexp: "^[0-9a-f]{32}$",
+				Regexp: "^[0-9a-f]{24}$",
 			},
 		},
 		"created": schema.Field{
