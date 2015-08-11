@@ -45,5 +45,8 @@ func (r *request) listGet(ctx context.Context, route RouteMatch) (status int, he
 		e = NewError(err)
 		return e.Code, nil, e
 	}
+	for _, item := range list.Items {
+		item.Payload = lookup.ApplySelector(item.Payload)
+	}
 	return 200, nil, list
 }

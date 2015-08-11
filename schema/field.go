@@ -51,6 +51,7 @@ type FieldValidator interface {
 // Compile implements Compiler interface and recusively compile sub schemas and validators
 // when they implement Compiler interface
 func (f Field) Compile() error {
+	// TODO check field name format (alpha num + _ and -)
 	if f.Schema != nil {
 		// Recusively compile sub schema if any
 		if err := f.Schema.Compile(); err != nil {

@@ -33,5 +33,6 @@ func (r *request) itemGet(ctx context.Context, route RouteMatch) (status int, he
 			return 304, nil, nil
 		}
 	}
+	item.Payload = lookup.ApplySelector(item.Payload)
 	return 200, nil, item
 }

@@ -28,8 +28,13 @@ REST Layer is composed of several sub-packages:
 		- [Binding](#binding)
 		- [Modes](#modes)
 		- [Sub Resources](#sub-resources)
+		- [Dependency](#dependency)
 	- [Filtering](#filtering)
 	- [Sorting](#sorting)
+	- [Field Selection](#field-selection)
+		- [Field Aliasing](#field-aliasing)
+		- [Embedding](#embedding)
+		- [Field Parameters](#field-parameters)
 	- [Pagination](#pagination)
 	- [Conditional Requests](#conditional-requests)
 	- [Data Integrity and Concurrency Control](#data-integrity-and-concurrency-control)
@@ -88,7 +93,7 @@ REST Layer is composed of several sub-packages:
 ### Storage Handlers
 
 - [x] [Memory](http://github.com/rs/rest-layer-mem) (test only)
-- [ ] MongoDB
+- [x] [MongoDB](http://github.com/rs/rest-layer-mongo)
 - [ ] ElasticSearch
 - [ ] Redis
 - [ ] Google BigTable
@@ -634,6 +639,126 @@ Here we sort the result by ascending quantity and descending date:
 
 	sort=quantity,-created
 
+## Field Selection
+
+REST APIs tend to grow over time. Resources get more and more fields to full fill the needs of new features. But each time fields are added, all existing API clients automatically gets the additional cost. This tend to lead to huge wast of bandwidth and added latency due to bad useless/useful fields ratio.
+
+To workaround this issue, REST Layer provides an powerful fill selection (also named projection) system. If you provide the `fields` parameter with a list of fields for the resource you are interested in separated by comas, only those fields will be returned in the document:
+
+```http
+$ http -b :8080/api/users/55c99b7fa6ebe48ebb000001 fields=='id,name'
+{
+    "id": "55c99b7fa6ebe48ebb000001",
+    "name": "John Doe"
+}
+```
+
+### Field Aliasing
+
+It's also possible to rename fields in the response using aliasing. To create an alias, suffix the field name by the wanted alias separated by a colon (:):
+
+```http
+$ http -b :8080/api/users/55c99b7fa6ebe48ebb000001 fields=='id,name,name:n'
+{
+    "id": "55c99b7fa6ebe48ebb000001",
+    "n": "John Doe",
+    "name": "John Doe"
+}
+```
+
+As you see, you can specify several time the same field. It's doesn't seem useful in this example, but with parameters, it becomes very powerful (see below).
+
+If your document has sub-fields, you can use brackets to select sub-fields:
+
+```http
+$ http -b :8080/api/users/55c99b7fa6ebe48ebb000001/posts fields=='meta{title,body:b}'
+[
+    {
+        "_etag": "4f695896b1b024aed1982ecd9c66e750",
+        "meta": {
+            "b": "example",
+            "title": "test"
+        }
+    }
+]
+```
+
+### Embedding
+
+**Work in progress**
+
+With sub-fields notation you can also request referenced resources or connections (sub-resources), REST Layer will recognize it and will fetch the associated resources, and embed their result in the response. This can save a lot of unnecessary sequencial rount-trips:
+
+```http
+$ http -b :8080/api/users/55c99b7fa6ebe48ebb000001/posts \
+  fields=='meta{title},user{name},comments(sort="-created",limit=10){user{name},body}'
+[
+    {
+        "_etag": "4f695896b1b024aed1982ecd9c66e750",
+        "meta": {
+            "title": "test"
+        },
+        "user": {
+            "name": "John Doe"
+        },
+        "comments": [
+            "user": {
+                "name": "Paul Wolf"
+            },
+            "body": "That's awesome!"
+        ]
+    }
+]
+```
+
+In the above example, the user field is a reference on the `users` resource. REST Layer did fetch the user referenced by the post and embedded the requested fields. Same for `comments`: `comments` is set as a sub-resource of the `posts` resource. With this syntax, it's easy to get the last 10 comments on the post in the same REST request.
+
+### Field Parameters
+
+**Work in progress**
+
+Field parameters are used to apply a transformation on the value of a field using some custom logic.
+
+For instance, if you are using an on demand dynamic image resizer, you may want to expose the capability of this service, without requiring from the client to learn another URL based API. It's would be better if we could just ask the API to return the `thumbnail_url` dynamically transformed with the desired dimensions.
+
+By combining field alising and field parameters, you can expose you resizer API as follow:
+
+```http
+$ http -b :8080/api/videos fields=='id,
+                                    thumb_url(width:80,height:60):thumb_s_url,
+                                    thumb_url(width:800,height:600):thumb_l_url'
+[
+    {
+        "_etag": "4f695896b1b024aed1982ecd9c66e750",
+        "thumb_s_url": "http://cdn.com/path/to/image-80w60h.jpg",
+        "thumb_l_url": "http://cdn.com/path/to/image-800w600h.jpg"
+    }
+ ]
+```
+
+As you can see in the example above, the same field is represented twice but with some useful value transformations.
+
+To add parameters on a field, use the `Params` property of the `schema.Field` type as follow:
+
+```go
+schema.Schema{
+	"field": schema.Field{
+	    Params: schema.Params{
+	        Handler: &func(value interface{}, params map[string]interface{}) (interface{}, err) {
+				// your transformation logic here
+				return value, nil
+	        },
+	        Validators: map[string]schema.FieldValidator{
+	            "width": schema.Integer{},
+	            "height": schema.Integer{},
+	        },
+	    },
+	}
+}
+```
+
+Only parameters with listed in validators will be accepted. You `Handler` function is then called with the current value of the field and the parameter map. You function can apply wanted transformations on the value and return it. If an error is returned, a `422` error will be triggered with you error message associated to the field.
+
 ## Pagination
 
 Pagination is supported on collection URLs using `page` and `limit` query-string parameters. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated until you provide the `limit` query-string parameter.
@@ -752,7 +877,7 @@ When a request is stopped because the client closed the connection, the response
 
 REST Layer doesn't handle storage of resources directly. A [mem.MemoryHandler](https://godoc.org/github.com/rs/rest-layer-mem#MemoryHandler) is provided as an example but should be used for testing only.
 
-A resource storage handler is easy to write though. Some handlers for popular databases are available (soon), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the [resource.Storer](https://godoc.org/github.com/rs/rest-layer/resource#Storer) interface:
+A resource storage handler is easy to write though. Some handlers for [popular databases are available](#storage-handlers), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the [resource.Storer](https://godoc.org/github.com/rs/rest-layer/resource#Storer) interface:
 
 ```go
 type Storer interface {

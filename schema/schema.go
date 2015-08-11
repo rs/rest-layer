@@ -12,7 +12,7 @@ type Schema map[string]Field
 
 // Validator is an interface used to validate schema against actual data
 type Validator interface {
-	GetField(field string) *Field
+	GetField(name string) *Field
 	Prepare(payload map[string]interface{}, original *map[string]interface{}, replace bool) (changes map[string]interface{}, base map[string]interface{})
 	Validate(changes map[string]interface{}, base map[string]interface{}) (doc map[string]interface{}, errs map[string][]interface{})
 }

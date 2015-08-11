@@ -11,13 +11,27 @@ import (
 // Lookup holds filter and sort used to select items in a resource collection
 type Lookup struct {
 	// The client supplied filter. Filter is a MongoDB inspired query with a more limited
-	// set of capabilities. See [README](https://github.com/rs/rest-layer#filtering)
+	// set of capabilities. See https://github.com/rs/rest-layer#filtering
 	// for more info.
 	filter schema.Query
 	// The client supplied soft. Sort is a list of resource fields or sub-fields separated
 	// by comas (,). To invert the sort, a minus (-) can be prefixed.
-	// See [README](https://github.com/rs/rest-layer#sorting) for more info.
+	// See https://github.com/rs/rest-layer#sorting for more info.
 	sort []string
+	// The client supplied selector. Selector is a way for the client to reformat the
+	// resource representation at runtime by defining which fields should be included
+	// in the document. The REST Layer selector language allows field aliasing, field
+	// transformation with parameters and sub-item/collection embedding.
+	selector []Field
+}
+
+// Field is used with Lookup.selector to reformat the resource representation at runtime
+// using a field selection language inspired by GraphQL.
+type Field struct {
+	Name   string
+	Alias  string
+	Params map[string]interface{}
+	Fields []Field
 }
 
 // NewLookup creates an empty lookup object
@@ -30,16 +44,20 @@ func NewLookup() *Lookup {
 
 // Sort is a list of resource fields or sub-fields separated
 // by comas (,). To invert the sort, a minus (-) can be prefixed.
-// See [README](https://github.com/rs/rest-layer#sorting) for more info.
+//
+// See https://github.com/rs/rest-layer#sorting for more info.
 func (l *Lookup) Sort() []string {
 	return l.sort
 }
 
 // Filter is a MongoDB inspired query with a more limited set of capabilities.
-// See [README](https://github.com/rs/rest-layer#filtering) for more info.
+//
+// See https://github.com/rs/rest-layer#filtering for more info.
 func (l *Lookup) Filter() schema.Query {
 	return l.filter
 }
+
+// Selector returns the
 
 // SetSort parses and validate a sort parameter and set it as lookup's Sort
 func (l *Lookup) SetSort(sort string, validator schema.Validator) error {
@@ -91,4 +109,26 @@ func (l *Lookup) AddQuery(query schema.Query) {
 	for _, exp := range query {
 		l.filter = append(l.filter, exp)
 	}
+}
+
+// SetSelector parses a selector expression, validates it and assign it to the current Lookup.
+func (l *Lookup) SetSelector(s string, r *Resource) error {
+	pos := 0
+	selector, err := parseSelectorExpression([]byte(s), &pos, len(s), false)
+	if err != nil {
+		return err
+	}
+	if err = validateSelector(selector, r, r.Validator()); err != nil {
+		return err
+	}
+	l.selector = selector
+	return nil
+}
+
+// ApplySelector applies fields filtering / rename to the payload fields
+func (l *Lookup) ApplySelector(p map[string]interface{}) map[string]interface{} {
+	if len(l.selector) == 0 {
+		return p
+	}
+	return applySelector(l.selector, p)
 }
