@@ -3,8 +3,8 @@ package schema
 import (
 	"crypto/md5"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -58,5 +58,5 @@ func newID() string {
 	b[9] = byte(i >> 16)
 	b[10] = byte(i >> 8)
 	b[11] = byte(i)
-	return hex.EncodeToString(b[:])
+	return base64.URLEncoding.EncodeToString(b[:])
 }
