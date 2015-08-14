@@ -1,62 +1,6 @@
 package schema
 
-import (
-	"strings"
-	"time"
-)
-
-var (
-	// Now is a field hook handler that returns the current time, to be used in
-	// schema with OnInit and OnUpdate.
-	Now = func(value interface{}) interface{} {
-		return time.Now()
-	}
-
-	// NewID is a field hook handler that generates a new unique id if none exist,
-	// to be used in schema with OnInit.
-	//
-	// The generated ID is a Mongo like base64 object id (mgo/bson code has been embedded
-	// into this function to prevent dep)
-	NewID = func(value interface{}) interface{} {
-		if value == nil {
-			value = newID()
-		}
-		return value
-	}
-
-	// IDField is a common schema field configuration that generate an UUID for new item id.
-	IDField = Field{
-		Required:   true,
-		ReadOnly:   true,
-		OnInit:     &NewID,
-		Filterable: true,
-		Sortable:   true,
-		Validator: &String{
-			Regexp: "^[0-9a-zA-Z_-]{16}$",
-		},
-	}
-
-	// CreatedField is a common schema field configuration for "created" fields. It stores
-	// the creation date of the item.
-	CreatedField = Field{
-		Required:  true,
-		ReadOnly:  true,
-		OnInit:    &Now,
-		Sortable:  true,
-		Validator: &Time{},
-	}
-
-	// UpdatedField is a common schema field configuration for "updated" fields. It stores
-	// the current date each time the item is modified.
-	UpdatedField = Field{
-		Required:  true,
-		ReadOnly:  true,
-		OnInit:    &Now,
-		OnUpdate:  &Now,
-		Sortable:  true,
-		Validator: &Time{},
-	}
-)
+import "strings"
 
 // isNumber takes an interface as input, and returns a float64 if the type is
 // compatible (int* or float*)

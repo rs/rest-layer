@@ -48,6 +48,15 @@ type FieldValidator interface {
 	Validate(value interface{}) (interface{}, error)
 }
 
+// FieldSerializer is used to convert the value between it's representation form and it
+// internal storable form. A FieldValidator which implement this interface will have its
+// Serialize method called before marshaling.
+type FieldSerializer interface {
+	// Serialize is called when the data is comming from it internal storable form and
+	// needs to be prepared for representation (i.e.: just before JSON marshaling)
+	Serialize(value interface{}) (interface{}, error)
+}
+
 // Compile implements Compiler interface and recusively compile sub schemas and validators
 // when they implement Compiler interface
 func (f Field) Compile() error {

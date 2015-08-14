@@ -115,8 +115,18 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var body interface{}
 	switch res := res.(type) {
 	case *resource.Item:
+		if s, ok := route.Resource().Validator().(schema.Serializer); ok {
+			// Prepare the payload for marshaling by calling eventual field serializers
+			s.Serialize(res.Payload)
+		}
 		ctx, body = h.ResponseSender.SendItem(ctx, headers, res, skipBody)
 	case *resource.ItemList:
+		if s, ok := route.Resource().Validator().(schema.Serializer); ok {
+			// Prepare the payload for marshaling by calling eventual field serializers
+			for _, item := range res.Items {
+				s.Serialize(item.Payload)
+			}
+		}
 		ctx, body = h.ResponseSender.SendList(ctx, headers, res, skipBody)
 	case *Error:
 		ctx, body = h.ResponseSender.SendError(ctx, headers, res, skipBody)

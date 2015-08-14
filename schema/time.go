@@ -5,18 +5,46 @@ import (
 	"time"
 )
 
-var formats = []string{
-	time.RFC3339,
-	time.RFC3339Nano,
-	time.ANSIC,
-	time.UnixDate,
-	time.RubyDate,
-	time.RFC822,
-	time.RFC822Z,
-	time.RFC850,
-	time.RFC1123,
-	time.RFC1123Z,
-}
+var (
+	// Now is a field hook handler that returns the current time, to be used in
+	// schema with OnInit and OnUpdate.
+	Now = func(value interface{}) interface{} {
+		return time.Now()
+	}
+	// CreatedField is a common schema field configuration for "created" fields. It stores
+	// the creation date of the item.
+	CreatedField = Field{
+		Required:  true,
+		ReadOnly:  true,
+		OnInit:    &Now,
+		Sortable:  true,
+		Validator: &Time{},
+	}
+
+	// UpdatedField is a common schema field configuration for "updated" fields. It stores
+	// the current date each time the item is modified.
+	UpdatedField = Field{
+		Required:  true,
+		ReadOnly:  true,
+		OnInit:    &Now,
+		OnUpdate:  &Now,
+		Sortable:  true,
+		Validator: &Time{},
+	}
+
+	formats = []string{
+		time.RFC3339,
+		time.RFC3339Nano,
+		time.ANSIC,
+		time.UnixDate,
+		time.RubyDate,
+		time.RFC822,
+		time.RFC822Z,
+		time.RFC850,
+		time.RFC1123,
+		time.RFC1123Z,
+	}
+)
 
 // Time validates time based values
 type Time struct {
