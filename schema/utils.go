@@ -38,6 +38,14 @@ func isNumber(n interface{}) (float64, bool) {
 // getField gets the value of a given field by supporting sub-field path.
 // A get on field.subfield is equivalent to payload["field"]["subfield].
 func getField(payload map[string]interface{}, name string) interface{} {
+	val, found := getFieldExist(payload, name)
+	if !found {
+		return nil
+	}
+	return val
+}
+
+func getFieldExist(payload map[string]interface{}, name string) (interface{}, bool) {
 	// Split the name to get the current level name on first element and
 	// the rest of the path as second element if dot notation is used
 	// (i.e.: field.subfield.subsubfield -> field, subfield.subsubfield)
@@ -46,13 +54,13 @@ func getField(payload map[string]interface{}, name string) interface{} {
 		if len(path) == 2 {
 			if subPayload, ok := value.(map[string]interface{}); ok {
 				// Check next level
-				return getField(subPayload, path[1])
+				return getFieldExist(subPayload, path[1])
 			}
 			// The requested depth does not exist
-			return nil
+			return nil, false
 		}
 		// Full path has been found
-		return value
+		return value, true
 	}
-	return nil
+	return nil, false
 }

@@ -631,6 +631,14 @@ The opposite `$nin` is also available.
 
 The following numeric comparisons operators are supported: `$lt`, `$lte`, `$gt`, `$gte`.
 
+The `$exists` operator matches document containing the field, even if this field is `null`"
+
+```json
+{"type": {"$exists": true}}
+```
+
+You can invert the operator by passing `false`.
+
 ## Sorting
 
 Sorting is of resource items is defined thru the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (,). To invert a field's sort, you can prefix it's with a minus (-) character.

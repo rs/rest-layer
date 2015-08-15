@@ -50,6 +50,16 @@ type NotEqual struct {
 	Value Value
 }
 
+// Exist matches all values which are present, even if nil
+type Exist struct {
+	Field string
+}
+
+// NotExist matches all values which are absent
+type NotExist struct {
+	Field string
+}
+
 // GreaterThan matches values that are greater than a specified value.
 type GreaterThan struct {
 	Field string
@@ -95,6 +105,19 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 	queries := Query{}
 	for key, exp := range q {
 		switch key {
+		case "$exists":
+			if parentKey == "" {
+				return nil, errors.New("$exists can't be at first level")
+			}
+			positive, ok := exp.(bool)
+			if !ok {
+				return nil, errors.New("$exists can only get Boolean as value")
+			}
+			if positive {
+				queries = append(queries, Exist{Field: parentKey})
+			} else {
+				queries = append(queries, NotExist{Field: parentKey})
+			}
 		case "$ne":
 			op := key
 			if parentKey == "" {
@@ -294,6 +317,18 @@ func (e Equal) Match(payload map[string]interface{}) bool {
 // Match implements Expression interface
 func (e NotEqual) Match(payload map[string]interface{}) bool {
 	return !reflect.DeepEqual(getField(payload, e.Field), e.Value)
+}
+
+// Match implements Expression interface
+func (e Exist) Match(payload map[string]interface{}) bool {
+	_, found := getFieldExist(payload, e.Field)
+	return found
+}
+
+// Match implements Expression interface
+func (e NotExist) Match(payload map[string]interface{}) bool {
+	_, found := getFieldExist(payload, e.Field)
+	return !found
 }
 
 // Match implements Expression interface
