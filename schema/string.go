@@ -49,7 +49,7 @@ func (v String) Validate(value interface{}) (interface{}, error) {
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("not one of [%s]", strings.Join(v.Allowed, ","))
+			return nil, fmt.Errorf("not one of [%s]", strings.Join(v.Allowed, ", "))
 		}
 	}
 	if v.Regexp != "" {
