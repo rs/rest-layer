@@ -16,6 +16,9 @@ type RouteMatch struct {
 	// Method is the HTTP method used on the resource.
 	Method string
 	// ResourcePath is the list of intermediate resources followed by the targetted resource.
+	// Each intermediate resource mutch match all the previous resource components of this path
+	// and newly created resources will have their corresponding fields filled with resource
+	// path information (resource.field => resource.value).
 	ResourcePath ResourcePath
 	// Params is the list of client provided parameters (thru query-string or alias).
 	Params url.Values
@@ -217,7 +220,7 @@ func (r RouteMatch) Lookup() (*resource.Lookup, *Error) {
 	return l, nil
 }
 
-// applyFields appends lookup fields to a payload
+// applyFields appends every element of the resource path to a payload
 func (r RouteMatch) applyFields(payload map[string]interface{}) {
 	for _, rp := range r.ResourcePath {
 		if rp.Value != nil {
