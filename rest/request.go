@@ -29,7 +29,7 @@ type request struct {
 // decodePayload decodes the payload from the provided request
 func (r *request) decodePayload(payload *map[string]interface{}) *Error {
 	// Check content-type, if not specified, assume it's JSON and fail later
-	if ct := r.req.Header.Get("Content-Type"); ct != "" && ct != "application/json" {
+	if ct := r.req.Header.Get("Content-Type"); ct != "" && ct != "application/json" && ct != "application/json; charset=utf-8" {
 		return &Error{501, fmt.Sprintf("Invalid Content-Type header: `%s' not supported", ct), nil}
 	}
 	decoder := json.NewDecoder(r.req.Body)
