@@ -21,6 +21,28 @@ func TestRequestDecodePayload(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{"foo": "bar"}, p)
 }
 
+func TestRequestDecodePayloadContentType(t *testing.T) {
+	r := request{
+		req: &http.Request{
+			Header: map[string][]string{"Content-Type": []string{"application/json"}},
+			Body:   ioutil.NopCloser(bytes.NewBufferString("{\"foo\":\"bar\"}")),
+		},
+	}
+	var p map[string]interface{}
+	err := r.decodePayload(&p)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]interface{}{"foo": "bar"}, p)
+	r = request{
+		req: &http.Request{
+			Header: map[string][]string{"Content-Type": []string{"application/json; charset=utf8"}},
+			Body:   ioutil.NopCloser(bytes.NewBufferString("{\"foo\":\"bar\"}")),
+		},
+	}
+	err = r.decodePayload(&p)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]interface{}{"foo": "bar"}, p)
+}
+
 func TestRequestDecodePayloadWrongContentType(t *testing.T) {
 	r := request{
 		req: &http.Request{

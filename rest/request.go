@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/rs/rest-layer/resource"
@@ -29,7 +30,7 @@ type request struct {
 // decodePayload decodes the payload from the provided request
 func (r *request) decodePayload(payload *map[string]interface{}) *Error {
 	// Check content-type, if not specified, assume it's JSON and fail later
-	if ct := r.req.Header.Get("Content-Type"); ct != "" && ct != "application/json" {
+	if ct := r.req.Header.Get("Content-Type"); ct != "" && strings.TrimSpace(strings.SplitN(ct, ";", 2)[0]) != "application/json" {
 		return &Error{501, fmt.Sprintf("Invalid Content-Type header: `%s' not supported", ct), nil}
 	}
 	decoder := json.NewDecoder(r.req.Body)
