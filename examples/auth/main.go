@@ -34,7 +34,10 @@ var (
 		},
 		"password": schema.Field{
 			Required:  true,
-			Validator: &schema.Password{MinLen: 6},
+			Validator: &schema.Password {
+			MinLen: 6,
+			Hide: true,
+		},
 		},
 	}
 
@@ -110,7 +113,7 @@ func main() {
 	}))
 
 	// Init the db with some users (user registration is not handled by this example)
-	secret, _ := schema.Password{Show: true}.Validate("secret")
+	secret, _ := schema.Password{}.Validate("secret")
 	users.Insert(context.Background(), []*resource.Item{
 		&resource.Item{ID: "admin", Updated: time.Now(), ETag: "abcd", Payload: map[string]interface{}{
 			"id":       "admin",

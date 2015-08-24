@@ -9,10 +9,15 @@ import (
 
 // Password cryptes a field password using bcrypt algorithm
 type Password struct {
-	MaxLen int
+	// MinLen defines the minimum password length (default 0)
 	MinLen int
-	Cost   int
-	Show   bool
+	// MaxLen defines the maximum password length (default no limit)
+	MaxLen int
+	// Cost sets a custom bcrypt hashing cose.
+	Cost int
+	// Hide replaces the hashed password with the $$hidden$$ value so
+	// the password hash is not exposed publicly.
+	Hide bool
 }
 
 // Validate implements FieldValidator interface
@@ -21,7 +26,7 @@ func (v Password) Validate(value interface{}) (interface{}, error) {
 	if !ok {
 		return nil, errors.New("not a string")
 	}
-	if s == "$$hidden$$" {
+	if v.Hide && s == "$$hidden$$" {
 		return nil, errors.New("passed $$hidden$$ field value back")
 	}
 	l := len(s)
@@ -40,7 +45,7 @@ func (v Password) Validate(value interface{}) (interface{}, error) {
 
 // Serialize implements FieldSerializer interface
 func (v Password) Serialize(value interface{}) (interface{}, error) {
-	if !v.Show {
+	if v.Hide {
 		// Hide the field at serialization if hidden
 		return "$$hidden$$", nil
 	}
