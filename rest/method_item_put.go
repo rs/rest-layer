@@ -39,7 +39,7 @@ func (r *request) itemPut(ctx context.Context, route RouteMatch) (status int, he
 	}
 	// If-Match / If-Unmodified-Since handling
 	if err := r.checkIntegrityRequest(original); err != nil {
-		return e.Code, nil, e
+		return err.Code, nil, err
 	}
 	status = 200
 	var changes map[string]interface{}
@@ -61,7 +61,7 @@ func (r *request) itemPut(ctx context.Context, route RouteMatch) (status int, he
 	}
 	// Check that fields with the Reference validator reference an existing object
 	if err := r.checkReferences(ctx, doc, rsrc.Validator()); err != nil {
-		return e.Code, nil, e
+		return err.Code, nil, err
 	}
 	if original != nil {
 		if id, found := doc["id"]; found && id != original.ID {
@@ -79,10 +79,12 @@ func (r *request) itemPut(ctx context.Context, route RouteMatch) (status int, he
 	// is provided.
 	if original != nil {
 		if err := rsrc.Update(ctx, item, original); err != nil {
+			e = NewError(err)
 			return e.Code, nil, e
 		}
 	} else {
 		if err := rsrc.Insert(ctx, []*resource.Item{item}); err != nil {
+			e = NewError(err)
 			return e.Code, nil, e
 		}
 	}

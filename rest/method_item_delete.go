@@ -23,7 +23,7 @@ func (r *request) itemDelete(ctx context.Context, route RouteMatch) (status int,
 	original := l.Items[0]
 	// If-Match / If-Unmodified-Since handling
 	if err := r.checkIntegrityRequest(original); err != nil {
-		return e.Code, nil, e
+		return err.Code, nil, err
 	}
 	if err := route.Resource().Delete(ctx, original); err != nil {
 		e = NewError(err)
