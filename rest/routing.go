@@ -143,10 +143,41 @@ func findRoute(ctx context.Context, path string, index resource.Index, route *Ro
 	return &Error{404, "Resource Not Found", nil}
 }
 
+// PrependResourcePath add the given resource using the provided field and value as a
+// "ghost" resource prefix to the resource path.
+//
+// The effect will be a 404 error if the doesn't have an item with the id matching to the
+// provided value.
+//
+// This will also require that all subsequent resources in the path have this resource's
+// "value" set on their "field" field.
+//
+// Finaly, all created resources at this path will also have this field and value set by default.
+func (r *RouteMatch) PrependResourcePath(rsrc *resource.Resource, field string, value interface{}) {
+	rp := ResourcePathComponent{
+		Field:    field,
+		Value:    value,
+		Resource: rsrc,
+	}
+	// Prepent the resource path with the user resource
+	r.ResourcePath = append(ResourcePath{rp}, r.ResourcePath...)
+}
+
 // ParentsExist checks if the each intermediate parents in the path exist and
 // return either a ErrNotFound or an error returned by on of the intermediate
 // resource.
 func (p ResourcePath) ParentsExist(ctx context.Context) error {
+	// First we check that we have no field conflict on the path (i.e.: two path
+	// components defining the same field with a different value)
+	fields := map[string]interface{}{}
+	for _, rp := range p {
+		if val, found := fields[rp.Field]; found && val != rp.Value {
+			return &Error{404, "Resource Path Conflict", nil}
+		}
+		fields[rp.Field] = rp.Value
+	}
+
+	// Check parents existence
 	parents := len(p) - 1
 	q := schema.Query{}
 	c := make(chan error, parents)
@@ -186,7 +217,9 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 func (p ResourcePath) Path() string {
 	path := []string{}
 	for _, c := range p {
-		path = append(path, c.Name)
+		if c.Name != "" {
+			path = append(path, c.Name)
+		}
 	}
 	return strings.Join(path, ".")
 }
@@ -246,7 +279,7 @@ func (r RouteMatch) Lookup() (*resource.Lookup, *Error) {
 // applyFields appends every element of the resource path to a payload
 func (r RouteMatch) applyFields(payload map[string]interface{}) {
 	for _, rp := range r.ResourcePath {
-		if rp.Value != nil {
+		if _, found := payload[rp.Field]; !found && rp.Value != nil {
 			payload[rp.Field] = rp.Value
 		}
 	}

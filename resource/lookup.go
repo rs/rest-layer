@@ -42,6 +42,14 @@ func NewLookup() *Lookup {
 	}
 }
 
+// NewLookupWithQuery creates an empty lookup object with a given query
+func NewLookupWithQuery(q schema.Query) *Lookup {
+	return &Lookup{
+		filter: q,
+		sort:   []string{},
+	}
+}
+
 // Sort is a list of resource fields or sub-fields separated
 // by comas (,). To invert the sort, a minus (-) can be prefixed.
 //

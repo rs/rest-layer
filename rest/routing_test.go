@@ -256,5 +256,5 @@ func TestRouteApplyFields(t *testing.T) {
 	}
 	p := map[string]interface{}{"id": "321", "name": "John Doe"}
 	r.applyFields(p)
-	assert.Equal(t, map[string]interface{}{"id": "123", "user": "john", "name": "John Doe"}, p)
+	assert.Equal(t, map[string]interface{}{"id": "321", "user": "john", "name": "John Doe"}, p)
 }
