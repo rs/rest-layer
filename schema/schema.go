@@ -29,8 +29,10 @@ type Serializer interface {
 	Serialize(payload map[string]interface{}) error
 }
 
-// remove type is used to mark a field for removal
-type remove struct{}
+type placeholder struct{}
+
+// remove is used to mark a field for removal
+var remove = placeholder{}
 
 func addFieldError(errs map[string][]interface{}, field string, err interface{}) {
 	errs[field] = append(errs[field], err)
@@ -153,10 +155,10 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 				changes[field] = value
 			}
 			if !found && oFound && replace {
-				// When replace arg is true and a field is not present in the payload by is in the original,
+				// When replace arg is true and a field is not present in the payload but is in the original,
 				// the tombstone value is set on the field in the change map so validator can enforce the
 				// ReadOnly and then the field can be removed from the output document.
-				changes[field] = remove{}
+				changes[field] = remove
 			}
 			if oFound {
 				base[field] = oValue
@@ -206,7 +208,7 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 		if hook != nil {
 			// Get the change value or fallback on the base value
 			if value, found := changes[field]; found {
-				if _, ok := value.(remove); ok {
+				if value == remove {
 					// If the field has a tombstone, apply the handler on the base
 					// and remove the tombstone so it doesn't appear as a user
 					// generated change
@@ -263,7 +265,7 @@ func (s Schema) validate(changes map[string]interface{}, base map[string]interfa
 		doc[field] = value
 	}
 	for field, value := range changes {
-		if _, ok := value.(remove); ok {
+		if value == remove {
 			// If the value is set for removal, remove it from the doc
 			delete(doc, field)
 		} else {
