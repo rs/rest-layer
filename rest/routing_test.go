@@ -14,8 +14,9 @@ import (
 // mockHandler is a read-only storage handler which always return what is stored in items
 // with no support for filtering/sorting or error if err is set
 type mockHandler struct {
-	items []*resource.Item
-	err   error
+	items   []*resource.Item
+	err     error
+	queries []schema.Query
 }
 
 func (m *mockHandler) Insert(ctx context.Context, items []*resource.Item) error {
@@ -34,6 +35,7 @@ func (m *mockHandler) Find(ctx context.Context, lookup *resource.Lookup, page, p
 	if m.err != nil {
 		return nil, m.err
 	}
+	m.queries = append(m.queries, lookup.Filter())
 	return &resource.ItemList{len(m.items), page, m.items}, nil
 }
 
@@ -50,7 +52,7 @@ func TestFindRoute(t *testing.T) {
 	var err *Error
 	index := resource.NewIndex()
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
-	h := &mockHandler{[]*resource.Item{i}, nil}
+	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}}
 	foo := index.Bind("foo", resource.New(schema.Schema{}, h, resource.DefaultConf))
 	bar := foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf))
 	barbar := bar.Bind("bar", "b", resource.New(schema.Schema{"b": schema.Field{}}, h, resource.DefaultConf))
@@ -174,18 +176,67 @@ func TestFindRoute(t *testing.T) {
 	assert.Equal(t, &Error{404, "Resource Not Found", nil}, err)
 	assert.Nil(t, route.Resource())
 	assert.Nil(t, route.ResourceID())
+}
+
+func TestRoutePathParentsExists(t *testing.T) {
+	var route RouteMatch
+	var err error
+	index := resource.NewIndex()
+	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
+	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}}
+	foo := index.Bind("foo", resource.New(schema.Schema{}, h, resource.DefaultConf))
+	bar := foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf))
+	bar.Bind("baz", "b", resource.New(schema.Schema{"f": schema.Field{}, "b": schema.Field{}}, h, resource.DefaultConf))
+	ctx := context.Background()
+
+	route = newRoute("GET")
+	err = findRoute(ctx, "/foo/1234/bar/5678/baz/9000", index, &route)
+	if assert.NoError(t, err) {
+		err = route.ResourcePath.ParentsExist(ctx)
+		assert.NoError(t, err)
+		// There's 3 components in the path but only 2 are parents
+		assert.Len(t, h.queries, 2)
+		// query on /foo/1234
+		assert.Contains(t, h.queries, schema.Query{schema.Equal{Field: "id", Value: "1234"}})
+		// query on /bar/5678 with foo/1234 context
+		assert.Contains(t, h.queries, schema.Query{schema.Equal{Field: "f", Value: "1234"}, schema.Equal{Field: "id", Value: "5678"}})
+	}
 
 	route = newRoute("GET")
 	// empty the storage handler
 	h.items = []*resource.Item{}
 	err = findRoute(ctx, "/foo/1234/bar", index, &route)
-	assert.Equal(t, ErrNotFound, err)
+	if assert.NoError(t, err) {
+		err = route.ResourcePath.ParentsExist(ctx)
+		assert.Equal(t, &Error{404, "Parent Resource Not Found", nil}, err)
+	}
 
 	route = newRoute("GET")
 	// for error
 	h.err = errors.New("test")
 	err = findRoute(ctx, "/foo/1234/bar", index, &route)
-	assert.Equal(t, &Error{520, "test", nil}, err)
+	if assert.NoError(t, err) {
+		err = route.ResourcePath.ParentsExist(ctx)
+		assert.EqualError(t, err, "test")
+	}
+}
+
+func TestRoutePathParentsNotExists(t *testing.T) {
+	index := resource.NewIndex()
+	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
+	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}}
+	empty := &mockHandler{[]*resource.Item{}, nil, []schema.Query{}}
+	foo := index.Bind("foo", resource.New(schema.Schema{}, empty, resource.DefaultConf))
+	foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf))
+	ctx := context.Background()
+
+	route := newRoute("GET")
+	// non existing foo
+	err := findRoute(ctx, "/foo/4321/bar/1234", index, &route)
+	if assert.NoError(t, err) {
+		err := route.ResourcePath.ParentsExist(ctx)
+		assert.Equal(t, &Error{404, "Parent Resource Not Found", nil}, err)
+	}
 }
 
 func TestRouteApplyFields(t *testing.T) {

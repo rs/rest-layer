@@ -87,63 +87,78 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	skipBody := r.Method == "HEAD"
 	ctx, err := h.getContext(w, r)
 	if err != nil {
-		headers := http.Header{}
-		ctx, body := h.ResponseSender.SendError(context.Background(), headers, err, skipBody)
-		h.ResponseSender.Send(ctx, w, err.Code, headers, body)
+		h.sendResponse(context.Background(), w, 0, http.Header{}, err, skipBody, nil)
 		return
 	}
 	route, err := FindRoute(ctx, h.index, r)
 	if err != nil {
-		headers := http.Header{}
-		ctx, body := h.ResponseSender.SendError(ctx, headers, err, skipBody)
-		h.ResponseSender.Send(ctx, w, err.Code, headers, body)
+		h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody, nil)
 		return
 	}
 	// Store the route and the router in the context
 	ctx = contextWithRoute(ctx, &route)
 	ctx = contextWithIndex(ctx, h.index)
 
+	// Call the middleware + the main route handler
 	ctx, status, headers, res := h.callMiddlewares(ctx, r, func(ctx context.Context) (context.Context, int, http.Header, interface{}) {
+		// Check route's resource parent(s) exists
+		// We perform this check after middlewares, so middleware can prepend route.ResourcePath with
+		// some other resources like a user by auth. This will ensure this user resource for instance,
+		// 1) exists 2) is contained in all subsequent path resources 3) is set on all newly created
+		// resource.
+		if err := route.ResourcePath.ParentsExist(ctx); err != nil {
+			return ctx, 0, http.Header{}, err
+		}
+		// Execute the main route handler
 		status, headers, body := processRequest(ctx, route, &request{r})
 		if headers == nil {
 			headers = http.Header{}
 		}
 		return ctx, status, headers, body
 	})
-	// Route the type of response on the right response sender method for
-	// internally supported types.
+	h.sendResponse(ctx, w, status, headers, res, skipBody, route.Resource().Validator())
+}
+
+// sendResponse routes the type of response on the right response sender method for
+// internally supported types.
+func (h *Handler) sendResponse(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, res interface{}, skipBody bool, validator schema.Validator) {
 	var body interface{}
-HANDLE:
-	switch t := res.(type) {
+	switch res := res.(type) {
 	case *resource.Item:
-		if s, ok := route.Resource().Validator().(schema.Serializer); ok {
+		if s, ok := validator.(schema.Serializer); ok {
 			// Prepare the payload for marshaling by calling eventual field serializers
-			if err := s.Serialize(t.Payload); err != nil {
-				res = fmt.Errorf("Error while preparing item: %s", err.Error())
-				goto HANDLE
+			if err := s.Serialize(res.Payload); err != nil {
+				err = fmt.Errorf("Error while preparing item: %s", err.Error())
+				h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody, validator)
 			}
 		}
-		ctx, body = h.ResponseSender.SendItem(ctx, headers, t, skipBody)
+		ctx, body = h.ResponseSender.SendItem(ctx, headers, res, skipBody)
 	case *resource.ItemList:
-		if s, ok := route.Resource().Validator().(schema.Serializer); ok {
+		if s, ok := validator.(schema.Serializer); ok {
 			// Prepare the payload for marshaling by calling eventual field serializers
-			for i, item := range t.Items {
+			for i, item := range res.Items {
 				if err := s.Serialize(item.Payload); err != nil {
-					res = fmt.Errorf("Error while preparing item #%d: %s", i, err.Error())
-					goto HANDLE
+					err = fmt.Errorf("Error while preparing item #%d: %s", i, err.Error())
+					h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody, validator)
 				}
 			}
 		}
-		ctx, body = h.ResponseSender.SendList(ctx, headers, t, skipBody)
+		ctx, body = h.ResponseSender.SendList(ctx, headers, res, skipBody)
 	case *Error:
-		ctx, body = h.ResponseSender.SendError(ctx, headers, t, skipBody)
+		if status == 0 {
+			status = res.Code
+		}
+		ctx, body = h.ResponseSender.SendError(ctx, headers, res, skipBody)
 	case error:
-		ctx, body = h.ResponseSender.SendError(ctx, headers, t, skipBody)
+		if status == 0 {
+			status = 500
+		}
+		ctx, body = h.ResponseSender.SendError(ctx, headers, res, skipBody)
 	default:
-		// Let the response handler handle all other types of responses.
+		// Let the response sender handle all other types of responses.
 		// Even if the default response sender doesn't know how to handle
 		// a type, nothing prevents a custom response sender from handling it.
-		body = t
+		body = res
 	}
 	// Send the ResponseWriter
 	h.ResponseSender.Send(ctx, w, status, headers, body)

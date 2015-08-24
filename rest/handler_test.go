@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
@@ -108,6 +109,20 @@ func TestHandlerServeHTTPNotFound(t *testing.T) {
 	assert.Equal(t, 404, w.Code)
 	b, _ := ioutil.ReadAll(w.Body)
 	assert.Equal(t, "{\"code\":404,\"message\":\"Resource Not Found\"}", string(b))
+}
+
+func TestHandlerServeHTTPParentNotFound(t *testing.T) {
+	i := resource.NewIndex()
+	foo := i.Bind("foo", resource.New(schema.Schema{}, mem.NewHandler(), resource.DefaultConf))
+	foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, nil, resource.DefaultConf))
+	h, _ := NewHandler(i)
+	w := newRecorder()
+	defer w.Close()
+	u, _ := url.ParseRequestURI("/foo/1/bar/2")
+	h.ServeHTTP(w, &http.Request{Method: "GET", URL: u})
+	assert.Equal(t, 404, w.Code)
+	b, _ := ioutil.ReadAll(w.Body)
+	assert.Equal(t, "{\"code\":404,\"message\":\"Parent Resource Not Found\"}", string(b))
 }
 
 func TestHandlerServeHTTPInvalidTimeout(t *testing.T) {

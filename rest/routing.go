@@ -107,22 +107,6 @@ func findRoute(ctx context.Context, path string, index resource.Index, route *Ro
 			if len(c) >= 1 {
 				subResourcePath := strings.Join([]string{resourcePath, c[0]}, ".")
 				if _, field, found := index.GetResource(subResourcePath); found {
-					// Check if the current (intermediate) item exists before going farther
-					l := resource.NewLookup()
-					q := schema.Query{}
-					for _, rp := range route.ResourcePath {
-						if rp.Value != nil {
-							q = append(q, schema.Equal{Field: rp.Field, Value: rp.Value})
-						}
-					}
-					q = append(q, schema.Equal{Field: "id", Value: id})
-					l.AddQuery(q)
-					list, err := rsrc.Find(ctx, l, 1, 1)
-					if err != nil {
-						return NewError(err)
-					} else if len(list.Items) == 0 {
-						return ErrNotFound
-					}
 					rp.Field = field
 					rp.Value = id
 					route.ResourcePath = append(route.ResourcePath, rp)
@@ -157,6 +141,45 @@ func findRoute(ctx context.Context, path string, index resource.Index, route *Ro
 	}
 	route.ResourcePath = ResourcePath{}
 	return &Error{404, "Resource Not Found", nil}
+}
+
+// ParentsExist checks if the each intermediate parents in the path exist and
+// return either a ErrNotFound or an error returned by on of the intermediate
+// resource.
+func (p ResourcePath) ParentsExist(ctx context.Context) error {
+	parents := len(p) - 1
+	q := schema.Query{}
+	c := make(chan error, parents)
+	for _, rp := range p[:parents] {
+		if rp.Value == nil {
+			continue
+		}
+		// Create a lookup with the parent path fields + the current path id
+		l := resource.NewLookup()
+		lq := append(q[:], schema.Equal{Field: "id", Value: rp.Value})
+		l.AddQuery(lq)
+		// Execute all intermediate checkes in concurence
+		go func() {
+			// Check if the resource exists
+			list, err := rp.Resource.Find(ctx, l, 1, 1)
+			if err != nil {
+				c <- err
+			} else if len(list.Items) == 0 {
+				c <- &Error{404, "Parent Resource Not Found", nil}
+			} else {
+				c <- nil
+			}
+		}()
+		// Push the resource field=value for the next hops
+		q = append(q, schema.Equal{Field: rp.Field, Value: rp.Value})
+	}
+	// Fail on first error
+	for i := 0; i < parents; i++ {
+		if err := <-c; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Path returns the path to the resource to be used with resource.Root.GetResource
