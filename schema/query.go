@@ -92,7 +92,9 @@ func NewQuery(q map[string]interface{}, validator Validator) (Query, error) {
 // ParseQuery parses and validate a query as string
 func ParseQuery(query string, validator Validator) (Query, error) {
 	var j interface{}
-	json.Unmarshal([]byte(query), &j)
+	if err := json.Unmarshal([]byte(query), &j); err != nil {
+		return nil, errors.New("must be valid JSON")
+	}
 	q, ok := j.(map[string]interface{})
 	if !ok {
 		return nil, errors.New("must be a JSON object")

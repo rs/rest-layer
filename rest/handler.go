@@ -113,30 +113,37 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Route the type of response on the right response sender method for
 	// internally supported types.
 	var body interface{}
-	switch res := res.(type) {
+HANDLE:
+	switch t := res.(type) {
 	case *resource.Item:
 		if s, ok := route.Resource().Validator().(schema.Serializer); ok {
 			// Prepare the payload for marshaling by calling eventual field serializers
-			s.Serialize(res.Payload)
+			if err := s.Serialize(t.Payload); err != nil {
+				res = fmt.Errorf("Error while preparing item: %s", err.Error())
+				goto HANDLE
+			}
 		}
-		ctx, body = h.ResponseSender.SendItem(ctx, headers, res, skipBody)
+		ctx, body = h.ResponseSender.SendItem(ctx, headers, t, skipBody)
 	case *resource.ItemList:
 		if s, ok := route.Resource().Validator().(schema.Serializer); ok {
 			// Prepare the payload for marshaling by calling eventual field serializers
-			for _, item := range res.Items {
-				s.Serialize(item.Payload)
+			for i, item := range t.Items {
+				if err := s.Serialize(item.Payload); err != nil {
+					res = fmt.Errorf("Error while preparing item #%d: %s", i, err.Error())
+					goto HANDLE
+				}
 			}
 		}
-		ctx, body = h.ResponseSender.SendList(ctx, headers, res, skipBody)
+		ctx, body = h.ResponseSender.SendList(ctx, headers, t, skipBody)
 	case *Error:
-		ctx, body = h.ResponseSender.SendError(ctx, headers, res, skipBody)
+		ctx, body = h.ResponseSender.SendError(ctx, headers, t, skipBody)
 	case error:
-		ctx, body = h.ResponseSender.SendError(ctx, headers, res, skipBody)
+		ctx, body = h.ResponseSender.SendError(ctx, headers, t, skipBody)
 	default:
 		// Let the response handler handle all other types of responses.
 		// Even if the default response sender doesn't know how to handle
 		// a type, nothing prevents a custom response sender from handling it.
-		body = res
+		body = t
 	}
 	// Send the ResponseWriter
 	h.ResponseSender.Send(ctx, w, status, headers, body)

@@ -127,6 +127,8 @@ func TestQueryInvalidType(t *testing.T) {
 		"bar": Field{Validator: Integer{}, Filterable: true},
 	}
 	_, err = ParseQuery("{", s)
+	assert.EqualError(t, err, "must be valid JSON")
+	_, err = ParseQuery("[]", s)
 	assert.EqualError(t, err, "must be a JSON object")
 	_, err = ParseQuery("{\"foo\": 1}", s)
 	assert.EqualError(t, err, "invalid query expression for field `foo': not a string")
