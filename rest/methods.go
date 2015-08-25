@@ -10,7 +10,7 @@ import (
 
 // processRequest calls the right method on a requestHandler for the given route and return
 // either an Item, an ItemList, nil or an Error
-func processRequest(ctx context.Context, route RouteMatch, r requestHandler) (status int, headers http.Header, body interface{}) {
+func processRequest(ctx context.Context, route *RouteMatch, r requestHandler) (status int, headers http.Header, body interface{}) {
 	rsrc := route.Resource()
 	if rsrc == nil {
 		return 404, nil, &Error{404, "Resource Not Found", nil}

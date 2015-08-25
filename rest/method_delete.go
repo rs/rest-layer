@@ -8,7 +8,7 @@ import (
 )
 
 // listDelete handles DELETE resquests on a resource URL
-func (r *request) listDelete(ctx context.Context, route RouteMatch) (status int, headers http.Header, body interface{}) {
+func (r *request) listDelete(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	lookup, e := route.Lookup()
 	if e != nil {
 		return e.Code, nil, e

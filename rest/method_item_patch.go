@@ -10,7 +10,7 @@ import (
 // itemPatch handles PATCH resquests on an item URL
 //
 // Reference: http://tools.ietf.org/html/rfc5789
-func (r *request) itemPatch(ctx context.Context, route RouteMatch) (status int, headers http.Header, body interface{}) {
+func (r *request) itemPatch(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	var payload map[string]interface{}
 	if e := r.decodePayload(&payload); e != nil {
 		return e.Code, nil, e

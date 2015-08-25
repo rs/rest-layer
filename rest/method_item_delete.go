@@ -7,7 +7,7 @@ import (
 )
 
 // itemDelete handles DELETE resquests on an item URL
-func (r *request) itemDelete(ctx context.Context, route RouteMatch) (status int, headers http.Header, body interface{}) {
+func (r *request) itemDelete(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	lookup, e := route.Lookup()
 	if e != nil {
 		return e.Code, nil, e

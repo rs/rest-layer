@@ -33,11 +33,11 @@ var (
 			},
 		},
 		"password": schema.Field{
-			Required:  true,
-			Validator: &schema.Password {
-			MinLen: 6,
-			Hide: true,
-		},
+			Required: true,
+			Validator: &schema.Password{
+				MinLen: 6,
+				Hide:   true,
+			},
 		},
 	}
 
@@ -90,7 +90,7 @@ func (m myAuthMiddleware) Handle(ctx context.Context, r *http.Request, next rest
 						field = "id"
 					}
 					// Prepent the resource path with the user resource
-					route.PrependResourcePath(m.userResource, field, u)
+					route.ResourcePath.Prepend(m.userResource, field, u)
 					// Go the the next middleware
 					return next(ctx)
 				}

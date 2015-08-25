@@ -9,7 +9,7 @@ import (
 )
 
 // listPost handles POST resquests on a resource URL
-func (r *request) listPost(ctx context.Context, route RouteMatch) (status int, headers http.Header, body interface{}) {
+func (r *request) listPost(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	var payload map[string]interface{}
 	if e := r.decodePayload(&payload); e != nil {
 		return e.Code, nil, e

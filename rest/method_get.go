@@ -8,7 +8,7 @@ import (
 )
 
 // listGet handles GET resquests on a resource URL
-func (r *request) listGet(ctx context.Context, route RouteMatch) (status int, headers http.Header, body interface{}) {
+func (r *request) listGet(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	page := 1
 	perPage := 0
 	if route.Method != "HEAD" {

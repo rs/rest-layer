@@ -90,13 +90,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.sendResponse(context.Background(), w, 0, http.Header{}, err, skipBody, nil)
 		return
 	}
-	route, err := FindRoute(ctx, h.index, r)
+	route, err := FindRoute(h.index, r)
 	if err != nil {
 		h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody, nil)
 		return
 	}
+	defer route.Release()
 	// Store the route and the router in the context
-	ctx = contextWithRoute(ctx, &route)
+	ctx = contextWithRoute(ctx, route)
 	ctx = contextWithIndex(ctx, h.index)
 
 	// Call the middleware + the main route handler
@@ -116,7 +117,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return ctx, status, headers, body
 	})
-	h.sendResponse(ctx, w, status, headers, res, skipBody, route.Resource().Validator())
+	var v schema.Validator
+	if route.Resource() != nil {
+		v = route.Resource().Validator()
+	}
+	h.sendResponse(ctx, w, status, headers, res, skipBody, v)
 }
 
 // sendResponse routes the type of response on the right response sender method for

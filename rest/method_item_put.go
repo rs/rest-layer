@@ -10,7 +10,7 @@ import (
 // itemPut handles PUT resquests on an item URL
 //
 // Reference: http://tools.ietf.org/html/rfc2616#section-9.6
-func (r *request) itemPut(ctx context.Context, route RouteMatch) (status int, headers http.Header, body interface{}) {
+func (r *request) itemPut(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	var payload map[string]interface{}
 	if e := r.decodePayload(&payload); e != nil {
 		return e.Code, nil, e
