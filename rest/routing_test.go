@@ -244,23 +244,3 @@ func TestRoutePathParentsNotExists(t *testing.T) {
 		assert.Equal(t, &Error{404, "Parent Resource Not Found", nil}, err)
 	}
 }
-
-func TestRouteApplyFields(t *testing.T) {
-	r := RouteMatch{
-		ResourcePath: ResourcePath{
-			&ResourcePathComponent{
-				Name:  "users",
-				Field: "user",
-				Value: "john",
-			},
-			&ResourcePathComponent{
-				Name:  "posts",
-				Field: "id",
-				Value: "123",
-			},
-		},
-	}
-	p := map[string]interface{}{"id": "321", "name": "John Doe"}
-	r.applyFields(p)
-	assert.Equal(t, map[string]interface{}{"id": "321", "user": "john", "name": "John Doe"}, p)
-}

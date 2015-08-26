@@ -15,19 +15,29 @@ type Password struct {
 	MaxLen int
 	// Cost sets a custom bcrypt hashing cose.
 	Cost int
-	// Hide replaces the hashed password with the $$hidden$$ value so
-	// the password hash is not exposed publicly.
-	Hide bool
 }
+
+var (
+	// PasswordField is a common schema field for passwords. It encrypt the password using bcrypt
+	// before storage and hide the value so the hash can't be read back.
+	PasswordField = Field{
+		Required:  true,
+		Hidden:    true,
+		Validator: &Password{},
+	}
+)
 
 // Validate implements FieldValidator interface
 func (v Password) Validate(value interface{}) (interface{}, error) {
 	s, ok := value.(string)
 	if !ok {
+		if b, ok := value.([]byte); ok {
+			// Maybe it's an already encoded version of the password
+			if _, err := bcrypt.Cost(b); err == nil {
+				return b, nil
+			}
+		}
 		return nil, errors.New("not a string")
-	}
-	if v.Hide && s == "$$hidden$$" {
-		return nil, errors.New("passed $$hidden$$ field value back")
 	}
 	l := len(s)
 	if l < v.MinLen {
@@ -41,15 +51,6 @@ func (v Password) Validate(value interface{}) (interface{}, error) {
 		return nil, err
 	}
 	return b, nil
-}
-
-// Serialize implements FieldSerializer interface
-func (v Password) Serialize(value interface{}) (interface{}, error) {
-	if v.Hide {
-		// Hide the field at serialization if hidden
-		return "$$hidden$$", nil
-	}
-	return value, nil
 }
 
 // VerifyPassword compare a field of an item payload containig a hashed password

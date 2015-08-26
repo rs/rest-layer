@@ -29,10 +29,10 @@ type Serializer interface {
 	Serialize(payload map[string]interface{}) error
 }
 
-type placeholder struct{}
+type internal struct{}
 
-// remove is used to mark a field for removal
-var remove = placeholder{}
+// Tombstone is used to mark a field for removal
+var Tombstone = internal{}
 
 func addFieldError(errs map[string][]interface{}, field string, err interface{}) {
 	errs[field] = append(errs[field], err)
@@ -71,7 +71,10 @@ func (s Schema) Compile() error {
 func (s Schema) Serialize(payload map[string]interface{}) error {
 	for field, value := range payload {
 		if def := s.GetField(field); def != nil {
-			if s, ok := def.Validator.(FieldSerializer); ok {
+			if def.Hidden {
+				// If field is hidden, just remove it from the payload
+				delete(payload, field)
+			} else if s, ok := def.Validator.(FieldSerializer); ok {
 				value, err := s.Serialize(value)
 				if err != nil {
 					return fmt.Errorf("%s: %s", field, err)
@@ -158,7 +161,13 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 				// When replace arg is true and a field is not present in the payload but is in the original,
 				// the tombstone value is set on the field in the change map so validator can enforce the
 				// ReadOnly and then the field can be removed from the output document.
-				changes[field] = remove
+				// One exception to that though: if the field is set to hidden and is not readonly, we use
+				// previous value as the client would have no way to resubmit the stored value.
+				if def.Hidden && !def.ReadOnly {
+					changes[field] = oValue
+				} else {
+					changes[field] = Tombstone
+				}
 			}
 			if oFound {
 				base[field] = oValue
@@ -208,7 +217,7 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 		if hook != nil {
 			// Get the change value or fallback on the base value
 			if value, found := changes[field]; found {
-				if value == remove {
+				if value == Tombstone {
 					// If the field has a tombstone, apply the handler on the base
 					// and remove the tombstone so it doesn't appear as a user
 					// generated change
@@ -265,7 +274,7 @@ func (s Schema) validate(changes map[string]interface{}, base map[string]interfa
 		doc[field] = value
 	}
 	for field, value := range changes {
-		if value == remove {
+		if value == Tombstone {
 			// If the value is set for removal, remove it from the doc
 			delete(doc, field)
 		} else {

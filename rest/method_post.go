@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/schema"
 	"golang.org/x/net/context"
 )
 
@@ -18,7 +19,13 @@ func (r *request) listPost(ctx context.Context, route *RouteMatch) (status int, 
 	changes, base := rsrc.Validator().Prepare(payload, nil, false)
 	// Append lookup fields to base payload so it isn't caught by ReadOnly
 	// (i.e.: contains id and parent resource refs if any)
-	route.applyFields(base)
+	for k, v := range route.ResourcePath.Values() {
+		base[k] = v
+		// Also, ensure there's no tombstone set on the field
+		if changes[k] == schema.Tombstone {
+			delete(changes, k)
+		}
+	}
 	doc, errs := rsrc.Validator().Validate(changes, base)
 	if len(errs) > 0 {
 		return 422, nil, &Error{422, "Document contains error(s)", errs}

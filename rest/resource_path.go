@@ -132,3 +132,14 @@ func (p ResourcePath) Path() string {
 	}
 	return strings.Join(path, ".")
 }
+
+// Values returns all the key=value pairs defined by the resource path
+func (p ResourcePath) Values() map[string]interface{} {
+	v := map[string]interface{}{}
+	for _, rp := range p {
+		if _, found := v[rp.Field]; !found && rp.Value != nil {
+			v[rp.Field] = rp.Value
+		}
+	}
+	return v
+}

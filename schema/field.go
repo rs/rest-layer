@@ -14,6 +14,10 @@ type Field struct {
 	// Default and OnInit/OnUpdate hooks can be used to set/change read-only
 	// fields.
 	ReadOnly bool
+	// Hidden allows writes but hides the fields content from the client. When
+	// this field is enabled, PUTing the document without the field would not
+	// remove the field but use the previous document's value if any.
+	Hidden bool
 	// Default defines the value be stored on the field when when item is
 	// created and this field is not provided by the client.
 	Default interface{}

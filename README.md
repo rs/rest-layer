@@ -443,6 +443,7 @@ REST Layer comes with a set of validators. You can add your own by implementing 
 | [schema.Time][time]     | Ensures the field is a datetime
 | [schema.URL][url]       | Ensures the field is a valid URL
 | [schema.IP][url]        | Ensures the field is a valid IPv4 or IPv6
+| [schema.Password][pswd] | Ensures the field is a valid password and bcrypt it
 | [schema.Reference][ref] | Ensures the field contains a reference to another _existing_ API item
 | [schema.AnyOf][any]     | Ensures that at least one sub-validator is valid
 | [schema.AllOf][all]     | Ensures that at least all sub-validators are valid
@@ -456,6 +457,7 @@ REST Layer comes with a set of validators. You can add your own by implementing 
 [time]:  https://godoc.org/github.com/rs/rest-layer/schema#Time
 [url]:   https://godoc.org/github.com/rs/rest-layer/schema#URL
 [ip]:    https://godoc.org/github.com/rs/rest-layer/schema#IP
+[pswd]:  https://godoc.org/github.com/rs/rest-layer/schema#Password
 [ref]:   https://godoc.org/github.com/rs/rest-layer/schema#Reference
 [any]:   https://godoc.org/github.com/rs/rest-layer/schema#AnyOf
 [all]:   https://godoc.org/github.com/rs/rest-layer/schema#AllOf
@@ -469,11 +471,12 @@ Some common hook handler to be used with `OnInit` and `OnUpdate` are also provid
 
 Some common field configuration are also provided as variable:
 
-| Field Config          | Description
-| --------------------- | -------------
-| `schema.IDField`      | A required, read-only field with `schema.NewID` set as `OnInit` hook and a `schema.String` va`lidator.
-| `schema.CreatedField` | A required, read-only field with `schema.Now` set on `OnInit` hook with a `schema.Time` validator
-| `schema.UpdatedField` | A required, read-only field with `schema.Now` set on `OnInit` and `OnUpdate` hooks with a `schema.Time` validator.
+| Field Config           | Description
+| ---------------------- | -------------
+| `schema.IDField`       | A required, read-only field with `schema.NewID` set as `OnInit` hook and a `schema.String` va`lidator.
+| `schema.CreatedField`  | A required, read-only field with `schema.Now` set on `OnInit` hook with a `schema.Time` validator
+| `schema.UpdatedField`  | A required, read-only field with `schema.Now` set on `OnInit` and `OnUpdate` hooks with a `schema.Time` validator.
+| `schema.PasswordField` | A hidden, required field with a `schema.Password` validator.
 
 Here is an example of schema declaration:
 

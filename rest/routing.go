@@ -188,12 +188,3 @@ func (r RouteMatch) Release() {
 	r.ResourcePath.clear()
 	routePool.Put(r)
 }
-
-// applyFields appends every element of the resource path to a payload
-func (r RouteMatch) applyFields(payload map[string]interface{}) {
-	for _, rp := range r.ResourcePath {
-		if _, found := payload[rp.Field]; !found && rp.Value != nil {
-			payload[rp.Field] = rp.Value
-		}
-	}
-}

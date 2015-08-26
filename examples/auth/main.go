@@ -32,13 +32,7 @@ var (
 				MaxLen: 150,
 			},
 		},
-		"password": schema.Field{
-			Required: true,
-			Validator: &schema.Password{
-				MinLen: 6,
-				Hide:   true,
-			},
-		},
+		"password": schema.PasswordField,
 	}
 
 	// Define a post resource schema
@@ -139,7 +133,7 @@ func main() {
 	}
 
 	// Bind the authentication middleware
-	api.Use(myAuthMiddleware{userResource: users})
+	// api.Use(myAuthMiddleware{userResource: users})
 
 	// Bind the API under /
 	http.Handle("/", api)
