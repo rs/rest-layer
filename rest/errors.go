@@ -1,29 +1,31 @@
 package rest
 
 import (
+	"net/http"
+
 	"github.com/rs/rest-layer/resource"
 	"golang.org/x/net/context"
 )
 
 var (
 	// ErrNotFound represents a 404 HTTP error.
-	ErrNotFound = &Error{404, "Not Found", nil}
+	ErrNotFound = &Error{http.StatusNotFound, "Not Found", nil}
 	// ErrPreconditionFailed happends when a conditional request condition is not met.
-	ErrPreconditionFailed = &Error{412, "Precondition Failed", nil}
+	ErrPreconditionFailed = &Error{http.StatusPreconditionFailed, "Precondition Failed", nil}
 	// ErrConflict happens when another thread or node modified the data concurrently
 	// with our own thread in such a way we can't securely apply the requested changes.
-	ErrConflict = &Error{409, "Conflict", nil}
+	ErrConflict = &Error{http.StatusConflict, "Conflict", nil}
 	// ErrInvalidMethod happends when the used HTTP method is not supported for this
 	// resource.
-	ErrInvalidMethod = &Error{405, "Invalid Method", nil}
+	ErrInvalidMethod = &Error{http.StatusMethodNotAllowed, "Invalid Method", nil}
 	// ErrClientClosedRequest is returned when the client closed the connection before
 	// the server was able to finish processing the request.
 	ErrClientClosedRequest = &Error{499, "Client Closed Request", nil}
 	// ErrNotImplemented happends when a requested feature is not implemented.
-	ErrNotImplemented = &Error{501, "Not Implemented", nil}
+	ErrNotImplemented = &Error{http.StatusNotImplemented, "Not Implemented", nil}
 	// ErrGatewayTimeout is returned when the specified timeout for the request has been
 	// reached before the server was able to process it.
-	ErrGatewayTimeout = &Error{504, "Deadline Exceeded", nil}
+	ErrGatewayTimeout = &Error{http.StatusGatewayTimeout, "Deadline Exceeded", nil}
 	// ErrUnknown is thrown when the origine of the error can't be identified.
 	ErrUnknown = &Error{520, "Unknown Error", nil}
 )
