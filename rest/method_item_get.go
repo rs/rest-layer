@@ -33,6 +33,10 @@ func (r *request) itemGet(ctx context.Context, route *RouteMatch) (status int, h
 			return 304, nil, nil
 		}
 	}
-	item.Payload = lookup.ApplySelector(item.Payload)
+	item.Payload, err = lookup.ApplySelector(route.Resource(), item.Payload)
+	if err != nil {
+		e = NewError(err)
+		return e.Code, nil, e
+	}
 	return 200, nil, item
 }

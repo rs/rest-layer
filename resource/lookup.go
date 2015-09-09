@@ -28,9 +28,13 @@ type Lookup struct {
 // Field is used with Lookup.selector to reformat the resource representation at runtime
 // using a field selection language inspired by GraphQL.
 type Field struct {
-	Name   string
-	Alias  string
+	// Name is the name of the field as define in the resource's schema.
+	Name string
+	// Alias is the wanted name in the representation.
+	Alias string
+	// Params defines a list of params to be sent to the field's param handler if any.
 	Params map[string]interface{}
+	// Fields holds references to child fields if any
 	Fields []Field
 }
 
@@ -126,7 +130,7 @@ func (l *Lookup) SetSelector(s string, r *Resource) error {
 	if err != nil {
 		return err
 	}
-	if err = validateSelector(selector, r, r.Validator()); err != nil {
+	if err = validateSelector(selector, r.Validator()); err != nil {
 		return err
 	}
 	l.selector = selector
@@ -134,9 +138,9 @@ func (l *Lookup) SetSelector(s string, r *Resource) error {
 }
 
 // ApplySelector applies fields filtering / rename to the payload fields
-func (l *Lookup) ApplySelector(p map[string]interface{}) map[string]interface{} {
+func (l *Lookup) ApplySelector(r *Resource, p map[string]interface{}) (map[string]interface{}, error) {
 	if len(l.selector) == 0 {
-		return p
+		return p, nil
 	}
-	return applySelector(l.selector, p)
+	return applySelector(l.selector, r.Validator(), p)
 }

@@ -728,44 +728,42 @@ In the above example, the user field is a reference on the `users` resource. RES
 
 ### Field Parameters
 
-**Work in progress**
-
 Field parameters are used to apply a transformation on the value of a field using some custom logic.
 
-For instance, if you are using an on demand dynamic image resizer, you may want to expose the capability of this service, without requiring from the client to learn another URL based API. It's would be better if we could just ask the API to return the `thumbnail_url` dynamically transformed with the desired dimensions.
+For instance, if you are using an on demand dynamic image resizer, you may want to expose the capability of this service, without requiring from the client to learn another URL based API. Wouldn't it be better if we could just ask the API to return the `thumbnail_url` dynamically transformed with the desired dimensions?
 
-By combining field alising and field parameters, you can expose you resizer API as follow:
+By combining field aliasing and field parameters, we can expose this resizer API as follow:
 
 ```http
 $ http -b :8080/api/videos fields=='id,
-                                    thumb_url(width:80,height:60):thumb_s_url,
-                                    thumb_url(width:800,height:600):thumb_l_url'
+                          thumbnail_url(width:80,height:60):thumb_small_url,
+                          thumbnail_url(width:800,height:600):thumb_large_url'
 [
     {
         "_etag": "4f695896b1b024aed1982ecd9c66e750",
-        "thumb_s_url": "http://cdn.com/path/to/image-80w60h.jpg",
-        "thumb_l_url": "http://cdn.com/path/to/image-800w600h.jpg"
+        "thumb_small_url": "http://cdn.com/path/to/image-80w60h.jpg",
+        "thumb_large_url": "http://cdn.com/path/to/image-800w600h.jpg"
     }
  ]
 ```
 
-As you can see in the example above, the same field is represented twice but with some useful value transformations.
+The example above show the same field represented twice but with some useful value transformations.
 
 To add parameters on a field, use the `Params` property of the `schema.Field` type as follow:
 
 ```go
 schema.Schema{
 	"field": schema.Field{
-	    Params: schema.Params{
-	        Handler: &func(value interface{}, params map[string]interface{}) (interface{}, err) {
+		Params: schema.Params{
+			Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
 				// your transformation logic here
 				return value, nil
-	        },
-	        Validators: map[string]schema.FieldValidator{
-	            "width": schema.Integer{},
-	            "height": schema.Integer{},
-	        },
-	    },
+			},
+			Validators: map[string]schema.FieldValidator{
+				"width": schema.Integer{},
+				"height": schema.Integer{},
+			},
+		},
 	}
 }
 ```

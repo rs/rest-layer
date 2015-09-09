@@ -52,7 +52,6 @@ With this example, the resulted document would be:
   }
 
 */
-
 func parseSelectorExpression(s []byte, pos *int, ln int, opened bool) ([]Field, error) {
 	selector := []Field{}
 	var field *Field
@@ -244,7 +243,7 @@ func ignoreWhitespaces(s []byte, pos *int, ln int) {
 	}
 }
 
-func validateSelector(s []Field, r *Resource, v schema.Validator) error {
+func validateSelector(s []Field, v schema.Validator) error {
 	for _, f := range s {
 		def := v.GetField(f.Name)
 		if def == nil {
@@ -254,34 +253,72 @@ func validateSelector(s []Field, r *Resource, v schema.Validator) error {
 			if def.Schema == nil {
 				return fmt.Errorf("%s: field as no children", f.Name)
 			}
-			if err := validateSelector(f.Fields, r, def.Schema); err != nil {
+			if err := validateSelector(f.Fields, def.Schema); err != nil {
 				return fmt.Errorf("%s.%s", f.Name, err.Error())
 			}
 		}
 		// TODO: support references
 		// TODO: support connections
-		// TODO: support params
 		if len(f.Params) > 0 {
-			return fmt.Errorf("%s: params are not yet supported", f.Name)
+			if def.Params == nil {
+				return fmt.Errorf("%s: params not allowed", f.Name)
+			}
+			for param, value := range f.Params {
+				val, found := def.Params.Validators[param]
+				if !found {
+					return fmt.Errorf("%s: unsupported param name: %s", f.Name, param)
+				}
+				value, err := val.Validate(value)
+				if err != nil {
+					return fmt.Errorf("%s: invalid param `%s' value: %s", f.Name, param, err.Error())
+				}
+				f.Params[param] = value
+			}
 		}
 	}
 	return nil
 }
 
-func applySelector(s []Field, p map[string]interface{}) map[string]interface{} {
+func applySelector(s []Field, v schema.Validator, p map[string]interface{}) (map[string]interface{}, error) {
 	res := map[string]interface{}{}
 	for _, f := range s {
 		if val, found := p[f.Name]; found {
 			name := f.Name
+			// Handle aliasing
 			if f.Alias != "" {
 				name = f.Alias
 			}
-			if len(f.Fields) > 0 {
-				res[name] = applySelector(f.Fields, val.(map[string]interface{}))
+			// Handle selector params
+			if len(f.Params) > 0 {
+				def := v.GetField(f.Name)
+				if def == nil || def.Params == nil {
+					return nil, fmt.Errorf("%s: params not allowed", f.Name)
+				}
+				var err error
+				val, err = def.Params.Handler(val, f.Params)
+				if err != nil {
+					return nil, fmt.Errorf("%s: %s", f.Name, err.Error())
+				}
+			}
+			// Handle sub field selection (if field has a value)
+			if len(f.Fields) > 0 && val != nil {
+				def := v.GetField(f.Name)
+				if def == nil || def.Schema == nil {
+					return nil, fmt.Errorf("%s: field as no children", f.Name)
+				}
+				subval, ok := val.(map[string]interface{})
+				if !ok {
+					return nil, fmt.Errorf("%s: invalid value: not a dict", f.Name)
+				}
+				var err error
+				res[name], err = applySelector(f.Fields, def.Schema, subval)
+				if err != nil {
+					return nil, fmt.Errorf("%s.%s", f.Name, err.Error())
+				}
 			} else {
 				res[name] = val
 			}
 		}
 	}
-	return res
+	return res, nil
 }

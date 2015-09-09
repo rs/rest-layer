@@ -29,6 +29,9 @@ type Field struct {
 	// when item is updated. The function takes the current value if any
 	// and returns the value to be stored.
 	OnUpdate *func(value interface{}) interface{}
+	// Params defines a param handler for the field. The handler may change the field's
+	// value depending on the passed parameters.
+	Params *Params
 	// Validator is used to validate the field's format.
 	Validator FieldValidator
 	// Dependency rejects the field if the schema query doesn't match the document.
