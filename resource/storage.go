@@ -17,6 +17,9 @@ type Storer interface {
 	// If the fetching of the data is not immediate, the method must listen for cancellation
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the ctx.Err() method.
+	//
+	// If you need to log something, use xlog.FromContext(ctx) to get a logger. See
+	// https://github.com/rs/xlog for more info.
 	Find(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error)
 	// Insert stores new items in the backend store. If any of the items does already exist,
 	// no item should be inserted and a resource.ErrConflict must be returned. The insertion
@@ -27,6 +30,9 @@ type Storer interface {
 	// If the storage of the data is not immediate, the method must listen for cancellation
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the ctx.Err() method.
+	//
+	// If you need to log something, use xlog.FromContext(ctx) to get a logger. See
+	// https://github.com/rs/xlog for more info.
 	Insert(ctx context.Context, items []*Item) error
 	// Update replace an item in the backend store by a new version. The ResourceHandler must
 	// ensure that the original item exists in the database and has the same Etag field.
@@ -41,6 +47,9 @@ type Storer interface {
 	// If the storage of the data is not immediate, the method must listen for cancellation
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the ctx.Err() method.
+	//
+	// If you need to log something, use xlog.FromContext(ctx) to get a logger. See
+	// https://github.com/rs/xlog for more info.
 	Update(ctx context.Context, item *Item, original *Item) error
 	// Delete deletes the provided item by its ID. The Etag of the item stored in the
 	// backend store must match the Etag of the provided item or a resource.ErrConflict
@@ -52,6 +61,9 @@ type Storer interface {
 	// If the removal of the data is not immediate, the method must listen for cancellation
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the ctx.Err() method.
+	//
+	// If you need to log something, use xlog.FromContext(ctx) to get a logger. See
+	// https://github.com/rs/xlog for more info.
 	Delete(ctx context.Context, item *Item) error
 	// Clear removes all items maching the lookup. When possible, the number of items
 	// removed is returned, otherwise -1 is return as the first value.
@@ -62,5 +74,8 @@ type Storer interface {
 	// If the removal of the data is not immediate, the method must listen for cancellation
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the ctx.Err() method.
+	//
+	// If you need to log something, use xlog.FromContext(ctx) to get a logger. See
+	// https://github.com/rs/xlog for more info.
 	Clear(ctx context.Context, lookup *Lookup) (int, error)
 }

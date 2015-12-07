@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
@@ -53,21 +52,6 @@ func TestNewHandlerNoCompile(t *testing.T) {
 	assert.EqualError(t, err, "foo: schema compilation error: f: not a schema.Validator pointer")
 }
 
-func TestHandlerGetTimeout(t *testing.T) {
-	var d time.Duration
-	var err error
-	h, _ := NewHandler(resource.NewIndex())
-	h.RequestTimeout = 10 * time.Second
-	d, err = h.getTimeout(&http.Request{URL: &url.URL{}})
-	assert.NoError(t, err)
-	assert.Equal(t, 10*time.Second, d)
-	d, err = h.getTimeout(&http.Request{URL: &url.URL{RawQuery: "timeout=1s"}})
-	assert.NoError(t, err)
-	assert.Equal(t, 1*time.Second, d)
-	_, err = h.getTimeout(&http.Request{URL: &url.URL{RawQuery: "timeout=invalid"}})
-	assert.EqualError(t, err, "time: invalid duration invalid")
-}
-
 func TestHandlerGetContext(t *testing.T) {
 	var c context.Context
 	var err *Error
@@ -78,13 +62,6 @@ func TestHandlerGetContext(t *testing.T) {
 	assert.Nil(t, err)
 	_, ok := c.Deadline()
 	assert.False(t, ok)
-	h.RequestTimeout = 10 * time.Second
-	c, err = h.getContext(w, &http.Request{URL: &url.URL{}})
-	assert.Nil(t, err)
-	_, ok = c.Deadline()
-	assert.True(t, ok)
-	c, err = h.getContext(w, &http.Request{URL: &url.URL{RawQuery: "timeout=invalid"}})
-	assert.Equal(t, &Error{422, "Cannot parse timeout parameter: time: invalid duration invalid", nil}, err)
 }
 
 func TestHandlerServeHTTP(t *testing.T) {
@@ -123,15 +100,4 @@ func TestHandlerServeHTTPParentNotFound(t *testing.T) {
 	assert.Equal(t, 404, w.Code)
 	b, _ := ioutil.ReadAll(w.Body)
 	assert.Equal(t, "{\"code\":404,\"message\":\"Parent Resource Not Found\"}", string(b))
-}
-
-func TestHandlerServeHTTPInvalidTimeout(t *testing.T) {
-	h, _ := NewHandler(resource.NewIndex())
-	w := newRecorder()
-	defer w.Close()
-	u, _ := url.ParseRequestURI("/?timeout=invalid")
-	h.ServeHTTP(w, &http.Request{Method: "GET", URL: u})
-	assert.Equal(t, 422, w.Code)
-	b, _ := ioutil.ReadAll(w.Body)
-	assert.Equal(t, "{\"code\":422,\"message\":\"Cannot parse timeout parameter: time: invalid duration invalid\"}", string(b))
 }

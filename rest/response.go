@@ -3,12 +3,12 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/xlog"
 	"golang.org/x/net/context"
 )
 
@@ -45,13 +45,13 @@ func (s DefaultResponseSender) Send(ctx context.Context, w http.ResponseWriter, 
 		j, err := json.Marshal(body)
 		if err != nil {
 			w.WriteHeader(500)
-			log.Printf("Can't build response: %s", err)
+			xlog.FromContext(ctx).Errorf("Can't build response: %v", err)
 			msg := fmt.Sprintf("Can't build response: %s", strconv.Quote(err.Error()))
 			w.Write([]byte(fmt.Sprintf("{\"code\": 500, \"msg\": \"%s\"}", msg)))
 			return
 		}
 		if _, err = w.Write(j); err != nil {
-			log.Printf("Can't send response: %s", err)
+			xlog.FromContext(ctx).Errorf("Can't send response: %v", err)
 		}
 	}
 }
@@ -67,7 +67,7 @@ func (s DefaultResponseSender) SendError(ctx context.Context, headers http.Heade
 		}
 	}
 	if code >= 500 {
-		log.Print(err.Error())
+		xlog.FromContext(ctx).Errorf("Server error: %v", err)
 	}
 	if !skipBody {
 		payload := map[string]interface{}{

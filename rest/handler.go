@@ -3,7 +3,6 @@ package rest
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
@@ -14,9 +13,6 @@ import (
 type Handler struct {
 	// ResponseSender can be changed to extend the DefaultResponseSender
 	ResponseSender ResponseSender
-	// RequestTimeout is the default timeout for requests after which the whole request
-	// is abandonned. The default value is no timeout.
-	RequestTimeout time.Duration
 	// index stores the resource router
 	index resource.Index
 	// mw is the list of middlewares attached to this REST handler
@@ -37,36 +33,11 @@ func NewHandler(i resource.Index) (*Handler, error) {
 	return h, nil
 }
 
-// getTimeout get request timeout info from request or server config
-func (h *Handler) getTimeout(r *http.Request) (time.Duration, error) {
-	// If timeout is passed as argument, use it's value over default timeout
-	if t := r.URL.Query().Get("timeout"); t != "" {
-		return time.ParseDuration(t)
-	}
-	// Fallback on default timeout
-	return h.RequestTimeout, nil
-}
-
-// getContext creates a context with timeout if timeout is specified in the request or
-// server configuration. The context will automatically be canceled as soon as passed
-// request connection will be closed.
+// getContext creates a context for the request to add net/context support when used as a
+// standard http.Handler, without net/context support. The context will automatically be
+// canceled as soon as passed request connection will be closed.
 func (h *Handler) getContext(w http.ResponseWriter, r *http.Request) (context.Context, *Error) {
-	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-	)
-	// Get request timeout request or server config
-	timeout, err := h.getTimeout(r)
-	if err != nil {
-		return nil, &Error{422, fmt.Sprintf("Cannot parse timeout parameter: %s", err), nil}
-	}
-	if timeout > 0 {
-		// Setup a net/context with timeout if time has been specified in either request
-		// or server configuration
-		ctx, cancel = context.WithTimeout(context.Background(), timeout)
-	} else {
-		ctx, cancel = context.WithCancel(context.Background())
-	}
+	ctx, cancel := context.WithCancel(context.Background())
 	// Handle canceled requests using net/context by passing a context
 	// to the request handler that will be canceled as soon as the client
 	// connection is closed
@@ -81,7 +52,7 @@ func (h *Handler) getContext(w http.ResponseWriter, r *http.Request) (context.Co
 	return ctx, nil
 }
 
-// ServeHTTP handle requests as a http.Handler
+// ServeHTTP handles requests as a http.Handler
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Skip body if method is HEAD
 	skipBody := r.Method == "HEAD"
@@ -90,6 +61,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.sendResponse(context.Background(), w, 0, http.Header{}, err, skipBody, nil)
 		return
 	}
+	h.ServeHTTPC(ctx, w, r)
+}
+
+// ServeHTTPC handles requests as a xhandler.HandlerC
+func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	// Skip body if method is HEAD
+	skipBody := r.Method == "HEAD"
 	route, err := FindRoute(h.index, r)
 	if err != nil {
 		h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody, nil)

@@ -6,7 +6,7 @@ REST APIs made easy.
 
 REST Layer is a REST API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It lets you automatically generate a comprehensive, customizable, and secure REST API on top of any backend storage with no boiler plate code. You can focus on your business logic now.
 
-Implemented as a `net/http` middleware, it plays well with other middlewares like [CORS](http://github.com/rs/cors).
+Implemented as a `net/http` middleware, it plays well with other middleware like [CORS](http://github.com/rs/cors).
 
 REST Layer is an opinionated framework. Unlike many web frameworks, you don't directly control the routing. You just expose resources and sub-resources, the framework automatically figures what routes to generate behind the scene. You don't have to take care of the HTTP headers and response, JSON encoding, etc. either. rest handles HTTP conditional requests, caching, integrity checking for you. A powerful and extensible validation engine make sure that data comes pre-validated to you resource handlers. Generic resource handlers for MongoDB and other databases are also available so you have few to no code to write to make the whole system work.
 
@@ -42,6 +42,7 @@ REST Layer is composed of several sub-packages:
 		- [Nullable Values](#nullable-values)
 		- [Extensible Data Validation](#extensible-data-validation)
 	- [Timeout and Request Cancellation](#timeout-and-request-cancellation)
+	- [Logging](#logging)
 	- [Data Storage Handler](#data-storage-handler)
 	- [Custom Response Sender](#custom-response-sender)
 	- [Middleware](#middleware)
@@ -51,7 +52,7 @@ REST Layer is composed of several sub-packages:
 
 - [x] Automatic handling of REST resource operations
 - [ ] Full test coverage
-- [x] Plays well with other `net/http` middlewares
+- [x] Plays well with other `net/http` middleware
 - [x] Pluggable resources storage
 - [x] Pluggable response sender
 - [ ] GraphQL support
@@ -70,6 +71,7 @@ REST Layer is composed of several sub-packages:
 - [x] Conditional requests (Last-Modified / Etag)
 - [x] Data integrity and concurrency control (If-Match)
 - [x] Timeout and request cancellation thru [net/context](https://godoc.org/golang.org/x/net/context)
+- [x] Logging
 - [ ] Multi-GET
 - [ ] Bulk inserts
 - [x] Default and nullable values
@@ -113,6 +115,7 @@ import (
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/xhandler"
 )
 
 var (
@@ -234,11 +237,22 @@ func main() {
 		log.Fatalf("Invalid API configuration: %s", err)
 	}
 
-	// Add cors support
-	h := cors.New(cors.Options{OptionsPassthrough: true}).Handler(api)
+	// Init a xhandler chain (see https://github.com/rs/xhandler)
+	c := xhandler.Chain{}
+
+	// Add close notifier handler so context is cancelled when the client closes
+	// the connection
+	c.UseC(xhandler.CloseHandler)
+
+	// Add timeout handler
+	c.UseC(xhandler.TimeoutHandler(2 * time.Second))
+
+	// Add CORS support with passthrough option on so rest-layer can still
+	// handle OPTIONS method
+	c.UseC(cors.New(cors.Options{OptionsPassthrough: true}).HandlerC)
 
 	// Bind the API under /api/ path
-	http.Handle("/api/", http.StripPrefix("/api/", h))
+	http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
 
 	// Serve it
 	log.Print("Serving API on http://localhost:8080")
@@ -890,11 +904,67 @@ See [schema.IP](https://godoc.org/github.com/rs/rest-layer/schema#IP) validator 
 
 ## Timeout and Request Cancellation
 
-REST Layer handles client request cancellation using [net/context](https://golang.org/x/net/context). In case the client closes the connection before the server has finish processing the request, the context is canceled. This context is passed to the resource handler so it can listen for those cancelations and stop the processing (see [Data Storage Handler](#data-storage-handler) section for more information about how to implement resource handlers.
+REST Layer respects [net/context](https://golang.org/x/net/context) deadline from end to end. Timeout and request cancellation are thus handled thru `netc/context`. By default no cancellation handling or per request timeout are defined. You can easily add them using [xhandler](https://github.com/rs/xhandler) provided handlers as follow:
 
-Timeout is implement the same way. If a timeout is set at server level through [rest.Handler](https://godoc.org/github.com/rs/rest-layer/rest#Handler) `RequestTimeout` property or if the `timeout` query-string parameter is passed with a duration value compatible with [time.ParseDuration](http://golang.org/pkg/time/#ParseDuration), the context will be set with a deadline set to that value.
+```go
+// Init a xhandler chain (see http://github.com/rs/xhandler)
+c := xhandler.Chain{}
 
-When a request is stopped because the client closed the connection, the response HTTP status is set to `499 Client Closed Request` (for logging purpose). When a timeout is set and the request has reached this timeout, the response HTTP status is set to `509 Gateway Timeout`.
+// Add close notifier handler so context is cancelled when the client closes
+// the connection
+c.UseC(xhandler.CloseHandler)
+
+// Add timeout handler
+c.UseC(xhandler.TimeoutHandler(2 * time.Second))
+
+// Add other handlers like xlog, xaccess, cors (see examples)
+
+// Bind the API under /api/ path
+http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
+```
+
+When a request is stopped because the client closed the connection (context cancelled), the response HTTP status is set to `499 Client Closed Request` (for logging purpose). When a timeout is set and the request has reached this timeout, the response HTTP status is set to `509 Gateway Timeout`.
+
+## Logging
+
+Logging is performed using [xlog](https://github.com/rs/xlog). If `xlog` is not initialized, you won't get any logging out of REST Layer. With `xlog`, you can configure your logging outputs very precisely:
+
+```go
+// Install xlog logger
+c.UseC(xlog.NewHandler(xlog.Config{
+	// Log info level and higher
+	Level: xlog.LevelInfo,
+	// Set some global env fields
+	Fields: xlog.F{
+		"role": "my-service",
+		"host": host,
+	},
+	// Output everything on console
+	Output: xlog.NewOutputChannel(xlog.MultiOutput{
+		// Send all logs with field type=mymodule to a remote syslog
+		0: xlog.FilterOutput{
+			Cond: func(fields map[string]interface{}) bool {
+				return fields["type"] == "mymiddleware"
+			},
+			Output: xlog.NewSyslogOutput("tcp", "1.2.3.4:1234", "mymiddleware"),
+		},
+		// Setup different output per log level
+		1: xlog.LevelOutput{
+			// Send errors to the console
+			Error: xlog.NewConsoleOutput(),
+			// Send syslog output for error level
+			Info: xlog.NewSyslogOutput("", "", ""),
+		},
+	}),
+}))
+
+// Log API access using xlog
+c.UseC(xaccess.NewHandler())
+```
+
+See [Middleware](#middleware) section for more info on how to use `xlog` from middleware.
+
+See [xlog](https://github.com/rs/xlog) documentation for more info.
 
 ## Data Storage Handler
 
@@ -969,9 +1039,9 @@ func (r myResponseSender) SendList(ctx context.Context, headers http.Header, l *
 
 A middleware is a piece of custom code wrapped around the REST Layer's request processing logic, just after the routing handler found the targeted resource. You can insert you own logic to extend the framework like adding access control, logging, etc.
 
-Middlewares are guaranteed to be able to get the found [rest.RouteMatch](https://godoc.org/github.com/rs/rest-layer/rest#RouteMatch) and the current [resource.Index](https://godoc.org/github.com/rs/rest-layer/resource#Index) from the context by respectively calling [rest.RouteFromContext](https://godoc.org/github.com/rs/rest-layer/rest#RouteFromContext) and [rest.IndexFromContext](https://godoc.org/github.com/rs/rest-layer/rest#IndexFromContext).
+Middleware are guaranteed to be able to get the found [rest.RouteMatch](https://godoc.org/github.com/rs/rest-layer/rest#RouteMatch) and the current [resource.Index](https://godoc.org/github.com/rs/rest-layer/resource#Index) from the context by respectively calling [rest.RouteFromContext](https://godoc.org/github.com/rs/rest-layer/rest#RouteFromContext) and [rest.IndexFromContext](https://godoc.org/github.com/rs/rest-layer/rest#IndexFromContext).
 
-A middleware can also augment the context by adding its own values so other middlewares, resource storage handlers or response sender can read it. See [net/context](https://golang.org/x/net/context) documentation to find out more about this technic.
+A middleware can also augment the context by adding its own values so other middleware, resource storage handlers or response sender can read it. See [net/context](https://golang.org/x/net/context) documentation to find out more about this technic.
 
 To implement a middleware, you must implement the [rest.Middleware](https://godoc.org/github.com/rs/rest-layer/rest#Middleware) interface:
 
@@ -999,7 +1069,7 @@ api.Use(rest.NewMiddleware(func(ctx context.Context, r *http.Request, next rest.
 })
 ```
 
-You may want to execute some middlewares only under certain condition. To help you with that, REST Layer provides the [rest.If](https://godoc.org/github.com/rs/rest-layer/rest#If) middleware. This middleware takes a `Condition` function and based on its return, and forwards the execution to the `Then` or `Else` middleware:
+You may want to execute some middleware only under certain condition. To help you with that, REST Layer provides the [rest.If](https://godoc.org/github.com/rs/rest-layer/rest#If) middleware. This middleware takes a `Condition` function and based on its return, and forwards the execution to the `Then` or `Else` middleware:
 
 ```go
 api.Use(rest.If{
@@ -1009,5 +1079,14 @@ api.Use(rest.If{
 		return ok && route.ResourcePath.Path() == "users"
 	},
 	Then: &SomeMiddleware{},
+})
+```
+
+If you need to log something in your middleware, it is advised to [xlog](https://github.com/rs/xlog) as follow:
+
+```go
+api.Use(rest.NewMiddleware(func(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{})) {
+	xlog.FromContext(ctx).Info("Hello World")
+	return next(ctx)
 })
 ```

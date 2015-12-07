@@ -4,12 +4,16 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/rs/cors"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/xaccess"
+	"github.com/rs/xhandler"
+	"github.com/rs/xlog"
 )
 
 var (
@@ -131,11 +135,28 @@ func main() {
 		log.Fatalf("Invalid API configuration: %s", err)
 	}
 
-	// Add cors support
-	h := cors.New(cors.Options{OptionsPassthrough: true}).Handler(api)
+	// Init a xhandler chain (see https://github.com/rs/xhandler)
+	c := xhandler.Chain{}
+
+	// Add close notifier handler so context is cancelled when the client closes
+	// the connection
+	c.UseC(xhandler.CloseHandler)
+
+	// Add timeout handler
+	c.UseC(xhandler.TimeoutHandler(2 * time.Second))
+
+	// Install a logger (see https://github.com/rs/xlog)
+	c.UseC(xlog.NewHandler(xlog.Config{}))
+
+	// Log API access
+	c.UseC(xaccess.NewHandler())
+
+	// Add CORS support with passthrough option on so rest-layer can still
+	// handle OPTIONS method
+	c.UseC(cors.New(cors.Options{OptionsPassthrough: true}).HandlerC)
 
 	// Bind the API under /api/ path
-	http.Handle("/api/", http.StripPrefix("/api/", h))
+	http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
 
 	// Serve it
 	log.Print("Serving API on http://localhost:8080")
