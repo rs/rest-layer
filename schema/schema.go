@@ -268,6 +268,17 @@ func (s Schema) validate(changes map[string]interface{}, base map[string]interfa
 				}
 			}
 		}
+		// Validate sub-schema on non provided fields in order to enforce requireds
+		if def.Schema != nil {
+			if _, found := changes[field]; !found {
+				if _, found := base[field]; !found {
+					empty := map[string]interface{}{}
+					if _, subErrs := def.Schema.validate(empty, empty, false); len(subErrs) > 0 {
+						addFieldError(errs, field, subErrs)
+					}
+				}
+			}
+		}
 	}
 	// Apply changes to the base in doc
 	for field, value := range base {
