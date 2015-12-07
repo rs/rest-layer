@@ -238,6 +238,10 @@ func main() {
 	}
 
 	// Init a xhandler chain (see https://github.com/rs/xhandler)
+	//
+	// Note: You may choose to use REST layer without xhandler if you don't want
+	// to inject anything to its `net/context`. REST Layer is compatible with
+	// both approaches.
 	c := xhandler.Chain{}
 
 	// Add close notifier handler so context is cancelled when the client closes
