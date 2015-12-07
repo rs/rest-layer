@@ -427,6 +427,37 @@ X-Total: 1
 
 Notice the added `_etag` field. This is to let you get etags of multiple items without having to `GET` each one of them.
 
+Now, let's get user's information for each posts in a single request:
+
+```http
+http :8080/api/users/821d73ed48165b18462c820de9045ef6/posts fields=='id,meta{title},user{id,name}'
+HTTP/1.1 200 OK
+Content-Length: 257
+Content-Type: application/json
+Date: Mon, 27 Jul 2015 19:51:46 GMT
+Vary: Origin
+X-Page: 1
+X-Total: 1
+
+[
+    {
+        "_etag": "307ae92df6c3dd54847bfc7d72422e07",
+        "created": "2015-07-27T21:46:55.355857401+02:00",
+        "id": "251511a70447b5914e835b8a4d357397",
+        "meta": {
+            "title": "My first post"
+        },
+        "updated": "2015-07-27T21:46:55.355857989+02:00",
+        "user": {
+            "id": "821d73ed48165b18462c820de9045ef6",
+            "name": "John Doe"
+        }
+    }
+]
+```
+
+Notice how we selected which fields we wanted in the result using the [field selection](#field-selection) query format. Thanks to sub-request support, the user name is included with each post with no additional HTTP request.
+
 ## Resource Configuration
 
 For REST Layer to be able to expose resources, you have to first define what fields the resource contains and where to bind it in the REST API URL namespace.
