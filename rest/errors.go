@@ -44,6 +44,9 @@ type Error struct {
 //
 // If the the inputed error is recognized, the appropriate rest.Error is mapped.
 func NewError(err error) *Error {
+	if Err, ok := err.(*Error); ok {
+		return Err
+	}
 	switch err {
 	case context.Canceled:
 		return ErrClientClosedRequest

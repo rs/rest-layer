@@ -137,10 +137,13 @@ func (l *Lookup) SetSelector(s string, r *Resource) error {
 	return nil
 }
 
+// ReferenceResolver is a function resolving a reference to another field
+type ReferenceResolver func(path string, value interface{}) (*Resource, map[string]interface{}, error)
+
 // ApplySelector applies fields filtering / rename to the payload fields
-func (l *Lookup) ApplySelector(r *Resource, p map[string]interface{}) (map[string]interface{}, error) {
+func (l *Lookup) ApplySelector(r *Resource, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
 	if len(l.selector) == 0 {
 		return p, nil
 	}
-	return applySelector(l.selector, r.Validator(), p)
+	return applySelector(l.selector, r.Validator(), p, resolver)
 }

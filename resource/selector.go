@@ -250,14 +250,17 @@ func validateSelector(s []Field, v schema.Validator) error {
 			return fmt.Errorf("%s: unknown field", f.Name)
 		}
 		if len(f.Fields) > 0 {
-			if def.Schema == nil {
+			if def.Schema != nil {
+				// Sub-field on a dict (sub-schema)
+				if err := validateSelector(f.Fields, def.Schema); err != nil {
+					return fmt.Errorf("%s.%s", f.Name, err.Error())
+				}
+			} else if _, ok := def.Validator.(*schema.Reference); ok {
+				// Sub-field on a reference (sub-request)
+			} else {
 				return fmt.Errorf("%s: field as no children", f.Name)
 			}
-			if err := validateSelector(f.Fields, def.Schema); err != nil {
-				return fmt.Errorf("%s.%s", f.Name, err.Error())
-			}
 		}
-		// TODO: support references
 		// TODO: support connections
 		if len(f.Params) > 0 {
 			if def.Params == nil {
@@ -279,7 +282,7 @@ func validateSelector(s []Field, v schema.Validator) error {
 	return nil
 }
 
-func applySelector(s []Field, v schema.Validator, p map[string]interface{}) (map[string]interface{}, error) {
+func applySelector(s []Field, v schema.Validator, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
 	res := map[string]interface{}{}
 	for _, f := range s {
 		if val, found := p[f.Name]; found {
@@ -303,17 +306,25 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}) (map
 			// Handle sub field selection (if field has a value)
 			if len(f.Fields) > 0 && val != nil {
 				def := v.GetField(f.Name)
-				if def == nil || def.Schema == nil {
+				if def != nil && def.Schema != nil {
+					subval, ok := val.(map[string]interface{})
+					if !ok {
+						return nil, fmt.Errorf("%s: invalid value: not a dict", f.Name)
+					}
+					var err error
+					res[name], err = applySelector(f.Fields, def.Schema, subval, resolver)
+					if err != nil {
+						return nil, fmt.Errorf("%s.%s", f.Name, err.Error())
+					}
+				} else if ref, ok := def.Validator.(*schema.Reference); ok {
+					// Sub-field on a reference (sub-request)
+					subres, subval, err := resolver(ref.Path, val)
+					if err != nil {
+						return nil, fmt.Errorf("%s: error fetching sub-field: %s", f.Name, err.Error())
+					}
+					res[name], err = applySelector(f.Fields, subres.validator, subval, resolver)
+				} else {
 					return nil, fmt.Errorf("%s: field as no children", f.Name)
-				}
-				subval, ok := val.(map[string]interface{})
-				if !ok {
-					return nil, fmt.Errorf("%s: invalid value: not a dict", f.Name)
-				}
-				var err error
-				res[name], err = applySelector(f.Fields, def.Schema, subval)
-				if err != nil {
-					return nil, fmt.Errorf("%s.%s", f.Name, err.Error())
 				}
 			} else {
 				res[name] = val

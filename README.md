@@ -718,7 +718,7 @@ $ http -b :8080/api/users/55c99b7fa6ebe48ebb000001/posts fields=='meta{title,bod
 
 **Work in progress**
 
-With sub-fields notation you can also request referenced resources or connections (sub-resources), REST Layer will recognize it and will fetch the associated resources, and embed their result in the response. This can save a lot of unnecessary sequencial rount-trips:
+With sub-fields notation you can also request referenced resources or connections (sub-resources), REST Layer will recognize it and will fetch the associated resources, and embed their result in the response. This can save a lot of unnecessary sequential rount-trips:
 
 ```http
 $ http -b :8080/api/users/55c99b7fa6ebe48ebb000001/posts \
