@@ -119,7 +119,6 @@ func TestValidateSelector(t *testing.T) {
 }
 
 func TestApplySelector(t *testing.T) {
-	ctx := context.TODO()
 	s := schema.Schema{
 		"parent": schema.Field{
 			Schema: &schema.Schema{
