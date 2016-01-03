@@ -87,7 +87,7 @@ func (s DefaultResponseSender) SendError(ctx context.Context, headers http.Heade
 // SendItem sends a single item REST response on http.ResponseWriter
 func (s DefaultResponseSender) SendItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{}) {
 	if i.ETag != "" {
-		headers.Set("Etag", i.ETag)
+		headers.Set("Etag", `"`+i.ETag+`"`)
 	}
 	if !i.Updated.IsZero() {
 		headers.Set("Last-Modified", i.Updated.In(time.UTC).Format("Mon, 02 Jan 2006 15:04:05 GMT"))

@@ -50,7 +50,7 @@ func (r *request) checkIntegrityRequest(original *resource.Item) *Error {
 		if original == nil {
 			return ErrNotFound
 		}
-		if ifMatch != "" && original.ETag != ifMatch {
+		if ifMatch != "" && !compareEtag(ifMatch, original.ETag) {
 			return ErrPreconditionFailed
 		}
 		if ifUnmod != "" {

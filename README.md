@@ -283,7 +283,7 @@ Content-Length: 155
 Content-Location: /api/users/821d73ed48165b18462c820de9045ef6
 Content-Type: application/json
 Date: Mon, 27 Jul 2015 19:10:20 GMT
-Etag: 1e18e148e1ff3ecdaae5ec03ac74e0e4
+Etag: "1e18e148e1ff3ecdaae5ec03ac74e0e4"
 Last-Modified: Mon, 27 Jul 2015 19:10:20 GMT
 Vary: Origin
 
@@ -333,13 +333,13 @@ Retry with the valid etag:
 
 ```http
 http PATCH :8080/api/users/821d73ed48165b18462c820de9045ef6 \
-  name="Someone Else" If-Match:1e18e148e1ff3ecdaae5ec03ac74e0e4
+  name="Someone Else" If-Match:'"1e18e148e1ff3ecdaae5ec03ac74e0e4"'
 
 HTTP/1.1 200 OK
 Content-Length: 159
 Content-Type: application/json
 Date: Mon, 27 Jul 2015 19:36:19 GMT
-Etag: 7bb7a71b0f66197aa07c4c8fc9564616
+Etag: "7bb7a71b0f66197aa07c4c8fc9564616"
 Last-Modified: Mon, 27 Jul 2015 19:36:19 GMT
 Vary: Origin
 
@@ -363,7 +363,7 @@ HTTP/1.1 200 OK
 Content-Length: 212
 Content-Type: application/json
 Date: Mon, 27 Jul 2015 19:46:55 GMT
-Etag: 307ae92df6c3dd54847bfc7d72422e07
+Etag: "307ae92df6c3dd54847bfc7d72422e07"
 Last-Modified: Mon, 27 Jul 2015 19:46:55 GMT
 Vary: Origin
 
@@ -835,7 +835,7 @@ HTTP/1.1 304 Not Modified
 or the If-None-Match header:
 
 ```http
-$ http :8080/users/521d6840c437dc0002d1203c If-None-Match:1234567890123456789012345678901234567890
+$ http :8080/users/521d6840c437dc0002d1203c If-None-Match:'"1234567890123456789012345678901234567890"'
 HTTP/1.1 304 Not Modified
 ```
 
@@ -846,7 +846,7 @@ API responses include a `ETag` header which also allows for proper concurrency c
 Consider the following workflow:
 
 ```http
-$ http PATCH :8080/users/521d6840c437dc0002d1203c If-Match:1234567890123456789012345678901234567890 name='John Doe'
+$ http PATCH :8080/users/521d6840c437dc0002d1203c If-Match:'"1234567890123456789012345678901234567890"' name='John Doe'
 HTTP/1.1 412 Precondition Failed
 ```
 
@@ -855,8 +855,8 @@ What went wrong? We provided a `If-Match` header with the last known `ETag`, but
 When this happen, it's up to the client to decide to inform the user of the error and/or refetch the latest version of the document to get the lattest `ETag` before retrying the operation.
 
 ```http
-$ http PATCH :8080/users/521d6840c437dc0002d1203c If-Match:80b81f314712932a4d4ea75ab0b76a4eea613012 name='John Doe'
-Etag: 7bb7a71b0f66197aa07c4c8fc9564616
+$ http PATCH :8080/users/521d6840c437dc0002d1203c If-Match:'"80b81f314712932a4d4ea75ab0b76a4eea613012"' name='John Doe'
+Etag: "7bb7a71b0f66197aa07c4c8fc9564616"
 Last-Modified: Mon, 27 Jul 2015 19:36:19 GMT
 ```
 
