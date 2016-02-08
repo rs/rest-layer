@@ -24,11 +24,13 @@ type Field struct {
 	// OnInit can be set to a function to generate the value of this field
 	// when item is created. The function takes the current value if any
 	// and returns the value to be stored.
-	OnInit *func(value interface{}) interface{}
+	OnInit *func(value interface{}, params []interface{}) interface{}
 	// OnUpdate can be set to a function to generate the value of this field
 	// when item is updated. The function takes the current value if any
 	// and returns the value to be stored.
-	OnUpdate *func(value interface{}) interface{}
+	OnUpdate *func(value interface{}, params []interface{}) interface{} 
+	// HookParams define the params to be passed to OnInit and OnUpdate hooks.
+	HookParams []HookParam
 	// Params defines a param handler for the field. The handler may change the field's
 	// value depending on the passed parameters.
 	Params *Params
@@ -48,6 +50,36 @@ type Field struct {
 	// Schema can be set to a sub-schema to allow multi-level schema.
 	Schema *Schema
 }
+
+// Types of Hook Parameters
+// - ConstValue: To be defined as constant value.
+// - FieldValue: To be resolved with the value of a current field.
+type HookParamType int
+const (
+	ConstValue HookParamType = iota
+	FieldValue
+)
+
+// HookParam has all the information to generate the param vakue
+type HookParam struct {
+	Type HookParamType
+	Param interface{}
+}
+
+// Prepare implements the resolution of a parameter depending on the Type.
+func (h HookParam) Prepare(payload map[string]interface{}) interface{} {
+	switch h.Type {
+		case ConstValue:
+			return h.Param
+		case FieldValue:
+			field, ok := h.Param.(string)
+			if ok {
+				return payload[field]
+			}
+	}
+	return nil
+}
+
 
 // FieldValidator is an interface for all individual validators. It takes a value
 // to validate as argument and returned the normalized value or an error if validation failed.

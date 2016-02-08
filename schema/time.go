@@ -8,7 +8,7 @@ import (
 var (
 	// Now is a field hook handler that returns the current time, to be used in
 	// schema with OnInit and OnUpdate.
-	Now = func(value interface{}) interface{} {
+	Now = func(value interface{}, _ []interface{}) interface{} {
 		return time.Now()
 	}
 	// CreatedField is a common schema field configuration for "created" fields. It stores
