@@ -145,7 +145,7 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 			if !found || value == nil {
 				// Add default fields
 				if def.Default != nil {
-					base[field] = value
+					base[field] = def.Default
 				}
 			} else if found {
 				changes[field] = value
