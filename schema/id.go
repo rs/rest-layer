@@ -19,7 +19,7 @@ var (
 	//
 	// The generated ID is a Mongo like base64 object id (mgo/bson code has been embedded
 	// into this function to prevent dep)
-	NewID = func(value interface{}) interface{} {
+	NewID = func(value interface{}, _ []interface{}) interface{} {
 		if value == nil {
 			value = newID()
 		}

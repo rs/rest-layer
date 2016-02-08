@@ -145,7 +145,7 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 			if !found || value == nil {
 				// Add default fields
 				if def.Default != nil {
-					base[field] = value
+					base[field] = def.Default
 				}
 			} else if found {
 				changes[field] = value
@@ -206,28 +206,38 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 				}
 			}
 		}
+
+
 		// Call the OnInit or OnUpdate depending on the presence of the original doc and the
 		// state of the replace argument.
-		var hook *func(value interface{}) interface{}
+		var hook *func(value interface{}, params []interface{}) interface{}
 		if original == nil || replace {
 			hook = def.OnInit
 		} else {
 			hook = def.OnUpdate
 		}
 		if hook != nil {
+			// Generate params aray to be used on the hook function.
+			var params []interface{}
+			if def.HookParams != nil {
+				for _,hp := range def.HookParams {
+					params = append(params, hp.Prepare(payload))
+				}
+			}
+
 			// Get the change value or fallback on the base value
 			if value, found := changes[field]; found {
 				if value == Tombstone {
 					// If the field has a tombstone, apply the handler on the base
 					// and remove the tombstone so it doesn't appear as a user
 					// generated change
-					base[field] = (*hook)(base[field])
+					base[field] = (*hook)(base[field], params)
 					delete(changes, field)
 				} else {
-					changes[field] = (*hook)(value)
+					changes[field] = (*hook)(value, params)
 				}
 			} else {
-				base[field] = (*hook)(base[field])
+				base[field] = (*hook)(base[field], params)
 			}
 		}
 	}

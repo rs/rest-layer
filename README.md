@@ -46,6 +46,7 @@ REST Layer is composed of several sub-packages:
 	- [Data Storage Handler](#data-storage-handler)
 	- [Custom Response Sender](#custom-response-sender)
 	- [Middleware](#middleware)
+
 <!-- /TOC -->
 
 ## Features
