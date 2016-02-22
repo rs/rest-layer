@@ -13,10 +13,12 @@ import (
 )
 
 type requestHandler interface {
+	itemOptions(ctx context.Context, route *RouteMatch) (int, http.Header, interface{})
 	itemGet(ctx context.Context, route *RouteMatch) (int, http.Header, interface{})
 	itemPut(ctx context.Context, route *RouteMatch) (int, http.Header, interface{})
 	itemPatch(ctx context.Context, route *RouteMatch) (int, http.Header, interface{})
 	itemDelete(ctx context.Context, route *RouteMatch) (int, http.Header, interface{})
+	listOptions(ctx context.Context, route *RouteMatch) (int, http.Header, interface{})
 	listGet(ctx context.Context, route *RouteMatch) (int, http.Header, interface{})
 	listPost(ctx context.Context, route *RouteMatch) (int, http.Header, interface{})
 	listDelete(ctx context.Context, route *RouteMatch) (int, http.Header, interface{})
