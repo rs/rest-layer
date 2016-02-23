@@ -81,7 +81,7 @@ func findRoute(path string, index resource.Index, route *RouteMatch) *Error {
 	}
 
 	// First component must match a resource
-	if rsrc, _, found := index.GetResource(resourcePath); found {
+	if rsrc, _, found := index.GetResource(resourcePath, nil); found {
 		if len(c) >= 1 {
 			// If there are some components left, the path targets an item or an alias
 
@@ -92,7 +92,7 @@ func findRoute(path string, index resource.Index, route *RouteMatch) *Error {
 			// Handle sub-resources (/resource1/id1/resource2/id2)
 			if len(c) >= 1 {
 				subResourcePath := strings.Join([]string{resourcePath, c[0]}, ".")
-				if _, field, found := index.GetResource(subResourcePath); found {
+				if _, field, found := index.GetResource(subResourcePath, nil); found {
 					// Append the intermediate resource path
 					route.ResourcePath.append(rsrc, field, id, name)
 					// Recurse to match the sub-path

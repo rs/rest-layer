@@ -148,7 +148,8 @@ func main() {
 		"- http :8080/posts fields=='id,thumbnail_url(height=80):thumb_s_url'\n",
 		"- http :8080/posts fields=='id:i,meta{title:t, body:b}:m,thumbnail_url(height=80):thumb_small_url'\n",
 		"- http :8080/posts fields=='id,meta,user{id,name}'\n",
-		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0/followers fields=='post{id,meta{title}},user{id,name}'")
+		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0/followers fields=='post{id,meta{title}},user{id,name}'\n",
+		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0 fields=='id,meta{title},followers(limit=2){user{id,name}}'")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}

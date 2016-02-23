@@ -107,7 +107,7 @@ func (s Schema) GetField(name string) *Field {
 			// Recursively call has field to consume the whole path
 			return field.Schema.GetField(path[1])
 		}
-		// Return true only if the path has been fully consumed
+		// Return the field only if the path has been fully consumed
 		if len(path) == 1 {
 			return &field
 		}

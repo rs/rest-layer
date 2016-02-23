@@ -15,7 +15,7 @@ type Index interface {
 	// GetResource retrives a given resource and its parent field identifier by it's path.
 	// For instance if a resource user has a sub-resource posts,
 	// a users.posts path can be use to retrieve the posts resource.
-	GetResource(path string) (*Resource, string, bool)
+	GetResource(path string, parent *Resource) (*Resource, string, bool)
 }
 
 // index is the root of the resource graph
@@ -45,9 +45,20 @@ func (r *index) Compile() error {
 // GetResource retrives a given resource and its parent field identifier by it's path.
 // For instance if a resource user has a sub-resource posts,
 // a users.posts path can be use to retrieve the posts resource.
-func (r *index) GetResource(path string) (*Resource, string, bool) {
+//
+// If a parent is given and the path starts with a dot, the lookup is started at the
+// parent's location instead of root's.
+func (r *index) GetResource(path string, parent *Resource) (*Resource, string, bool) {
 	resources := r.resources
 	field := ""
+	if len(path) > 0 && path[0] == '.' {
+		if parent == nil {
+			// If field starts with a dot and no parent is given, fail the lookup
+			return nil, "", false
+		}
+		path = path[1:]
+		resources = parent.resources
+	}
 	var resource *Resource
 	for _, comp := range strings.Split(path, ".") {
 		if subResource, found := resources[comp]; found {

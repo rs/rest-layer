@@ -20,11 +20,12 @@ func validateSelector(s []Field, v schema.Validator) error {
 				}
 			} else if _, ok := def.Validator.(*schema.Reference); ok {
 				// Sub-field on a reference (sub-request)
+			} else if _, ok := def.Validator.(connection); ok {
+				// Sub-field on a sub resource (sub-request)
 			} else {
 				return fmt.Errorf("%s: field as no children", f.Name)
 			}
 		}
-		// TODO: support connections
 		if len(f.Params) > 0 {
 			if def.Params == nil {
 				return fmt.Errorf("%s: params not allowed", f.Name)
@@ -48,8 +49,8 @@ func validateSelector(s []Field, v schema.Validator) error {
 func applySelector(s []Field, v schema.Validator, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
 	res := map[string]interface{}{}
 	for _, f := range s {
-		if val, found := p[f.Name]; found {
-			name := f.Name
+		name := f.Name
+		if val, found := p[name]; found {
 			// Handle aliasing
 			if f.Alias != "" {
 				name = f.Alias
@@ -81,16 +82,53 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 					}
 				} else if ref, ok := def.Validator.(*schema.Reference); ok {
 					// Sub-field on a reference (sub-request)
-					subres, subval, err := resolver(ref.Path, val)
+					l := NewLookup()
+					l.AddQuery(schema.Query{schema.Equal{Field: "id", Value: val}})
+					rsrc, list, err := resolver(ref.Path, l, 1, 1)
 					if err != nil {
 						return nil, fmt.Errorf("%s: error fetching sub-field: %s", f.Name, err.Error())
 					}
-					res[name], err = applySelector(f.Fields, subres.validator, subval, resolver)
+					subval := map[string]interface{}{}
+					if len(list.Items) > 0 {
+						subval = list.Items[0].Payload
+					}
+					res[name], err = applySelector(f.Fields, rsrc.Validator(), subval, resolver)
+					if err != nil {
+						return nil, fmt.Errorf("%s: error applying selector on sub-field: %s", f.Name, err.Error())
+					}
 				} else {
 					return nil, fmt.Errorf("%s: field as no children", f.Name)
 				}
 			} else {
 				res[name] = val
+			}
+		} else if def := v.GetField(f.Name); def != nil {
+			// If field is not found, it may be a connection
+			if ref, ok := def.Validator.(connection); ok {
+				// Sub-field on a sub resource (sub-request)
+				l := NewLookup()
+				// TODO: parse params to add query and sort
+				page := 1
+				if v, ok := f.Params["page"].(int); ok {
+					page = v
+				}
+				perPage := 20
+				if v, ok := f.Params["limit"].(int); ok {
+					perPage = v
+				}
+				rsrc, list, err := resolver(ref.path, l, page, perPage)
+				if err != nil {
+					return nil, fmt.Errorf("%s: error fetching sub-field: %s", f.Name, err.Error())
+				}
+				subvals := []map[string]interface{}{}
+				for i, item := range list.Items {
+					subval, err := applySelector(f.Fields, rsrc.Validator(), item.Payload, resolver)
+					if err != nil {
+						return nil, fmt.Errorf("%s: error applying selector on sub-field #%d: %s", f.Name, i, err.Error())
+					}
+					subvals = append(subvals, subval)
+				}
+				res[name] = subvals
 			}
 		}
 	}

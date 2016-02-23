@@ -11,7 +11,7 @@ import (
 
 // Resource holds information about a class of items exposed on the API
 type Resource struct {
-	validator schema.Validator
+	validator validatorFallback
 	storage   Storer
 	conf      Conf
 	resources map[string]*subResource
@@ -24,10 +24,39 @@ type subResource struct {
 	resource *Resource
 }
 
+// validatorFallback wraps a validator and fallback on given schema if the GetField
+// returns nil on a given name
+type validatorFallback struct {
+	schema.Validator
+	schema schema.Schema
+}
+
+func (v validatorFallback) GetField(name string) *schema.Field {
+	if f := v.Validator.GetField(name); f != nil {
+		return f
+	}
+	return v.schema.GetField(name)
+}
+
+// connection is a special internal validator to hook a validator of a sub resource
+// to the resource validator in order to allow embedding of sub resources during
+// field selection. Those connections are set on a fallback schema.
+type connection struct {
+	path string
+}
+
+func (v connection) Validate(value interface{}) (interface{}, error) {
+	// no validation needed
+	return value, nil
+}
+
 // New creates a new resource with provided spec, handler and config
 func New(v schema.Validator, s Storer, c Conf) *Resource {
 	return &Resource{
-		validator: v,
+		validator: validatorFallback{
+			Validator: v,
+			schema:    schema.Schema{},
+		},
 		storage:   s,
 		conf:      c,
 		resources: map[string]*subResource{},
@@ -38,7 +67,7 @@ func New(v schema.Validator, s Storer, c Conf) *Resource {
 // Compile the resource graph and report any error
 func (r *Resource) Compile() error {
 	// Compile schema and panic on any compilation error
-	if c, ok := r.Validator().(schema.Compiler); ok {
+	if c, ok := r.validator.Validator.(schema.Compiler); ok {
 		if err := c.Compile(); err != nil {
 			return fmt.Errorf(": schema compilation error: %s", err)
 		}
@@ -67,12 +96,31 @@ func (r *Resource) Compile() error {
 // or if the specified field doesn't exist in the parent resource spec.
 func (r *Resource) Bind(name, field string, s *Resource) *Resource {
 	assertNotBound(name, r.resources, r.aliases)
-	if f := s.Validator().GetField(field); f == nil {
+	if f := s.validator.Validator.GetField(field); f == nil {
 		log.Panicf("Cannot bind `%s' as sub-resource: field `%s' does not exist in the sub-resource'", name, field)
 	}
 	r.resources[name] = &subResource{
 		field:    field,
 		resource: s,
+	}
+	r.validator.schema[name] = schema.Field{
+		ReadOnly: true,
+		Validator: connection{
+			path: "." + name,
+		},
+		Params: &schema.Params{
+			Validators: map[string]schema.FieldValidator{
+				"page": schema.Integer{
+					Boundaries: &schema.Boundaries{Min: 1, Max: 1000},
+				},
+				"limit": schema.Integer{
+					Boundaries: &schema.Boundaries{Min: 0, Max: 1000},
+				},
+				// TODO
+				// "sort":   schema.String{}, // TODO proper sort validation
+				// "filter": schema.String{}, // TODO proper filter validation
+			},
+		},
 	}
 	return s
 }
