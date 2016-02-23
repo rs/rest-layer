@@ -78,8 +78,9 @@ REST Layer is composed of several sub-packages:
 - [x] Default and nullable values
 - [ ] Per resource cache control
 - [ ] Customizable authentication / authorization
-- [ ] Projections
-- [ ] Embedded resource serialization
+- [x] Projections
+- [x] Embedded resource serialization
+- [x] Sub-request concurrency control
 - [x] Custom ID field
 - [ ] Data versioning
 
