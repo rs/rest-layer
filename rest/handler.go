@@ -18,10 +18,6 @@ type Handler struct {
 	index resource.Index
 	// mw is the list of middlewares attached to this REST handler
 	mw []Middleware
-	// mh is the map of per HTTP method handler for resource requests
-	mh map[string]methodHandler
-	// imh is the map of per HTTP method handler for item requests
-	imh map[string]methodHandler
 }
 
 type methodHandler func(ctx context.Context, r *http.Request, route *RouteMatch) (int, http.Header, interface{})
@@ -37,19 +33,6 @@ func NewHandler(i resource.Index) (*Handler, error) {
 		ResponseFormatter: DefaultResponseFormatter{},
 		ResponseSender:    DefaultResponseSender{},
 		index:             i,
-		mh: map[string]methodHandler{
-			"OPTIONS": listOptions,
-			"GET":     listGet,
-			"POST":    listPost,
-			"DELETE":  listDelete,
-		},
-		imh: map[string]methodHandler{
-			"OPTIONS": itemOptions,
-			"GET":     itemGet,
-			"PUT":     itemPut,
-			"PATCH":   itemPatch,
-			"DELETE":  itemDelete,
-		},
 	}
 	return h, nil
 }
@@ -101,29 +84,8 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 
 	// Call the middleware + the main route handler
 	ctx, status, headers, res := h.callMiddlewares(ctx, r, func(ctx context.Context) (context.Context, int, http.Header, interface{}) {
-		// Check route's resource parent(s) exists
-		// We perform this check after middlewares, so middleware can prepend route.ResourcePath with
-		// some other resources like a user by auth. This will ensure this user resource for instance,
-		// 1) exists 2) is contained in all subsequent path resources 3) is set on all newly created
-		// resource.
-		if err := route.ResourcePath.ParentsExist(ctx); err != nil {
-			return ctx, 0, http.Header{}, err
-		}
 		// Execute the main route handler
-		rsrc := route.Resource()
-		if rsrc == nil {
-			return ctx, http.StatusNotFound, nil, &Error{http.StatusNotFound, "Resource Not Found", nil}
-		}
-		conf := rsrc.Conf()
-		isItem := route.ResourceID() != nil
-		mh, found := h.getResourceMethodHandler(isItem, route.Method)
-		if !found {
-			if isItem {
-				return ctx, ErrInvalidMethod.Code, getItemAllowHeader(conf), ErrInvalidMethod
-			}
-			return ctx, ErrInvalidMethod.Code, getListAllowHeader(conf), ErrInvalidMethod
-		}
-		status, headers, body := mh(ctx, r, route)
+		status, headers, body := routeHandler(ctx, r, route)
 		if headers == nil {
 			headers = http.Header{}
 		}
@@ -136,18 +98,33 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 	h.sendResponse(ctx, w, status, headers, res, skipBody, v)
 }
 
+// routeHandler executes the appropriate method handler for the request if allowed by the route configuration
+func routeHandler(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
+	// Check route's resource parent(s) exists
+	// We perform this check after middlewares, so middleware can prepend route.ResourcePath with
+	// some other resources like a user by auth. This will ensure this user resource for instance,
+	// 1) exists 2) is contained in all subsequent path resources 3) is set on all newly created
+	// resource.
+	if err := route.ResourcePath.ParentsExist(ctx); err != nil {
+		return 0, http.Header{}, err
+	}
+	rsrc := route.Resource()
+	if rsrc == nil {
+		return http.StatusNotFound, nil, &Error{http.StatusNotFound, "Resource Not Found", nil}
+	}
+	conf := rsrc.Conf()
+	isItem := route.ResourceID() != nil
+	mh := getAllowedMethodHandler(isItem, route.Method, conf)
+	if mh == nil {
+		headers = http.Header{}
+		setAllowHeader(headers, isItem, conf)
+		return ErrInvalidMethod.Code, headers, ErrInvalidMethod
+	}
+	return mh(ctx, r, route)
+}
+
 // sendResponse format and send the API response
 func (h *Handler) sendResponse(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, res interface{}, skipBody bool, validator schema.Validator) {
 	ctx, status, body := formatResponse(ctx, h.ResponseFormatter, w, status, headers, res, skipBody, validator)
 	h.ResponseSender.Send(ctx, w, status, headers, body)
-}
-
-// getResourceMethodHandler returns the method handler for a given HTTP method in item or resource mode.
-func (h *Handler) getResourceMethodHandler(isItem bool, method string) (mh methodHandler, found bool) {
-	if isItem {
-		mh, found = h.imh[method]
-	} else {
-		mh, found = h.mh[method]
-	}
-	return
 }

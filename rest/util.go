@@ -13,6 +13,111 @@ import (
 	"github.com/rs/rest-layer/schema"
 )
 
+// getMethodHandler returns the method handler for a given HTTP method in item or resource mode.
+func getMethodHandler(isItem bool, method string) methodHandler {
+	if isItem {
+		switch method {
+		case http.MethodOptions:
+			return itemOptions
+		case http.MethodHead, http.MethodGet:
+			return itemGet
+		case http.MethodPut:
+			return itemPut
+		case http.MethodPatch:
+			return itemPatch
+		case http.MethodDelete:
+			return itemDelete
+		}
+	} else {
+		switch method {
+		case http.MethodOptions:
+			return listOptions
+		case http.MethodHead, http.MethodGet:
+			return listGet
+		case http.MethodPost:
+			return listPost
+		case http.MethodDelete:
+			return listDelete
+		}
+	}
+	return nil
+}
+
+// isMethodAllowed returns true if the method is allowed by the configuration
+func isMethodAllowed(isItem bool, method string, conf resource.Conf) bool {
+	if isItem {
+		switch method {
+		case http.MethodOptions:
+			return true
+		case http.MethodHead, http.MethodGet:
+			return conf.IsModeAllowed(resource.Read)
+		case http.MethodPut:
+			return conf.IsModeAllowed(resource.Create) || conf.IsModeAllowed(resource.Replace)
+		case http.MethodPatch:
+			return conf.IsModeAllowed(resource.Update)
+		case http.MethodDelete:
+			return conf.IsModeAllowed(resource.Delete)
+		}
+	} else {
+		switch method {
+		case http.MethodOptions:
+			return true
+		case http.MethodHead, http.MethodGet:
+			return conf.IsModeAllowed(resource.List)
+		case http.MethodPost:
+			return conf.IsModeAllowed(resource.Create)
+		case http.MethodDelete:
+			return conf.IsModeAllowed(resource.Clear)
+		}
+	}
+	return false
+}
+
+// getAllowedMethodHandler returns the method handler for the requested method if the resource configuration
+// allows it.
+func getAllowedMethodHandler(isItem bool, method string, conf resource.Conf) methodHandler {
+	if isMethodAllowed(isItem, method, conf) {
+		return getMethodHandler(isItem, method)
+	}
+	return nil
+}
+
+// setAllowHeader builds a Allow header based on the resource configuration.
+func setAllowHeader(headers http.Header, isItem bool, conf resource.Conf) {
+	methods := []string{}
+	if isItem {
+		// Methods are sorted
+		if conf.IsModeAllowed(resource.Update) {
+			methods = append(methods, "DELETE")
+		}
+		if conf.IsModeAllowed(resource.Read) {
+			methods = append(methods, "GET, HEAD")
+		}
+		if conf.IsModeAllowed(resource.Update) {
+			methods = append(methods, "PATCH")
+			// See http://tools.ietf.org/html/rfc5789#section-3
+			headers.Set("Allow-Patch", "application/json")
+		}
+		if conf.IsModeAllowed(resource.Create) || conf.IsModeAllowed(resource.Replace) {
+			methods = append(methods, "PUT")
+		}
+	} else {
+		// Methods are sorted
+		if conf.IsModeAllowed(resource.Clear) {
+			methods = append(methods, "DELETE")
+		}
+		if conf.IsModeAllowed(resource.List) {
+			methods = append(methods, "GET, HEAD")
+		}
+		if conf.IsModeAllowed(resource.Create) {
+			methods = append(methods, "POST")
+		}
+	}
+	if len(methods) > 0 {
+		headers.Set("Allow", strings.Join(methods, ", "))
+	}
+}
+
 // compareEtag compares a client provided etag with a base etag. The client provided
 // etag may or may not have quotes while the base etag is never quoted. This loose
 // comparison of etag allows clients not stricly respecting RFC to send the etag with

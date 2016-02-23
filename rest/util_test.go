@@ -6,8 +6,138 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/rs/rest-layer/resource"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestGetMethodHandler(t *testing.T) {
+	assert.NotNil(t, getMethodHandler(true, "OPTIONS"))
+	assert.NotNil(t, getMethodHandler(true, "HEAD"))
+	assert.NotNil(t, getMethodHandler(true, "GET"))
+	assert.Nil(t, getMethodHandler(true, "POST"))
+	assert.NotNil(t, getMethodHandler(true, "PUT"))
+	assert.NotNil(t, getMethodHandler(true, "PATCH"))
+	assert.NotNil(t, getMethodHandler(true, "DELETE"))
+	assert.Nil(t, nil, getMethodHandler(true, "OTHER"))
+
+	assert.NotNil(t, getMethodHandler(false, "OPTIONS"))
+	assert.NotNil(t, getMethodHandler(false, "HEAD"))
+	assert.NotNil(t, getMethodHandler(false, "GET"))
+	assert.Nil(t, getMethodHandler(false, "PUT"))
+	assert.NotNil(t, getMethodHandler(false, "POST"))
+	assert.Nil(t, getMethodHandler(false, "PATCH"))
+	assert.NotNil(t, getMethodHandler(false, "DELETE"))
+	assert.Nil(t, getMethodHandler(false, "OTHER"))
+}
+
+func TestIsMethodAllowed(t *testing.T) {
+	c := resource.Conf{AllowedModes: resource.ReadWrite}
+	assert.True(t, isMethodAllowed(true, "OPTIONS", c))
+	assert.True(t, isMethodAllowed(true, "HEAD", c))
+	assert.True(t, isMethodAllowed(true, "GET", c))
+	assert.False(t, isMethodAllowed(true, "POST", c))
+	assert.True(t, isMethodAllowed(true, "PUT", c))
+	assert.True(t, isMethodAllowed(true, "PATCH", c))
+	assert.True(t, isMethodAllowed(true, "DELETE", c))
+	assert.False(t, isMethodAllowed(true, "OTHER", c))
+
+	c = resource.Conf{}
+	assert.True(t, isMethodAllowed(true, "OPTIONS", c))
+	assert.False(t, isMethodAllowed(true, "HEAD", c))
+	assert.False(t, isMethodAllowed(true, "GET", c))
+	assert.False(t, isMethodAllowed(true, "POST", c))
+	assert.False(t, isMethodAllowed(true, "PUT", c))
+	assert.False(t, isMethodAllowed(true, "PATCH", c))
+	assert.False(t, isMethodAllowed(true, "DELETE", c))
+	assert.False(t, isMethodAllowed(true, "OTHER", c))
+
+	assert.True(t, isMethodAllowed(true, "PUT", resource.Conf{AllowedModes: []resource.Mode{resource.Create}}))
+	assert.True(t, isMethodAllowed(true, "PUT", resource.Conf{AllowedModes: []resource.Mode{resource.Replace}}))
+
+	c = resource.Conf{AllowedModes: resource.ReadWrite}
+	assert.True(t, isMethodAllowed(false, "OPTIONS", c))
+	assert.True(t, isMethodAllowed(false, "HEAD", c))
+	assert.True(t, isMethodAllowed(false, "GET", c))
+	assert.True(t, isMethodAllowed(false, "POST", c))
+	assert.False(t, isMethodAllowed(false, "PUT", c))
+	assert.False(t, isMethodAllowed(false, "PATCH", c))
+	assert.True(t, isMethodAllowed(false, "DELETE", c))
+	assert.False(t, isMethodAllowed(false, "OTHER", c))
+
+	c = resource.Conf{}
+	assert.True(t, isMethodAllowed(false, "OPTIONS", c))
+	assert.False(t, isMethodAllowed(false, "HEAD", c))
+	assert.False(t, isMethodAllowed(false, "GET", c))
+	assert.False(t, isMethodAllowed(false, "POST", c))
+	assert.False(t, isMethodAllowed(false, "PUT", c))
+	assert.False(t, isMethodAllowed(false, "PATCH", c))
+	assert.False(t, isMethodAllowed(false, "DELETE", c))
+	assert.False(t, isMethodAllowed(false, "OTHER", c))
+}
+
+func TestGetAllowedMethodHandler(t *testing.T) {
+	c := resource.Conf{AllowedModes: resource.ReadWrite}
+	assert.NotNil(t, getAllowedMethodHandler(true, "OPTIONS", c))
+	assert.NotNil(t, getAllowedMethodHandler(true, "HEAD", c))
+	assert.NotNil(t, getAllowedMethodHandler(true, "GET", c))
+	assert.Nil(t, getAllowedMethodHandler(true, "POST", c))
+	assert.NotNil(t, getAllowedMethodHandler(true, "PUT", c))
+	assert.NotNil(t, getAllowedMethodHandler(true, "PATCH", c))
+	assert.NotNil(t, getAllowedMethodHandler(true, "DELETE", c))
+	assert.Nil(t, nil, getAllowedMethodHandler(true, "OTHER", c))
+
+	assert.NotNil(t, getAllowedMethodHandler(false, "OPTIONS", c))
+	assert.NotNil(t, getAllowedMethodHandler(false, "HEAD", c))
+	assert.NotNil(t, getAllowedMethodHandler(false, "GET", c))
+	assert.Nil(t, getAllowedMethodHandler(false, "PUT", c))
+	assert.NotNil(t, getAllowedMethodHandler(false, "POST", c))
+	assert.Nil(t, getAllowedMethodHandler(false, "PATCH", c))
+	assert.NotNil(t, getAllowedMethodHandler(false, "DELETE", c))
+	assert.Nil(t, getAllowedMethodHandler(false, "OTHER", c))
+
+	c = resource.Conf{AllowedModes: resource.ReadOnly}
+	assert.NotNil(t, getAllowedMethodHandler(true, "OPTIONS", c))
+	assert.NotNil(t, getAllowedMethodHandler(true, "HEAD", c))
+	assert.NotNil(t, getAllowedMethodHandler(true, "GET", c))
+	assert.Nil(t, getAllowedMethodHandler(true, "POST", c))
+	assert.Nil(t, getAllowedMethodHandler(true, "PUT", c))
+	assert.Nil(t, getAllowedMethodHandler(true, "PATCH", c))
+	assert.Nil(t, getAllowedMethodHandler(true, "DELETE", c))
+	assert.Nil(t, nil, getAllowedMethodHandler(true, "OTHER", c))
+
+	assert.NotNil(t, getAllowedMethodHandler(false, "OPTIONS", c))
+	assert.NotNil(t, getAllowedMethodHandler(false, "HEAD", c))
+	assert.NotNil(t, getAllowedMethodHandler(false, "GET", c))
+	assert.Nil(t, getAllowedMethodHandler(false, "PUT", c))
+	assert.Nil(t, getAllowedMethodHandler(false, "POST", c))
+	assert.Nil(t, getAllowedMethodHandler(false, "PATCH", c))
+	assert.Nil(t, getAllowedMethodHandler(false, "DELETE", c))
+	assert.Nil(t, getAllowedMethodHandler(false, "OTHER", c))
+}
+
+func TestSetAllowHeader(t *testing.T) {
+	getAllow := func(isItem bool, modes []resource.Mode) http.Header {
+		h := http.Header{}
+		setAllowHeader(h, isItem, resource.Conf{AllowedModes: modes})
+		return h
+	}
+
+	assert.Equal(t, http.Header{}, getAllow(true, nil))
+	assert.Equal(t, http.Header{
+		"Allow-Patch": []string{"application/json"},
+		"Allow":       []string{"DELETE, GET, HEAD, PATCH, PUT"}},
+		getAllow(true, resource.ReadWrite))
+	assert.Equal(t, http.Header{
+		"Allow-Patch": []string{"application/json"},
+		"Allow":       []string{"DELETE, PATCH, PUT"}},
+		getAllow(true, resource.WriteOnly))
+	assert.Equal(t, http.Header{"Allow": []string{"GET, HEAD"}}, getAllow(true, resource.ReadOnly))
+
+	assert.Equal(t, http.Header{}, getAllow(false, nil))
+	assert.Equal(t, http.Header{"Allow": []string{"DELETE, GET, HEAD, POST"}}, getAllow(false, resource.ReadWrite))
+	assert.Equal(t, http.Header{"Allow": []string{"DELETE, POST"}}, getAllow(false, resource.WriteOnly))
+	assert.Equal(t, http.Header{"Allow": []string{"GET, HEAD"}}, getAllow(false, resource.ReadOnly))
+}
 
 func TestCompareEtag(t *testing.T) {
 	assert.True(t, compareEtag(`abc`, `abc`))

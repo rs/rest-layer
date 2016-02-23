@@ -101,3 +101,7 @@ func TestHandlerServeHTTPParentNotFound(t *testing.T) {
 	b, _ := ioutil.ReadAll(w.Body)
 	assert.Equal(t, "{\"code\":404,\"message\":\"Parent Resource Not Found\"}", string(b))
 }
+
+func TestRouteHandler(t *testing.T) {
+
+}
