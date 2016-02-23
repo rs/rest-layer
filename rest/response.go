@@ -8,25 +8,37 @@ import (
 	"time"
 
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/schema"
 	"github.com/rs/xlog"
 	"golang.org/x/net/context"
 )
 
-// ResponseSender defines an interface responsible for formating, serializing and sending the response
+// ResponseFormatter defines an interface responsible for formatting a the different types of response objects
+type ResponseFormatter interface {
+	// FormatItem formats a single item in a format ready to be serialized by the ResponseSender
+	FormatItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{})
+	// FormatList formats a list of items in a format ready to be serialized by the ResponseSender
+	FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{})
+	// FormatError formats a REST formated error or a simple error in a format ready to be serialized by the ResponseSender
+	FormatError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{})
+}
+
+// ResponseSender defines an interface responsible for serializing and sending the response
 // to the http.ResponseWriter.
 type ResponseSender interface {
 	// Send serialize the body, sets the given headers and write everything to the provided response writer
 	Send(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, body interface{})
-	// SendError formats a REST formated error or a simple error in a format ready to be serialized by Send
-	SendError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{})
-	// SendItem formats a single item in a format ready to be serialized by Send
-	SendItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{})
-	// SendItem formats a list of items in a format ready to be serialized by Send
-	SendList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{})
+}
+
+// DefaultResponseFormatter provides a base response formatter to be used by default. This formatter can
+// easily be extended or replaced by implementing ResponseFormatter interface and setting it on
+// Handler.ResponseFormatter.
+type DefaultResponseFormatter struct {
 }
 
 // DefaultResponseSender provides a base response sender to be used by default. This sender can
-// easily be extended or replaced by implementing ResponseSender interface and setting it on Handler.ResponseSender.
+// easily be extended or replaced by implementing ResponseSender interface and setting it on
+// Handler.ResponseSender.
 type DefaultResponseSender struct {
 }
 
@@ -56,8 +68,48 @@ func (s DefaultResponseSender) Send(ctx context.Context, w http.ResponseWriter, 
 	}
 }
 
-// SendError writes a REST formated error on the http.ResponseWriter
-func (s DefaultResponseSender) SendError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{}) {
+// FormatItem implements ResponseFormatter
+func (f DefaultResponseFormatter) FormatItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{}) {
+	if i.ETag != "" {
+		headers.Set("Etag", `"`+i.ETag+`"`)
+	}
+	if !i.Updated.IsZero() {
+		headers.Set("Last-Modified", i.Updated.In(time.UTC).Format("Mon, 02 Jan 2006 15:04:05 GMT"))
+	}
+	if skipBody {
+		return ctx, nil
+	}
+	return ctx, i.Payload
+}
+
+// FormatList implements ResponseFormatter
+func (f DefaultResponseFormatter) FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
+	if l.Total >= 0 {
+		headers.Set("X-Total", strconv.FormatInt(int64(l.Total), 10))
+	}
+	if l.Page > 0 {
+		headers.Set("X-Page", strconv.FormatInt(int64(l.Page), 10))
+	}
+	if !skipBody {
+		payload := make([]map[string]interface{}, len(l.Items))
+		for i, item := range l.Items {
+			// Clone item payload to add the etag to the items in the list
+			d := map[string]interface{}{}
+			for k, v := range item.Payload {
+				d[k] = v
+			}
+			if item.ETag != "" {
+				d["_etag"] = item.ETag
+			}
+			payload[i] = d
+		}
+		return ctx, payload
+	}
+	return ctx, nil
+}
+
+// FormatError implements ResponseFormatter
+func (f DefaultResponseFormatter) FormatError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{}) {
 	code := 500
 	message := "Server Error"
 	if err != nil {
@@ -84,40 +136,48 @@ func (s DefaultResponseSender) SendError(ctx context.Context, headers http.Heade
 	return ctx, nil
 }
 
-// SendItem sends a single item REST response on http.ResponseWriter
-func (s DefaultResponseSender) SendItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{}) {
-	if i.ETag != "" {
-		headers.Set("Etag", `"`+i.ETag+`"`)
-	}
-	if !i.Updated.IsZero() {
-		headers.Set("Last-Modified", i.Updated.In(time.UTC).Format("Mon, 02 Jan 2006 15:04:05 GMT"))
-	}
-	if skipBody {
-		return ctx, nil
-	}
-	return ctx, i.Payload
-}
-
-// SendList sends a list of items as REST response on http.ResponseWriter
-func (s DefaultResponseSender) SendList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
-	if l.Total >= 0 {
-		headers.Set("X-Total", strconv.FormatInt(int64(l.Total), 10))
-	}
-	if l.Page > 0 {
-		headers.Set("X-Page", strconv.FormatInt(int64(l.Page), 10))
-	}
-	if !skipBody {
-		payload := make([]map[string]interface{}, len(l.Items))
-		for i, item := range l.Items {
-			// Clone item payload to add the etag to the items in the list
-			d := map[string]interface{}{}
-			for k, v := range item.Payload {
-				d[k] = v
+// formatResponse routes the type of response on the right ResponseFormater method for
+// internally supported types.
+func formatResponse(ctx context.Context, f ResponseFormatter, w http.ResponseWriter, status int, headers http.Header, resp interface{}, skipBody bool, validator schema.Validator) (context.Context, int, interface{}) {
+	var body interface{}
+	switch resp := resp.(type) {
+	case *resource.Item:
+		if s, ok := validator.(schema.Serializer); ok {
+			// Prepare the payload for marshaling by calling eventual field serializers
+			if err := s.Serialize(resp.Payload); err != nil {
+				err = fmt.Errorf("Error while preparing item: %s", err.Error())
+				ctx, body = f.FormatError(ctx, http.Header{}, err, skipBody)
+				return ctx, 500, body
 			}
-			d["_etag"] = item.ETag
-			payload[i] = d
 		}
-		return ctx, payload
+		ctx, body = f.FormatItem(ctx, headers, resp, skipBody)
+	case *resource.ItemList:
+		if s, ok := validator.(schema.Serializer); ok {
+			// Prepare the payload for marshaling by calling eventual field serializers
+			for i, item := range resp.Items {
+				if err := s.Serialize(item.Payload); err != nil {
+					err = fmt.Errorf("Error while preparing item #%d: %s", i, err.Error())
+					ctx, body = f.FormatError(ctx, http.Header{}, err, skipBody)
+					return ctx, 500, body
+				}
+			}
+		}
+		ctx, body = f.FormatList(ctx, headers, resp, skipBody)
+	case *Error:
+		if status == 0 {
+			status = resp.Code
+		}
+		ctx, body = f.FormatError(ctx, headers, resp, skipBody)
+	case error:
+		if status == 0 {
+			status = 500
+		}
+		ctx, body = f.FormatError(ctx, headers, resp, skipBody)
+	default:
+		// Let the response sender handle all other types of responses.
+		// Even if the default response sender doesn't know how to handle
+		// a type, nothing prevents a custom response sender from handling it.
+		body = resp
 	}
-	return ctx, nil
+	return ctx, status, body
 }

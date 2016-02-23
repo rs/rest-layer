@@ -44,7 +44,7 @@ REST Layer is composed of several sub-packages:
 	- [Timeout and Request Cancellation](#timeout-and-request-cancellation)
 	- [Logging](#logging)
 	- [Data Storage Handler](#data-storage-handler)
-	- [Custom Response Sender](#custom-response-sender)
+	- [Custom Response Formatter / Sender](#custom-response-formatter-sender)
 	- [Middleware](#middleware)
 
 <!-- /TOC -->
@@ -1025,42 +1025,51 @@ If the the operation not immediate, the method must listen for cancellation on t
 
 See [resource.Storer](https://godoc.org/github.com/rs/rest-layer/resource#Storer) documentation for more information on resource storage handler implementation details.
 
-## Custom Response Sender
+## Custom Response Formatter / Sender
 
-REST Layer let you extend or replace the default response sender. To write a new response sender, you need to implement the [rest.ResponseSender](https://godoc.org/github.com/rs/rest-layer/rest#ResponseSender) interface:
+REST Layer let you extend or replace the default response formatter and sender. To write a new response format, you need to implement the [rest.ResponseFormatter](https://godoc.org/github.com/rs/rest-layer/rest#ResponseFormatter) interface:
 
 ```go
-// ResponseSender defines an interface responsible for formatting, serializing and sending the response
+// ResponseFormatter defines an interface responsible for formatting a the different types of response objects
+type ResponseFormatter interface {
+	// FormatItem formats a single item in a format ready to be serialized by the ResponseSender
+	FormatItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{})
+	// FormatList formats a list of items in a format ready to be serialized by the ResponseSender
+	FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{})
+	// FormatError formats a REST formated error or a simple error in a format ready to be serialized by the ResponseSender
+	FormatError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{})
+}
+```
+
+You can also customize the response sender, responsible for the serialization of the formatted payload:
+
+```go
+// ResponseSender defines an interface responsible for serializing and sending the response
 // to the http.ResponseWriter.
 type ResponseSender interface {
 	// Send serialize the body, sets the given headers and write everything to the provided response writer
 	Send(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, body interface{})
-	// SendError formats a REST formated error or a simple error in a format ready to be serialized by Send
-	SendError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{})
-	// SendItem formats a single item in a format ready to be serialized by Send
-	SendItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{})
-	// SendItem formats a list of items in a format ready to be serialized by Send
-	SendList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{})
 }
 ```
 
-Then set you response sender on the REST Layer HTTP handler like this:
+Then set your response formatter and sender on the REST Layer HTTP handler like this:
 
 ```go
 api, _ := rest.NewHandler(index)
+api.ResponseFormatter = &myResponseFormatter{}
 api.ResponseSender = &myResponseSender{}
 ```
 
-You may also extend the [DefaultResponseSender](https://godoc.org/github.com/rs/rest-layer/rest#DefaultResponseSender) if you just want to wrap or slightly modify the default behavior:
+You may also extend the [DefaultResponseFormatter](https://godoc.org/github.com/rs/rest-layer/rest#DefaultResponseFormatter) and/or [DefaultResponseSender](https://godoc.org/github.com/rs/rest-layer/rest#DefaultResponseSender) if you just want to wrap or slightly modify the default behavior:
 
 ```go
-type myResponseSender struct {
-	rest.DefaultResponseSender
+type myResponseFormatter struct {
+	rest.DefaultResponseFormatter
 }
 
 // Add a wrapper around the list with pagination info
-func (r myResponseSender) SendList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
-	ctx, data := r.DefaultResponseSender.SendList(ctx, headers, l, skipBody)
+func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
+	ctx, data := r.DefaultResponseSender.FormatList(ctx, headers, l, skipBody)
 	return ctx, map[string]interface{}{
 		"meta": map[string]int{
 			"total": l.Total,

@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/rs/rest-layer/resource"
@@ -11,6 +10,8 @@ import (
 
 // Handler is a net/http compatible handler used to serve the configured REST API
 type Handler struct {
+	// ResponseFormatter can be changed to extend the DefaultResponseFormatter
+	ResponseFormatter ResponseFormatter
 	// ResponseSender can be changed to extend the DefaultResponseSender
 	ResponseSender ResponseSender
 	// index stores the resource router
@@ -33,8 +34,9 @@ func NewHandler(i resource.Index) (*Handler, error) {
 		}
 	}
 	h := &Handler{
-		ResponseSender: DefaultResponseSender{},
-		index:          i,
+		ResponseFormatter: DefaultResponseFormatter{},
+		ResponseSender:    DefaultResponseSender{},
+		index:             i,
 		mh: map[string]methodHandler{
 			"OPTIONS": listOptions,
 			"GET":     listGet,
@@ -134,6 +136,12 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 	h.sendResponse(ctx, w, status, headers, res, skipBody, v)
 }
 
+// sendResponse format and send the API response
+func (h *Handler) sendResponse(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, res interface{}, skipBody bool, validator schema.Validator) {
+	ctx, status, body := formatResponse(ctx, h.ResponseFormatter, w, status, headers, res, skipBody, validator)
+	h.ResponseSender.Send(ctx, w, status, headers, body)
+}
+
 // getResourceMethodHandler returns the method handler for a given HTTP method in item or resource mode.
 func (h *Handler) getResourceMethodHandler(isItem bool, method string) (mh methodHandler, found bool) {
 	if isItem {
@@ -142,49 +150,4 @@ func (h *Handler) getResourceMethodHandler(isItem bool, method string) (mh metho
 		mh, found = h.mh[method]
 	}
 	return
-}
-
-// sendResponse routes the type of response on the right response sender method for
-// internally supported types.
-func (h *Handler) sendResponse(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, res interface{}, skipBody bool, validator schema.Validator) {
-	var body interface{}
-	switch res := res.(type) {
-	case *resource.Item:
-		if s, ok := validator.(schema.Serializer); ok {
-			// Prepare the payload for marshaling by calling eventual field serializers
-			if err := s.Serialize(res.Payload); err != nil {
-				err = fmt.Errorf("Error while preparing item: %s", err.Error())
-				h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody, validator)
-			}
-		}
-		ctx, body = h.ResponseSender.SendItem(ctx, headers, res, skipBody)
-	case *resource.ItemList:
-		if s, ok := validator.(schema.Serializer); ok {
-			// Prepare the payload for marshaling by calling eventual field serializers
-			for i, item := range res.Items {
-				if err := s.Serialize(item.Payload); err != nil {
-					err = fmt.Errorf("Error while preparing item #%d: %s", i, err.Error())
-					h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody, validator)
-				}
-			}
-		}
-		ctx, body = h.ResponseSender.SendList(ctx, headers, res, skipBody)
-	case *Error:
-		if status == 0 {
-			status = res.Code
-		}
-		ctx, body = h.ResponseSender.SendError(ctx, headers, res, skipBody)
-	case error:
-		if status == 0 {
-			status = 500
-		}
-		ctx, body = h.ResponseSender.SendError(ctx, headers, res, skipBody)
-	default:
-		// Let the response sender handle all other types of responses.
-		// Even if the default response sender doesn't know how to handle
-		// a type, nothing prevents a custom response sender from handling it.
-		body = res
-	}
-	// Send the ResponseWriter
-	h.ResponseSender.Send(ctx, w, status, headers, body)
 }
