@@ -30,7 +30,7 @@ func getListAllowHeader(conf resource.Conf) http.Header {
 }
 
 // listOptions handles OPTIONS requests on a resource URL
-func (r *request) listOptions(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
+func listOptions(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	rsrc := route.Resource()
 	if rsrc == nil {
 		return 404, nil, &Error{404, "Resource Not Found", nil}

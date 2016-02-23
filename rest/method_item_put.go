@@ -11,9 +11,9 @@ import (
 // itemPut handles PUT resquests on an item URL
 //
 // Reference: http://tools.ietf.org/html/rfc2616#section-9.6
-func (r *request) itemPut(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
+func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	var payload map[string]interface{}
-	if e := r.decodePayload(&payload); e != nil {
+	if e := decodePayload(r, &payload); e != nil {
 		return e.Code, nil, e
 	}
 	lookup, e := route.Lookup()
@@ -39,7 +39,7 @@ func (r *request) itemPut(ctx context.Context, route *RouteMatch) (status int, h
 		return 405, nil, &Error{405, "Invalid method", nil}
 	}
 	// If-Match / If-Unmodified-Since handling
-	if err := r.checkIntegrityRequest(original); err != nil {
+	if err := checkIntegrityRequest(r, original); err != nil {
 		return err.Code, nil, err
 	}
 	status = 200
@@ -67,7 +67,7 @@ func (r *request) itemPut(ctx context.Context, route *RouteMatch) (status int, h
 		return 422, nil, &Error{422, "Document contains error(s)", errs}
 	}
 	// Check that fields with the Reference validator reference an existing object
-	if err := r.checkReferences(ctx, doc, rsrc.Validator()); err != nil {
+	if err := checkReferences(ctx, doc, rsrc.Validator()); err != nil {
 		return err.Code, nil, err
 	}
 	if original != nil {

@@ -10,9 +10,9 @@ import (
 )
 
 // listPost handles POST resquests on a resource URL
-func (r *request) listPost(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
+func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	var payload map[string]interface{}
-	if e := r.decodePayload(&payload); e != nil {
+	if e := decodePayload(r, &payload); e != nil {
 		return e.Code, nil, e
 	}
 	rsrc := route.Resource()
@@ -31,7 +31,7 @@ func (r *request) listPost(ctx context.Context, route *RouteMatch) (status int, 
 		return 422, nil, &Error{422, "Document contains error(s)", errs}
 	}
 	// Check that fields with the Reference validator reference an existing object
-	if err := r.checkReferences(ctx, doc, rsrc.Validator()); err != nil {
+	if err := checkReferences(ctx, doc, rsrc.Validator()); err != nil {
 		e := NewError(err)
 		return e.Code, nil, e
 	}
@@ -47,6 +47,6 @@ func (r *request) listPost(ctx context.Context, route *RouteMatch) (status int, 
 	}
 	// See https://www.subbu.org/blog/2008/10/location-vs-content-location
 	headers = http.Header{}
-	headers.Set("Content-Location", fmt.Sprintf("/%s/%s", r.req.URL.Path, item.ID))
+	headers.Set("Content-Location", fmt.Sprintf("/%s/%s", r.URL.Path, item.ID))
 	return 201, headers, item
 }

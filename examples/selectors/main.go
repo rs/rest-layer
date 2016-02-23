@@ -19,6 +19,13 @@ http :8080/posts fields=='id:i,meta{title:t, body:b}:m,thumbnail_url(height=80):
 */
 
 var (
+	user = schema.Schema{
+		"id":      schema.IDField,
+		"created": schema.CreatedField,
+		"updated": schema.UpdatedField,
+		"name":    schema.Field{},
+	}
+
 	post = schema.Schema{
 		"id":      schema.IDField,
 		"created": schema.CreatedField,
@@ -66,8 +73,11 @@ var (
 func main() {
 	index := resource.NewIndex()
 
+	index.Bind("users", resource.New(user, mem.NewHandler(), resource.Conf{
+		AllowedModes: resource.ReadWrite,
+	}))
+
 	index.Bind("posts", resource.New(post, mem.NewHandler(), resource.Conf{
-		// Posts can only be read, created and deleted, not updated
 		AllowedModes: resource.ReadWrite,
 	}))
 

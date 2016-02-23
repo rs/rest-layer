@@ -7,7 +7,7 @@ import (
 )
 
 // itemDelete handles DELETE resquests on an item URL
-func (r *request) itemDelete(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
+func itemDelete(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	lookup, e := route.Lookup()
 	if e != nil {
 		return e.Code, nil, e
@@ -22,7 +22,7 @@ func (r *request) itemDelete(ctx context.Context, route *RouteMatch) (status int
 	}
 	original := l.Items[0]
 	// If-Match / If-Unmodified-Since handling
-	if err := r.checkIntegrityRequest(original); err != nil {
+	if err := checkIntegrityRequest(r, original); err != nil {
 		return err.Code, nil, err
 	}
 	if err := route.Resource().Delete(ctx, original); err != nil {

@@ -13,7 +13,7 @@ import (
 )
 
 // listGet handles GET resquests on a resource URL
-func (r *request) listGet(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
+func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	page := 1
 	perPage := 0
 	if route.Method != "HEAD" {
@@ -23,14 +23,14 @@ func (r *request) listGet(ctx context.Context, route *RouteMatch) (status int, h
 			// Default value on non HEAD request for perPage is -1 (pagination disabled)
 			perPage = -1
 		}
-		if p := r.req.URL.Query().Get("page"); p != "" {
+		if p := r.URL.Query().Get("page"); p != "" {
 			i, err := strconv.ParseUint(p, 10, 32)
 			if err != nil {
 				return 422, nil, &Error{422, "Invalid `page` paramter", nil}
 			}
 			page = int(i)
 		}
-		if l := r.req.URL.Query().Get("limit"); l != "" {
+		if l := r.URL.Query().Get("limit"); l != "" {
 			i, err := strconv.ParseUint(l, 10, 32)
 			if err != nil {
 				return 422, nil, &Error{422, "Invalid `limit` paramter", nil}

@@ -11,9 +11,9 @@ import (
 // itemPatch handles PATCH resquests on an item URL
 //
 // Reference: http://tools.ietf.org/html/rfc5789
-func (r *request) itemPatch(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
+func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	var payload map[string]interface{}
-	if e := r.decodePayload(&payload); e != nil {
+	if e := decodePayload(r, &payload); e != nil {
 		return e.Code, nil, e
 	}
 	lookup, e := route.Lookup()
@@ -33,7 +33,7 @@ func (r *request) itemPatch(ctx context.Context, route *RouteMatch) (status int,
 		original = l.Items[0]
 	}
 	// If-Match / If-Unmodified-Since handling
-	if err := r.checkIntegrityRequest(original); err != nil {
+	if err := checkIntegrityRequest(r, original); err != nil {
 		return err.Code, nil, err
 	}
 	changes, base := rsrc.Validator().Prepare(payload, &original.Payload, false)
@@ -51,7 +51,7 @@ func (r *request) itemPatch(ctx context.Context, route *RouteMatch) (status int,
 		return 422, nil, &Error{422, "Document contains error(s)", errs}
 	}
 	// Check that fields with the Reference validator reference an existing object
-	if e := r.checkReferences(ctx, doc, rsrc.Validator()); e != nil {
+	if e := checkReferences(ctx, doc, rsrc.Validator()); e != nil {
 		return e.Code, nil, e
 	}
 	item, err := resource.NewItem(doc)

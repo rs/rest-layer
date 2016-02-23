@@ -17,7 +17,13 @@ type Handler struct {
 	index resource.Index
 	// mw is the list of middlewares attached to this REST handler
 	mw []Middleware
+	// mh is the map of per HTTP method handler for resource requests
+	mh map[string]methodHandler
+	// imh is the map of per HTTP method handler for item requests
+	imh map[string]methodHandler
 }
+
+type methodHandler func(ctx context.Context, r *http.Request, route *RouteMatch) (int, http.Header, interface{})
 
 // NewHandler creates an new REST API HTTP handler with the specified resource index
 func NewHandler(i resource.Index) (*Handler, error) {
@@ -29,6 +35,19 @@ func NewHandler(i resource.Index) (*Handler, error) {
 	h := &Handler{
 		ResponseSender: DefaultResponseSender{},
 		index:          i,
+		mh: map[string]methodHandler{
+			"OPTIONS": listOptions,
+			"GET":     listGet,
+			"POST":    listPost,
+			"DELETE":  listDelete,
+		},
+		imh: map[string]methodHandler{
+			"OPTIONS": itemOptions,
+			"GET":     itemGet,
+			"PUT":     itemPut,
+			"PATCH":   itemPatch,
+			"DELETE":  itemDelete,
+		},
 	}
 	return h, nil
 }
@@ -89,7 +108,20 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 			return ctx, 0, http.Header{}, err
 		}
 		// Execute the main route handler
-		status, headers, body := processRequest(ctx, route, &request{r})
+		rsrc := route.Resource()
+		if rsrc == nil {
+			return ctx, http.StatusNotFound, nil, &Error{http.StatusNotFound, "Resource Not Found", nil}
+		}
+		conf := rsrc.Conf()
+		isItem := route.ResourceID() != nil
+		mh, found := h.getResourceMethodHandler(isItem, route.Method)
+		if !found {
+			if isItem {
+				return ctx, ErrInvalidMethod.Code, getItemAllowHeader(conf), ErrInvalidMethod
+			}
+			return ctx, ErrInvalidMethod.Code, getListAllowHeader(conf), ErrInvalidMethod
+		}
+		status, headers, body := mh(ctx, r, route)
 		if headers == nil {
 			headers = http.Header{}
 		}
@@ -100,6 +132,16 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 		v = route.Resource().Validator()
 	}
 	h.sendResponse(ctx, w, status, headers, res, skipBody, v)
+}
+
+// getResourceMethodHandler returns the method handler for a given HTTP method in item or resource mode.
+func (h *Handler) getResourceMethodHandler(isItem bool, method string) (mh methodHandler, found bool) {
+	if isItem {
+		mh, found = h.imh[method]
+	} else {
+		mh, found = h.mh[method]
+	}
+	return
 }
 
 // sendResponse routes the type of response on the right response sender method for

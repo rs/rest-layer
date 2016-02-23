@@ -35,7 +35,7 @@ func getItemAllowHeader(conf resource.Conf) http.Header {
 }
 
 // itemOptions handles OPTIONS requests on a item URL
-func (r *request) itemOptions(ctx context.Context, route *RouteMatch) (status int, headers http.Header, body interface{}) {
+func itemOptions(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	rsrc := route.Resource()
 	if rsrc == nil {
 		return 404, nil, &Error{404, "Resource Not Found", nil}
