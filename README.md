@@ -281,7 +281,7 @@ http POST :8080/api/users name="John Doe"
 
 HTTP/1.1 201 Created
 Content-Length: 155
-Content-Location: /api/users/821d73ed48165b18462c820de9045ef6
+Content-Location: /api/users/ar6ejgmkj5lfl98r67p0
 Content-Type: application/json
 Date: Mon, 27 Jul 2015 19:10:20 GMT
 Etag: "1e18e148e1ff3ecdaae5ec03ac74e0e4"
@@ -289,7 +289,7 @@ Last-Modified: Mon, 27 Jul 2015 19:10:20 GMT
 Vary: Origin
 
 {
-    "id": "821d73ed48165b18462c820de9045ef6",
+    "id": "ar6ejgmkj5lfl98r67p0",
     "created": "2015-07-27T21:10:20.671003126+02:00",
     "updated": "2015-07-27T21:10:20.671003989+02:00",
     "name": "John Doe",
@@ -303,7 +303,7 @@ Also notice the `Etag` and `Last-Modified` headers. Those guys allow data integr
 Here is an example of conditional request:
 
 ```http
-http :8080/api/users/821d73ed48165b18462c820de9045ef6 \
+http :8080/api/users/ar6ejgmkj5lfl98r67p0 \
   If-Modified-Since:"Mon, 27 Jul 2015 19:10:20 GMT"
 
 HTTP/1.1 304 Not Modified
@@ -314,7 +314,7 @@ Vary: Origin
 And here is a data integrity request following the [RFC-5789](http://tools.ietf.org/html/rfc5789) recommendations:
 
 ```http
-http PATCH :8080/api/users/821d73ed48165b18462c820de9045ef6 \
+http PATCH :8080/api/users/ar6ejgmkj5lfl98r67p0 \
   name="Someone Else" If-Match:invalid-etag
 
 HTTP/1.1 412 Precondition Failed
@@ -333,7 +333,7 @@ Vary: Origin
 Retry with the valid etag:
 
 ```http
-http PATCH :8080/api/users/821d73ed48165b18462c820de9045ef6 \
+http PATCH :8080/api/users/ar6ejgmkj5lfl98r67p0 \
   name="Someone Else" If-Match:'"1e18e148e1ff3ecdaae5ec03ac74e0e4"'
 
 HTTP/1.1 200 OK
@@ -346,7 +346,7 @@ Vary: Origin
 
 {
     "created": "2015-07-27T21:33:09.168492448+02:00",
-    "id": "15a6918ac1acdf17433d2c3e074a610e",
+    "id": "ar6ejmukj5lflde9q8bg",
     "name": "Someone Else",
     "updated": "2015-07-27T21:36:19.904545093+02:00"
 }
@@ -357,7 +357,7 @@ Another cool thing is sub-resources. We've set our `posts` resource as a child o
 Lets create a post:
 
 ```http
-http POST :8080/api/users/821d73ed48165b18462c820de9045ef6/posts \
+http POST :8080/api/users/ar6ejgmkj5lfl98r67p0/posts \
   meta:='{"title":"My first post"}'
 
 HTTP/1.1 200 OK
@@ -370,12 +370,12 @@ Vary: Origin
 
 {
     "created": "2015-07-27T21:46:55.355857401+02:00",
-    "id": "251511a70447b5914e835b8a4d357397",
+    "id": "ar6ejs6kj5lflgc28es0",
     "meta": {
         "title": "My first post"
     },
     "updated": "2015-07-27T21:46:55.355857989+02:00",
-    "user": "821d73ed48165b18462c820de9045ef6"
+    "user": "ar6ejgmkj5lfl98r67p0"
 }
 ```
 
@@ -384,7 +384,7 @@ Notice how the `user` field has been set with the user id provided in the route,
 We defined that we can create posts but we can't modify them, lets verify that:
 
 ```http
-http PUT :8080/api/users/821d…/posts/251511a70447b5914e835b8a4d357397 \
+http PUT :8080/api/users/821d…/posts/ar6ejs6kj5lflgc28es0 \
   private=true
 
 HTTP/1.1 405 Method Not Allowed
@@ -403,7 +403,7 @@ Vary: Origin
 Let's list posts for that user now:
 
 ```http
-http :8080/api/users/821d73ed48165b18462c820de9045ef6/posts
+http :8080/api/users/ar6ejgmkj5lfl98r67p0/posts
 HTTP/1.1 200 OK
 Content-Length: 257
 Content-Type: application/json
@@ -416,12 +416,12 @@ X-Total: 1
     {
         "_etag": "307ae92df6c3dd54847bfc7d72422e07",
         "created": "2015-07-27T21:46:55.355857401+02:00",
-        "id": "251511a70447b5914e835b8a4d357397",
+        "id": "ar6ejs6kj5lflgc28es0",
         "meta": {
             "title": "My first post"
         },
         "updated": "2015-07-27T21:46:55.355857989+02:00",
-        "user": "821d73ed48165b18462c820de9045ef6"
+        "user": "ar6ejgmkj5lfl98r67p0"
     }
 ]
 ```
@@ -431,7 +431,7 @@ Notice the added `_etag` field. This is to let you get etags of multiple items w
 Now, let's get user's information for each posts in a single request:
 
 ```http
-http :8080/api/users/821d73ed48165b18462c820de9045ef6/posts fields=='id,meta{title},user{id,name}'
+http :8080/api/users/ar6ejgmkj5lfl98r67p0/posts fields=='id,meta{title},user{id,name}'
 HTTP/1.1 200 OK
 Content-Length: 257
 Content-Type: application/json
@@ -444,13 +444,13 @@ X-Total: 1
     {
         "_etag": "307ae92df6c3dd54847bfc7d72422e07",
         "created": "2015-07-27T21:46:55.355857401+02:00",
-        "id": "251511a70447b5914e835b8a4d357397",
+        "id": "ar6ejs6kj5lflgc28es0",
         "meta": {
             "title": "My first post"
         },
         "updated": "2015-07-27T21:46:55.355857989+02:00",
         "user": {
-            "id": "821d73ed48165b18462c820de9045ef6",
+            "id": "ar6ejgmkj5lfl98r67p0",
             "name": "John Doe"
         }
     }
@@ -466,7 +466,7 @@ http GET :8080/api/users fields='id,name,posts(limit=2){id,meta{title}}'
 
 HTTP/1.1 201 Created
 Content-Length: 155
-Content-Location: /api/users/821d73ed48165b18462c820de9045ef6
+Content-Location: /api/users/ar6ejgmkj5lfl98r67p0
 Content-Type: application/json
 Date: Mon, 27 Jul 2015 19:10:20 GMT
 Etag: "1e18e148e1ff3ecdaae5ec03ac74e0e4"
@@ -475,17 +475,17 @@ Vary: Origin
 
 [
     {
-        "id": "821d73ed48165b18462c820de9045ef6",
+        "id": "ar6ejgmkj5lfl98r67p0",
         "name": "John Doe",
         "posts": [
             {
-                "id": "251511a70447b5914e835b8a4d357397",
+                "id": "ar6ejs6kj5lflgc28es0",
                 "meta": {
                     "title": "My first post"
                 }
             },
             {
-                "id": "251511a70447b5914e835b8a4d357398",
+                "id": "ar6ek26kj5lfljgh84qg",
                 "meta": {
                     "title": "My second post"
                 }
@@ -747,9 +747,9 @@ REST APIs tend to grow over time. Resources get more and more fields to full fil
 To workaround this issue, REST Layer provides an powerful fill selection (also named projection) system. If you provide the `fields` parameter with a list of fields for the resource you are interested in separated by comas, only those fields will be returned in the document:
 
 ```http
-$ http -b :8080/api/users/55c99b7fa6ebe48ebb000001 fields=='id,name'
+$ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name'
 {
-    "id": "55c99b7fa6ebe48ebb000001",
+    "id": "ar6eimekj5lfktka9mt0",
     "name": "John Doe"
 }
 ```
@@ -759,9 +759,9 @@ $ http -b :8080/api/users/55c99b7fa6ebe48ebb000001 fields=='id,name'
 It's also possible to rename fields in the response using aliasing. To create an alias, suffix the field name by the wanted alias separated by a colon (:):
 
 ```http
-$ http -b :8080/api/users/55c99b7fa6ebe48ebb000001 fields=='id,name,name:n'
+$ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name,name:n'
 {
-    "id": "55c99b7fa6ebe48ebb000001",
+    "id": "ar6eimekj5lfktka9mt0",
     "n": "John Doe",
     "name": "John Doe"
 }
@@ -772,10 +772,10 @@ As you see, you can specify several time the same field. It's doesn't seem usefu
 If your document has sub-fields, you can use brackets to select sub-fields:
 
 ```http
-$ http -b :8080/api/users/55c99b7fa6ebe48ebb000001/posts fields=='meta{title,body:b}'
+$ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body:b}'
 [
     {
-        "_etag": "4f695896b1b024aed1982ecd9c66e750",
+        "_etag": "ar6eimukj5lfl07r0uv0",
         "meta": {
             "b": "example",
             "title": "test"
@@ -789,11 +789,11 @@ $ http -b :8080/api/users/55c99b7fa6ebe48ebb000001/posts fields=='meta{title,bod
 With sub-fields notation you can also request referenced resources or connections (sub-resources), REST Layer will recognize it and will fetch the associated resources, and embed their result in the response. This can save a lot of unnecessary sequential rount-trips:
 
 ```http
-$ http -b :8080/api/users/55c99b7fa6ebe48ebb000001/posts \
+$ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts \
   fields=='meta{title},user{name},comments(sort="-created",limit=10){user{name},body}'
 [
     {
-        "_etag": "4f695896b1b024aed1982ecd9c66e750",
+        "_etag": "ar6eimukj5lfl07r0uv0",
         "meta": {
             "title": "test"
         },
@@ -826,7 +826,7 @@ $ http -b :8080/api/videos fields=='id,
                           thumbnail_url(width:800,height:600):thumb_large_url'
 [
     {
-        "_etag": "4f695896b1b024aed1982ecd9c66e750",
+        "_etag": "ar6eimukj5lfl07r0uv0",
         "thumb_small_url": "http://cdn.com/path/to/image-80w60h.jpg",
         "thumb_large_url": "http://cdn.com/path/to/image-800w600h.jpg"
     }
@@ -865,14 +865,14 @@ Pagination is supported on collection URLs using `page` and `limit` query-string
 Each stored resource provides information on the last time it was updated (`Last-Modified`), along with a hash value computed on the representation itself (`ETag`). These headers allow clients to perform conditional requests by using the `If-Modified-Since` header:
 
 ```http
-> http :8080/users/521d6840c437dc0002d1203c If-Modified-Since:'Wed, 05 Dec 2012 09:53:07 GMT'
+> http :8080/users/ar6ej4mkj5lfl688d8lg If-Modified-Since:'Wed, 05 Dec 2012 09:53:07 GMT'
 HTTP/1.1 304 Not Modified
 ```
 
 or the If-None-Match header:
 
 ```http
-$ http :8080/users/521d6840c437dc0002d1203c If-None-Match:'"1234567890123456789012345678901234567890"'
+$ http :8080/users/ar6ej4mkj5lfl688d8lg If-None-Match:'"1234567890123456789012345678901234567890"'
 HTTP/1.1 304 Not Modified
 ```
 
@@ -883,7 +883,7 @@ API responses include a `ETag` header which also allows for proper concurrency c
 Consider the following workflow:
 
 ```http
-$ http PATCH :8080/users/521d6840c437dc0002d1203c If-Match:'"1234567890123456789012345678901234567890"' name='John Doe'
+$ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' name='John Doe'
 HTTP/1.1 412 Precondition Failed
 ```
 
@@ -892,7 +892,7 @@ What went wrong? We provided a `If-Match` header with the last known `ETag`, but
 When this happen, it's up to the client to decide to inform the user of the error and/or refetch the latest version of the document to get the lattest `ETag` before retrying the operation.
 
 ```http
-$ http PATCH :8080/users/521d6840c437dc0002d1203c If-Match:'"80b81f314712932a4d4ea75ab0b76a4eea613012"' name='John Doe'
+$ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"80b81f314712932a4d4ea75ab0b76a4eea613012"' name='John Doe'
 Etag: "7bb7a71b0f66197aa07c4c8fc9564616"
 Last-Modified: Mon, 27 Jul 2015 19:36:19 GMT
 ```
