@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/rs/rest-layer/schema"
 )
 
@@ -138,12 +140,84 @@ func (l *Lookup) SetSelector(s string, r *Resource) error {
 }
 
 // ReferenceResolver is a function resolving a reference to another field
-type ReferenceResolver func(path string, lookup *Lookup, page, perPage int) (*Resource, *ItemList, error)
+type ReferenceResolver func(path string) (*Resource, error)
 
 // ApplySelector applies fields filtering / rename to the payload fields
-func (l *Lookup) ApplySelector(r *Resource, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
+func (l *Lookup) ApplySelector(ctx context.Context, r *Resource, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
 	if len(l.selector) == 0 {
 		return p, nil
 	}
-	return applySelector(l.selector, r.Validator(), p, resolver)
+	payload, err := applySelector(l.selector, r.Validator(), p, resolver)
+	if err == nil {
+		// The resulting payload may contain some asyncSelector, we must execute them
+		// concurrently until there's no more
+		err = resolveAsyncSelectors(ctx, payload)
+	}
+	return payload, err
+}
+
+func resolveAsyncSelectors(ctx context.Context, p map[string]interface{}) error {
+	for {
+		sr := getSelectorResolvers(p)
+		if len(sr) == 0 {
+			break
+		}
+		done := make(chan error, len(sr))
+		// TODO limit the number of // sub requests
+		for _, r := range sr {
+			go r(ctx, done)
+		}
+		wait := len(sr)
+		cleanup := func() {
+			// Make sure we empty the channel of remaining future responses
+			// to prevent leaks
+			for wait > 0 {
+				<-done
+				wait--
+			}
+		}
+		for wait > 0 {
+			select {
+			case err := <-done:
+				wait--
+				if err != nil {
+					if wait > 0 {
+						go cleanup()
+					}
+					return err
+				}
+			case <-ctx.Done():
+				if wait > 0 {
+					go cleanup()
+				}
+				return ctx.Err()
+			}
+		}
+	}
+	return nil
+}
+
+type asyncSelectorResolver func(ctx context.Context, done chan<- error)
+
+func getSelectorResolvers(p map[string]interface{}) []asyncSelectorResolver {
+	as := []asyncSelectorResolver{}
+	for name, val := range p {
+		switch val := val.(type) {
+		case asyncSelector:
+			as = append(as, func(ctx context.Context, done chan<- error) {
+				res, err := val(ctx)
+				if err == nil {
+					p[name] = res
+				}
+				done <- err
+			})
+		case map[string]interface{}:
+			as = append(as, getSelectorResolvers(val)...)
+		case []map[string]interface{}:
+			for _, sval := range val {
+				as = append(as, getSelectorResolvers(sval)...)
+			}
+		}
+	}
+	return as
 }

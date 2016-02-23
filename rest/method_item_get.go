@@ -37,17 +37,16 @@ func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			return 304, nil, nil
 		}
 	}
-	item.Payload, err = lookup.ApplySelector(route.Resource(), item.Payload, func(path string, l *resource.Lookup, page, perPage int) (*resource.Resource, *resource.ItemList, error) {
+	item.Payload, err = lookup.ApplySelector(ctx, route.Resource(), item.Payload, func(path string) (*resource.Resource, error) {
 		router, ok := IndexFromContext(ctx)
 		if !ok {
-			return nil, nil, errors.New("router not available in context")
+			return nil, errors.New("router not available in context")
 		}
 		rsrc, _, found := router.GetResource(path, route.Resource())
 		if !found {
-			return nil, nil, fmt.Errorf("invalid resource reference: %s", path)
+			return nil, fmt.Errorf("invalid resource reference: %s", path)
 		}
-		list, err := rsrc.Find(ctx, l, page, perPage)
-		return rsrc, list, err
+		return rsrc, err
 	})
 	if err != nil {
 		e = NewError(err)

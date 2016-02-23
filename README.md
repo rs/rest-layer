@@ -459,6 +459,44 @@ X-Total: 1
 
 Notice how we selected which fields we wanted in the result using the [field selection](#field-selection) query format. Thanks to sub-request support, the user name is included with each post with no additional HTTP request.
 
+We can go even further and embed a sub-request list responses. Let's say we want a list of users with the last two posts:
+
+```http
+http GET :8080/api/users fields='id,name,posts(limit=2){id,meta{title}}'
+
+HTTP/1.1 201 Created
+Content-Length: 155
+Content-Location: /api/users/821d73ed48165b18462c820de9045ef6
+Content-Type: application/json
+Date: Mon, 27 Jul 2015 19:10:20 GMT
+Etag: "1e18e148e1ff3ecdaae5ec03ac74e0e4"
+Last-Modified: Mon, 27 Jul 2015 19:10:20 GMT
+Vary: Origin
+
+[
+    {
+        "id": "821d73ed48165b18462c820de9045ef6",
+        "name": "John Doe",
+        "posts": [
+            {
+                "id": "251511a70447b5914e835b8a4d357397",
+                "meta": {
+                    "title": "My first post"
+                }
+            },
+            {
+                "id": "251511a70447b5914e835b8a4d357398",
+                "meta": {
+                    "title": "My second post"
+                }
+            }
+        ]
+    }
+]
+```
+
+Sub-requests are executed concurrently whenever possible to ensure the fastest response time.
+
 ## Resource Configuration
 
 For REST Layer to be able to expose resources, you have to first define what fields the resource contains and where to bind it in the REST API URL namespace.
@@ -772,7 +810,7 @@ $ http -b :8080/api/users/55c99b7fa6ebe48ebb000001/posts \
 ]
 ```
 
-In the above example, the user field is a reference on the `users` resource. REST Layer did fetch the user referenced by the post and embedded the requested fields. Same for `comments`: `comments` is set as a sub-resource of the `posts` resource. With this syntax, it's easy to get the last 10 comments on the post in the same REST request.
+In the above example, the user field is a reference on the `users` resource. REST Layer did fetch the user referenced by the post and embedded the requested fields. Same for `comments`: `comments` is set as a sub-resource of the `posts` resource. With this syntax, it's easy to get the last 10 comments on the post in the same REST request. Such request can quickly generate a lot of storage requests. To ensure a fast response time. REST layer execute those storage requests concurrently whenever possible.
 
 ### Field Parameters
 

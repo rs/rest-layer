@@ -3,8 +3,12 @@ package resource
 import (
 	"fmt"
 
+	"golang.org/x/net/context"
+
 	"github.com/rs/rest-layer/schema"
 )
+
+type asyncSelector func(ctx context.Context) (interface{}, error)
 
 func validateSelector(s []Field, v schema.Validator) error {
 	for _, f := range s {
@@ -82,20 +86,29 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 					}
 				} else if ref, ok := def.Validator.(*schema.Reference); ok {
 					// Sub-field on a reference (sub-request)
-					l := NewLookup()
-					l.AddQuery(schema.Query{schema.Equal{Field: "id", Value: val}})
-					rsrc, list, err := resolver(ref.Path, l, 1, 1)
+					rsrc, err := resolver(ref.Path)
 					if err != nil {
-						return nil, fmt.Errorf("%s: error fetching sub-field: %s", f.Name, err.Error())
+						return nil, fmt.Errorf("%s: error linking sub-field resource: %s", f.Name, err.Error())
 					}
-					subval := map[string]interface{}{}
-					if len(list.Items) > 0 {
-						subval = list.Items[0].Payload
-					}
-					res[name], err = applySelector(f.Fields, rsrc.Validator(), subval, resolver)
-					if err != nil {
-						return nil, fmt.Errorf("%s: error applying selector on sub-field: %s", f.Name, err.Error())
-					}
+					// Do not execute the sub-request right away, store a asyncSelector type of
+					// lambda that will be executed later with concurrency control
+					res[name] = asyncSelector(func(ctx context.Context) (interface{}, error) {
+						l := NewLookup()
+						l.AddQuery(schema.Query{schema.Equal{Field: "id", Value: val}})
+						list, err := rsrc.Find(ctx, l, 1, 1)
+						if err != nil {
+							return nil, fmt.Errorf("%s: error fetching sub-field resource: %s", f.Name, err.Error())
+						}
+						subval := map[string]interface{}{}
+						if len(list.Items) > 0 {
+							subval = list.Items[0].Payload
+						}
+						subval, err = applySelector(f.Fields, rsrc.Validator(), subval, resolver)
+						if err != nil {
+							return nil, fmt.Errorf("%s: error applying selector on sub-field: %s", f.Name, err.Error())
+						}
+						return subval, nil
+					})
 				} else {
 					return nil, fmt.Errorf("%s: field as no children", f.Name)
 				}
@@ -106,29 +119,37 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 			// If field is not found, it may be a connection
 			if ref, ok := def.Validator.(connection); ok {
 				// Sub-field on a sub resource (sub-request)
-				l := NewLookup()
-				// TODO: parse params to add query and sort
-				page := 1
-				if v, ok := f.Params["page"].(int); ok {
-					page = v
-				}
-				perPage := 20
-				if v, ok := f.Params["limit"].(int); ok {
-					perPage = v
-				}
-				rsrc, list, err := resolver(ref.path, l, page, perPage)
+				rsrc, err := resolver(ref.path)
 				if err != nil {
-					return nil, fmt.Errorf("%s: error fetching sub-field: %s", f.Name, err.Error())
+					return nil, fmt.Errorf("%s: error linking sub-resource: %s", f.Name, err.Error())
 				}
-				subvals := []map[string]interface{}{}
-				for i, item := range list.Items {
-					subval, err := applySelector(f.Fields, rsrc.Validator(), item.Payload, resolver)
-					if err != nil {
-						return nil, fmt.Errorf("%s: error applying selector on sub-field #%d: %s", f.Name, i, err.Error())
+				// Do not execute the sub-request right away, store a asyncSelector type of
+				// lambda that will be executed later with concurrency control
+				res[name] = asyncSelector(func(ctx context.Context) (interface{}, error) {
+					l := NewLookup()
+					// TODO: parse params to add query and sort
+					page := 1
+					if v, ok := f.Params["page"].(int); ok {
+						page = v
 					}
-					subvals = append(subvals, subval)
-				}
-				res[name] = subvals
+					perPage := 20
+					if v, ok := f.Params["limit"].(int); ok {
+						perPage = v
+					}
+					list, err := rsrc.Find(ctx, l, page, perPage)
+					if err != nil {
+						return nil, fmt.Errorf("%s: error fetching sub-resource: %s", f.Name, err.Error())
+					}
+					subvals := []map[string]interface{}{}
+					for i, item := range list.Items {
+						subval, err := applySelector(f.Fields, rsrc.Validator(), item.Payload, resolver)
+						if err != nil {
+							return nil, fmt.Errorf("%s: error applying selector on sub-resource item #%d: %s", f.Name, i, err.Error())
+						}
+						subvals = append(subvals, subval)
+					}
+					return subvals, nil
+				})
 			}
 		}
 	}
