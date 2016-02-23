@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 
 	"github.com/rs/rest-layer-mem"
@@ -13,23 +14,39 @@ import (
 	"github.com/rs/rest-layer/schema"
 )
 
-/* Play with it:
-http :8080/posts fields=='id,thumbnail_url(height=80):thumb_s_url'
-http :8080/posts fields=='id:i,meta{title:t, body:b}:m,thumbnail_url(height=80):thumb_small_url'
-*/
-
 var (
 	user = schema.Schema{
-		"id":      schema.IDField,
+		"id": schema.Field{
+			Required:   true,
+			ReadOnly:   true,
+			Filterable: true,
+			Sortable:   true,
+			Validator: &schema.String{
+				Regexp: "^[0-9a-z_-]{2,150}$",
+			},
+		},
 		"created": schema.CreatedField,
 		"updated": schema.UpdatedField,
 		"name":    schema.Field{},
+	}
+
+	postFollower = schema.Schema{
+		"id": schema.IDField,
+		"post": schema.Field{
+			Validator: &schema.Reference{Path: "posts"},
+		},
+		"user": schema.Field{
+			Validator: &schema.Reference{Path: "users"},
+		},
 	}
 
 	post = schema.Schema{
 		"id":      schema.IDField,
 		"created": schema.CreatedField,
 		"updated": schema.UpdatedField,
+		"user": schema.Field{
+			Validator: &schema.Reference{Path: "users"},
+		},
 		"thumbnail_url": schema.Field{
 			Params: &schema.Params{
 				// Appends a "w" and/or "h" query string parameter(s) to the value (URL) if width or height params passed
@@ -77,7 +94,11 @@ func main() {
 		AllowedModes: resource.ReadWrite,
 	}))
 
-	index.Bind("posts", resource.New(post, mem.NewHandler(), resource.Conf{
+	posts := index.Bind("posts", resource.New(post, mem.NewHandler(), resource.Conf{
+		AllowedModes: resource.ReadWrite,
+	}))
+
+	posts.Bind("followers", "post", resource.New(postFollower, mem.NewHandler(), resource.Conf{
 		AllowedModes: resource.ReadWrite,
 	}))
 
@@ -90,8 +111,44 @@ func main() {
 	// Bind the API under /api/ path
 	http.Handle("/", api)
 
+	// Inject some fixtures
+	fixtures := [][]string{
+		[]string{"PUT", "/users/johndoe", `{"name": "John Doe"}`},
+		[]string{"PUT", "/users/fan1", `{"name": "Fan 1"}`},
+		[]string{"PUT", "/users/fan2", `{"name": "Fan 2"}`},
+		[]string{"PUT", "/users/fan3", `{"name": "Fan 3"}`},
+		[]string{"PUT", "/posts/ar5qrgukj5l7a6eq2ps0",
+			`{
+				"user": "johndoe",
+				"thumbnail_url": "http://dom.com/image.png",
+				"meta": {
+					"title": "First Post",
+					"body": "This is my first post"
+				}
+			}`},
+		[]string{"POST", "/posts/ar5qrgukj5l7a6eq2ps0/followers", `{"user": "fan1"}`},
+		[]string{"POST", "/posts/ar5qrgukj5l7a6eq2ps0/followers", `{"user": "fan2"}`},
+		[]string{"POST", "/posts/ar5qrgukj5l7a6eq2ps0/followers", `{"user": "fan3"}`},
+	}
+	for _, fixture := range fixtures {
+		req, err := http.NewRequest(fixture[0], fixture[1], strings.NewReader(fixture[2]))
+		if err != nil {
+			log.Fatal(err)
+		}
+		w := httptest.NewRecorder()
+		api.ServeHTTP(w, req)
+		if w.Code >= 400 {
+			log.Fatalf("Error returned for `%s %s`: %v", fixture[0], fixture[1], w)
+		}
+	}
+
 	// Serve it
 	log.Print("Serving API on http://localhost:8080")
+	log.Println("Play with (httpie):\n",
+		"- http :8080/posts fields=='id,thumbnail_url(height=80):thumb_s_url'\n",
+		"- http :8080/posts fields=='id:i,meta{title:t, body:b}:m,thumbnail_url(height=80):thumb_small_url'\n",
+		"- http :8080/posts fields=='id,meta,user{id,name}'\n",
+		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0/followers fields=='post{id,meta{title}},user{id,name}'")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}
