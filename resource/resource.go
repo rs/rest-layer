@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"sync"
 
 	"github.com/rs/rest-layer/schema"
 	"golang.org/x/net/context"
@@ -11,11 +12,12 @@ import (
 
 // Resource holds information about a class of items exposed on the API
 type Resource struct {
-	validator validatorFallback
-	storage   Storer
-	conf      Conf
-	resources map[string]*subResource
-	aliases   map[string]url.Values
+	validator     validatorFallback
+	storage       Storer
+	conf          Conf
+	resources     map[string]*subResource
+	lockResources sync.Mutex
+	aliases       map[string]url.Values
 }
 
 // subResource is used to bind resources and sub-resources
@@ -158,6 +160,8 @@ func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage int) 
 	if r.storage == nil {
 		return nil, ErrNoStorage
 	}
+	r.lockResources.Lock()
+	defer r.lockResources.Unlock()
 	return r.storage.Find(ctx, lookup, page, perPage)
 }
 
