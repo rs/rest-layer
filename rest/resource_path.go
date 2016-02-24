@@ -89,7 +89,10 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 		return nil
 	}
 	q := schema.Query{}
-	c := make(chan error)
+	wait := sync.WaitGroup{}
+
+	defer wait.Wait()
+	c := make(chan error, parents)
 	for _, rp := range p[:parents] {
 		if rp.Value == nil {
 			continue
@@ -99,7 +102,9 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 		lq := append(q[:], schema.Equal{Field: "id", Value: rp.Value})
 		l.AddQuery(lq)
 		// Execute all intermediate checkes in concurence
+		wait.Add(1)
 		go func() {
+			defer wait.Done()
 			// Check if the resource exists
 			list, err := rp.Resource.Find(ctx, l, 1, 1)
 			if err != nil {
