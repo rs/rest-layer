@@ -204,10 +204,11 @@ func getSelectorResolvers(p map[string]interface{}) []asyncSelectorResolver {
 	for name, val := range p {
 		switch val := val.(type) {
 		case asyncSelector:
+			n := name
 			as = append(as, func(ctx context.Context, done chan<- error) {
 				res, err := val(ctx)
 				if err == nil {
-					p[name] = res
+					p[n] = res
 				}
 				done <- err
 			})
