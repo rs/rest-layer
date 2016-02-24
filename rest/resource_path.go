@@ -93,20 +93,20 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 
 	defer wait.Wait()
 	c := make(chan error, parents)
-	for _, rp := range p[:parents] {
-		if rp.Value == nil {
+	for i := 0; i < parents; i++ {
+		if p[i].Value == nil {
 			continue
 		}
 		// Create a lookup with the parent path fields + the current path id
 		l := resource.NewLookup()
-		lq := append(q[:], schema.Equal{Field: "id", Value: rp.Value})
+		lq := append(q[:], schema.Equal{Field: "id", Value: p[i].Value})
 		l.AddQuery(lq)
 		// Execute all intermediate checkes in concurence
 		wait.Add(1)
-		go func() {
+		go func(index int) {
 			defer wait.Done()
 			// Check if the resource exists
-			list, err := rp.Resource.Find(ctx, l, 1, 1)
+			list, err := p[index].Resource.Find(ctx, l, 1, 1)
 			if err != nil {
 				c <- err
 			} else if len(list.Items) == 0 {
@@ -114,9 +114,9 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 			} else {
 				c <- nil
 			}
-		}()
+		}(i)
 		// Push the resource field=value for the next hops
-		q = append(q, schema.Equal{Field: rp.Field, Value: rp.Value})
+		q = append(q, schema.Equal{Field: p[i].Field, Value: p[i].Value})
 	}
 	// Fail on first error
 	for i := 0; i < parents; i++ {
