@@ -98,7 +98,7 @@ REST Layer is composed of several sub-packages:
 
 - [x] [Memory](http://github.com/rs/rest-layer-mem) (test only)
 - [x] [MongoDB](http://github.com/rs/rest-layer-mongo)
-- [ ] ElasticSearch
+- [x] [ElasticSearch](http://github.com/rs/rest-layer-es)
 - [ ] Redis
 - [ ] Google BigTable
 
