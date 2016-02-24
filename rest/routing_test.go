@@ -3,6 +3,7 @@ package rest
 import (
 	"errors"
 	"net/url"
+	"sync"
 	"testing"
 
 	"github.com/rs/rest-layer/resource"
@@ -17,6 +18,7 @@ type mockHandler struct {
 	items   []*resource.Item
 	err     error
 	queries []schema.Query
+	lock    sync.Mutex
 }
 
 func (m *mockHandler) Insert(ctx context.Context, items []*resource.Item) error {
@@ -35,8 +37,10 @@ func (m *mockHandler) Find(ctx context.Context, lookup *resource.Lookup, page, p
 	if m.err != nil {
 		return nil, m.err
 	}
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	m.queries = append(m.queries, lookup.Filter())
-	return &resource.ItemList{len(m.items), page, m.items}, nil
+	return &resource.ItemList{Total: len(m.items), Page: page, Items: m.items}, nil
 }
 
 func newRoute(method string) *RouteMatch {
@@ -52,7 +56,7 @@ func TestFindRoute(t *testing.T) {
 	var err *Error
 	index := resource.NewIndex()
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
-	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}}
+	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
 	foo := index.Bind("foo", resource.New(schema.Schema{}, h, resource.DefaultConf))
 	bar := foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf))
 	barbar := bar.Bind("bar", "b", resource.New(schema.Schema{"b": schema.Field{}}, h, resource.DefaultConf))
@@ -189,7 +193,7 @@ func TestRoutePathParentsExists(t *testing.T) {
 	var err error
 	index := resource.NewIndex()
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
-	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}}
+	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
 	foo := index.Bind("foo", resource.New(schema.Schema{}, h, resource.DefaultConf))
 	bar := foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf))
 	bar.Bind("baz", "b", resource.New(schema.Schema{"f": schema.Field{}, "b": schema.Field{}}, h, resource.DefaultConf))
@@ -230,8 +234,8 @@ func TestRoutePathParentsExists(t *testing.T) {
 func TestRoutePathParentsNotExists(t *testing.T) {
 	index := resource.NewIndex()
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
-	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}}
-	empty := &mockHandler{[]*resource.Item{}, nil, []schema.Query{}}
+	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
+	empty := &mockHandler{[]*resource.Item{}, nil, []schema.Query{}, sync.Mutex{}}
 	foo := index.Bind("foo", resource.New(schema.Schema{}, empty, resource.DefaultConf))
 	foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf))
 	ctx := context.Background()
