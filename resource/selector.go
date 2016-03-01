@@ -60,6 +60,14 @@ func validateSelector(s []Field, v schema.Validator) error {
 
 func applySelector(s []Field, v schema.Validator, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
 	res := map[string]interface{}{}
+	if len(s) == 0 {
+		// When the field selector is empty, it's like saying "all fields".
+		// This allows notations like id,user{} to embed all fields of the user
+		// sub-resource.
+		for fn := range p {
+			s = append(s, Field{Name: fn})
+		}
+	}
 	for _, f := range s {
 		name := f.Name
 		if val, found := p[name]; found {
