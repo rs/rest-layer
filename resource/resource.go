@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"time"
 
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/xlog"
 	"golang.org/x/net/context"
 )
 
@@ -153,20 +155,35 @@ func (r *Resource) Conf() Conf {
 }
 
 // Get get one item by its id. If item is not found, ErrNotFound error is returned
-func (r *Resource) Get(ctx context.Context, id interface{}) (*Item, error) {
-	items, err := r.MultiGet(ctx, []interface{}{id})
+func (r *Resource) Get(ctx context.Context, id interface{}) (item *Item, err error) {
+	defer func(t time.Time) {
+		xlog.FromContext(ctx).Debugf("resource.Get(%v)", id, xlog.F{"duration": time.Since(t)})
+	}(time.Now())
+	items, err := r.multiGet(ctx, []interface{}{id})
 	if err != nil {
-		return nil, err
+		return
 	}
-	if len(items) != 1 || items[0].ID != id {
-		return nil, ErrNotFound
+	if len(items) == 1 && items[0].ID == id {
+		item = items[0]
+	} else {
+		err = ErrNotFound
 	}
-	return items[0], nil
+	return
 }
 
 // MultiGet get some items by their id and return them in the same order. If one or more item(s)
 // is not found, their slot in the response is set to nil.
 func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*Item, err error) {
+	defer func(t time.Time) {
+		xlog.FromContext(ctx).Debugf("resource.MultiGet(%v)", ids, xlog.F{
+			"duration": time.Since(t),
+			"found":    len(items),
+		})
+	}(time.Now())
+	return r.multiGet(ctx, ids)
+}
+
+func (r *Resource) multiGet(ctx context.Context, ids []interface{}) (items []*Item, err error) {
 	if r.storage == nil {
 		return nil, ErrNoStorage
 	}
@@ -212,7 +229,17 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 }
 
 // Find implements Storer interface
-func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error) {
+func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage int) (list *ItemList, err error) {
+	defer func(t time.Time) {
+		found := -1
+		if list != nil {
+			found = len(list.Items)
+		}
+		xlog.FromContext(ctx).Debugf("resource.Find(..., %d, %d)", page, perPage, xlog.F{
+			"duration": time.Since(t),
+			"found":    found,
+		})
+	}(time.Now())
 	if r.storage == nil {
 		return nil, ErrNoStorage
 	}
@@ -248,6 +275,9 @@ func wrapMgetList(items []*Item, err error) (*ItemList, error) {
 
 // Insert implements Storer interface
 func (r *Resource) Insert(ctx context.Context, items []*Item) error {
+	defer func(t time.Time) {
+		xlog.FromContext(ctx).Debugf("resource.Insert(items[%d])", len(items), xlog.F{"duration": time.Since(t)})
+	}(time.Now())
 	if r.storage == nil {
 		return ErrNoStorage
 	}
@@ -264,6 +294,9 @@ func (r *Resource) Update(ctx context.Context, item *Item, original *Item) error
 
 // Delete implements Storer interface
 func (r *Resource) Delete(ctx context.Context, item *Item) error {
+	defer func(t time.Time) {
+		xlog.FromContext(ctx).Debugf("resource.Delete(%v)", item.ID, xlog.F{"duration": time.Since(t)})
+	}(time.Now())
 	if r.storage == nil {
 		return ErrNoStorage
 	}
@@ -272,6 +305,9 @@ func (r *Resource) Delete(ctx context.Context, item *Item) error {
 
 // Clear implements Storer interface
 func (r *Resource) Clear(ctx context.Context, lookup *Lookup) (int, error) {
+	defer func(t time.Time) {
+		xlog.FromContext(ctx).Debugf("resource.Clear(%v)", lookup, xlog.F{"duration": time.Since(t)})
+	}(time.Now())
 	if r.storage == nil {
 		return 0, ErrNoStorage
 	}

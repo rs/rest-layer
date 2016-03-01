@@ -12,6 +12,9 @@ import (
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/xaccess"
+	"github.com/rs/xhandler"
+	"github.com/rs/xlog"
 )
 
 var (
@@ -110,8 +113,13 @@ func main() {
 		log.Fatalf("Invalid API configuration: %s", err)
 	}
 
+	// Setup logger
+	c := xhandler.Chain{}
+	c.UseC(xlog.NewHandler(xlog.Config{}))
+	c.UseC(xaccess.NewHandler())
+
 	// Bind the API under /api/ path
-	http.Handle("/", api)
+	http.Handle("/", c.Handler(api))
 
 	// Inject some fixtures
 	fixtures := [][]string{

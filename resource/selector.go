@@ -10,6 +10,14 @@ import (
 
 type asyncSelector func(ctx context.Context) (interface{}, error)
 
+type asyncGet struct {
+	payload  map[string]interface{}
+	field    string
+	resource *Resource
+	id       interface{}
+	handler  func(item *Item) (interface{}, error)
+}
+
 func validateSelector(s []Field, v schema.Validator) error {
 	for _, f := range s {
 		def := v.GetField(f.Name)
@@ -92,18 +100,19 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 					}
 					// Do not execute the sub-request right away, store a asyncSelector type of
 					// lambda that will be executed later with concurrency control
-					res[name] = asyncSelector(func(ctx context.Context) (interface{}, error) {
-						item, err := rsrc.Get(ctx, val)
-						if err != nil && err != ErrNotFound {
-							return nil, fmt.Errorf("%s: error fetching sub-field resource: %s", f.Name, err.Error())
-						}
-						subval := item.Payload
-						subval, err = applySelector(f.Fields, rsrc.Validator(), subval, resolver)
-						if err != nil {
-							return nil, fmt.Errorf("%s: error applying selector on sub-field: %s", f.Name, err.Error())
-						}
-						return subval, nil
-					})
+					res[name] = asyncGet{
+						payload:  res,
+						field:    name,
+						resource: rsrc,
+						id:       val,
+						handler: func(item *Item) (interface{}, error) {
+							subval, err := applySelector(f.Fields, rsrc.Validator(), item.Payload, resolver)
+							if err != nil {
+								return nil, fmt.Errorf("%s: error applying selector on sub-field: %s", f.Name, err.Error())
+							}
+							return subval, nil
+						},
+					}
 				} else {
 					return nil, fmt.Errorf("%s: field as no children", f.Name)
 				}
