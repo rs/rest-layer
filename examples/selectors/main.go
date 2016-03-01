@@ -36,7 +36,9 @@ var (
 			Validator: &schema.Reference{Path: "posts"},
 		},
 		"user": schema.Field{
-			Validator: &schema.Reference{Path: "users"},
+			Filterable: true,
+			Sortable:   true,
+			Validator:  &schema.Reference{Path: "users"},
 		},
 	}
 

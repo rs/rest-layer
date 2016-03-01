@@ -122,7 +122,18 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 				// lambda that will be executed later with concurrency control
 				res[name] = asyncSelector(func(ctx context.Context) (interface{}, error) {
 					l := NewLookup()
-					// TODO: parse params to add query and sort
+					if filter, ok := f.Params["filter"].(string); ok {
+						err := l.AddFilter(filter, rsrc.Validator())
+						if err != nil {
+							return nil, fmt.Errorf("%s: invalid filter: %s", f.Name, err.Error())
+						}
+					}
+					if sort, ok := f.Params["sort"].(string); ok {
+						err := l.SetSort(sort, rsrc.Validator())
+						if err != nil {
+							return nil, fmt.Errorf("%s: invalid sort: %s", f.Name, err.Error())
+						}
+					}
 					page := 1
 					if v, ok := f.Params["page"].(int); ok {
 						page = v

@@ -116,9 +116,8 @@ func (r *Resource) Bind(name, field string, s *Resource) *Resource {
 				"limit": schema.Integer{
 					Boundaries: &schema.Boundaries{Min: 0, Max: 1000},
 				},
-				// TODO
-				// "sort":   schema.String{}, // TODO proper sort validation
-				// "filter": schema.String{}, // TODO proper filter validation
+				"sort":   schema.String{},
+				"filter": schema.String{},
 			},
 		},
 	}
