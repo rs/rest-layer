@@ -79,3 +79,15 @@ type Storer interface {
 	// https://github.com/rs/xlog for more info.
 	Clear(ctx context.Context, lookup *Lookup) (int, error)
 }
+
+// MultiGetter is an optional interface a Storer can implement when the storage engine is
+// able to perform optimized multi gets. REST Layer will automatically use MultiGet over Find
+// whenever it's possible when a storage handler implements this interface.
+type MultiGetter interface {
+	// MultiGet retreives items by their ids and return them an a list. If one or more
+	// item(s) cannot be found, the method must not return a resource.ErrNotFound but
+	// must just omit the item in the result.
+	//
+	// The items in the result are expected to match the order of the requested ids.
+	MultiGet(ctx context.Context, ids []interface{}) ([]*Item, error)
+}

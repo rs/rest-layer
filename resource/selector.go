@@ -93,16 +93,11 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 					// Do not execute the sub-request right away, store a asyncSelector type of
 					// lambda that will be executed later with concurrency control
 					res[name] = asyncSelector(func(ctx context.Context) (interface{}, error) {
-						l := NewLookup()
-						l.AddQuery(schema.Query{schema.Equal{Field: "id", Value: val}})
-						list, err := rsrc.Find(ctx, l, 1, 1)
-						if err != nil {
+						item, err := rsrc.Get(ctx, val)
+						if err != nil && err != ErrNotFound {
 							return nil, fmt.Errorf("%s: error fetching sub-field resource: %s", f.Name, err.Error())
 						}
-						subval := map[string]interface{}{}
-						if len(list.Items) > 0 {
-							subval = list.Items[0].Payload
-						}
+						subval := item.Payload
 						subval, err = applySelector(f.Fields, rsrc.Validator(), subval, resolver)
 						if err != nil {
 							return nil, fmt.Errorf("%s: error applying selector on sub-field: %s", f.Name, err.Error())

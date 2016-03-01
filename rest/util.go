@@ -187,10 +187,8 @@ func checkReferences(ctx context.Context, payload map[string]interface{}, s sche
 				if !found {
 					return &Error{500, fmt.Sprintf("Invalid resource reference for field `%s': %s", name, ref.Path), nil}
 				}
-				l := resource.NewLookup()
-				l.AddQuery(schema.Query{schema.Equal{Field: "id", Value: value}})
-				list, _ := rsrc.Find(ctx, l, 1, 1)
-				if len(list.Items) == 0 {
+				_, err := rsrc.Get(ctx, value)
+				if err == ErrNotFound {
 					return &Error{404, fmt.Sprintf("Resource reference not found for field `%s'", name), nil}
 				}
 			}

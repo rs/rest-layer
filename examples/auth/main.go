@@ -63,31 +63,25 @@ var (
 func (m myAuthMiddleware) Handle(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{}) {
 	if u, p, ok := r.BasicAuth(); ok {
 		// Lookup the user by its id
-		lookup := resource.NewLookupWithQuery(schema.Query{
-			schema.Equal{Field: "id", Value: u},
-		})
-		list, err := m.userResource.Find(ctx, lookup, 1, 1)
+		user, err := m.userResource.Get(ctx, u)
 		if err != nil {
 			// If user resource storage handler returned an error, stop the middleware chain
 			return ctx, 0, nil, err
 		}
-		if len(list.Items) == 1 {
-			user := list.Items[0]
-			if schema.VerifyPassword(user.Payload["password"], []byte(p)) {
-				// Get the current route from the context
-				route, ok := rest.RouteFromContext(ctx)
-				if ok {
-					// If the current resource is "users", set the resource field to "id"
-					// as user resource doesn't reference itself thru a "user" field.
-					field := "user"
-					if route.ResourcePath.Path() == "users" {
-						field = "id"
-					}
-					// Prepent the resource path with the user resource
-					route.ResourcePath.Prepend(m.userResource, field, u)
-					// Go the the next middleware
-					return next(ctx)
+		if schema.VerifyPassword(user.Payload["password"], []byte(p)) {
+			// Get the current route from the context
+			route, ok := rest.RouteFromContext(ctx)
+			if ok {
+				// If the current resource is "users", set the resource field to "id"
+				// as user resource doesn't reference itself thru a "user" field.
+				field := "user"
+				if route.ResourcePath.Path() == "users" {
+					field = "id"
 				}
+				// Prepent the resource path with the user resource
+				route.ResourcePath.Prepend(m.userResource, field, u)
+				// Go the the next middleware
+				return next(ctx)
 			}
 		}
 	}
