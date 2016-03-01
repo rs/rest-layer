@@ -71,7 +71,11 @@ func (l *Lookup) Filter() schema.Query {
 	return l.filter
 }
 
-// Selector returns the
+// SetSorts set the sort fields with a pre-parsed list of fields to sort on.
+// This method doesn't validate sort fields.
+func (l *Lookup) SetSorts(sorts []string) {
+	l.sort = sorts
+}
 
 // SetSort parses and validate a sort parameter and set it as lookup's Sort
 func (l *Lookup) SetSort(sort string, validator schema.Validator) error {
