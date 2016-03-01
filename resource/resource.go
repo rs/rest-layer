@@ -157,7 +157,10 @@ func (r *Resource) Conf() Conf {
 // Get get one item by its id. If item is not found, ErrNotFound error is returned
 func (r *Resource) Get(ctx context.Context, id interface{}) (item *Item, err error) {
 	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("resource.Get(%v)", id, xlog.F{"duration": time.Since(t)})
+		xlog.FromContext(ctx).Debugf("resource.Get(%v)", id, xlog.F{
+			"duration": time.Since(t),
+			"error":    err,
+		})
 	}(time.Now())
 	items, err := r.multiGet(ctx, []interface{}{id})
 	if err != nil {
@@ -178,6 +181,7 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 		xlog.FromContext(ctx).Debugf("resource.MultiGet(%v)", ids, xlog.F{
 			"duration": time.Since(t),
 			"found":    len(items),
+			"error":    err,
 		})
 	}(time.Now())
 	return r.multiGet(ctx, ids)
@@ -186,6 +190,9 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 func (r *Resource) multiGet(ctx context.Context, ids []interface{}) (items []*Item, err error) {
 	if r.storage == nil {
 		return nil, ErrNoStorage
+	}
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
 	}
 	var tmp []*Item
 	if mg, ok := r.storage.(MultiGetter); ok {
@@ -238,10 +245,14 @@ func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage int) 
 		xlog.FromContext(ctx).Debugf("resource.Find(..., %d, %d)", page, perPage, xlog.F{
 			"duration": time.Since(t),
 			"found":    found,
+			"error":    err,
 		})
 	}(time.Now())
 	if r.storage == nil {
 		return nil, ErrNoStorage
+	}
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
 	}
 	if mg, ok := r.storage.(MultiGetter); ok {
 		// If storage supports MultiGetter interface, detect some common find pattern that could be
@@ -274,42 +285,70 @@ func wrapMgetList(items []*Item, err error) (*ItemList, error) {
 }
 
 // Insert implements Storer interface
-func (r *Resource) Insert(ctx context.Context, items []*Item) error {
+func (r *Resource) Insert(ctx context.Context, items []*Item) (err error) {
 	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("resource.Insert(items[%d])", len(items), xlog.F{"duration": time.Since(t)})
+		xlog.FromContext(ctx).Debugf("resource.Insert(items[%d])", len(items), xlog.F{
+			"duration": time.Since(t),
+			"error":    err,
+		})
 	}(time.Now())
 	if r.storage == nil {
 		return ErrNoStorage
+	}
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 	return r.storage.Insert(ctx, items)
 }
 
 // Update implements Storer interface
-func (r *Resource) Update(ctx context.Context, item *Item, original *Item) error {
+func (r *Resource) Update(ctx context.Context, item *Item, original *Item) (err error) {
+	defer func(t time.Time) {
+		xlog.FromContext(ctx).Debugf("resource.Update(%v, %v)", item.ID, original.ID, xlog.F{
+			"duration": time.Since(t),
+			"error":    err,
+		})
+	}(time.Now())
 	if r.storage == nil {
 		return ErrNoStorage
+	}
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 	return r.storage.Update(ctx, item, original)
 }
 
 // Delete implements Storer interface
-func (r *Resource) Delete(ctx context.Context, item *Item) error {
+func (r *Resource) Delete(ctx context.Context, item *Item) (err error) {
 	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("resource.Delete(%v)", item.ID, xlog.F{"duration": time.Since(t)})
+		xlog.FromContext(ctx).Debugf("resource.Delete(%v)", item.ID, xlog.F{
+			"duration": time.Since(t),
+			"error":    err,
+		})
 	}(time.Now())
 	if r.storage == nil {
 		return ErrNoStorage
+	}
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 	return r.storage.Delete(ctx, item)
 }
 
 // Clear implements Storer interface
-func (r *Resource) Clear(ctx context.Context, lookup *Lookup) (int, error) {
+func (r *Resource) Clear(ctx context.Context, lookup *Lookup) (deleted int, err error) {
 	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("resource.Clear(%v)", lookup, xlog.F{"duration": time.Since(t)})
+		xlog.FromContext(ctx).Debugf("resource.Clear(%v)", lookup, xlog.F{
+			"duration": time.Since(t),
+			"deleted":  deleted,
+			"error":    err,
+		})
 	}(time.Now())
 	if r.storage == nil {
 		return 0, ErrNoStorage
+	}
+	if ctx.Err() != nil {
+		return 0, ctx.Err()
 	}
 	return r.storage.Clear(ctx, lookup)
 }
