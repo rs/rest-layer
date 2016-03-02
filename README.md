@@ -4,50 +4,51 @@ REST APIs made easy.
 
 [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer)
 
-REST Layer is a REST API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It lets you automatically generate a comprehensive, customizable, and secure REST API on top of any backend storage with no boiler plate code. You can focus on your business logic now.
+REST Layer is an API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable [backend storages](#storage-handlers) with no boiler plate code so can focus on your business logic.
 
-Implemented as a `net/http` middleware, it plays well with other middleware like [CORS](http://github.com/rs/cors).
+Implemented as a `net/http` middleware, it plays well with other middleware like [CORS](http://github.com/rs/cors) and is [net/context](https://godoc.org/golang.org/x/net/context) aware thanks to [xhandler](https://github.com/rs/xhandler).
 
-REST Layer is an opinionated framework. Unlike many web frameworks, you don't directly control the routing. You just expose resources and sub-resources, the framework automatically figures what routes to generate behind the scene. You don't have to take care of the HTTP headers and response, JSON encoding, etc. either. rest handles HTTP conditional requests, caching, integrity checking for you. A powerful and extensible validation engine make sure that data comes pre-validated to you resource handlers. Generic resource handlers for MongoDB and other databases are also available so you have few to no code to write to make the whole system work.
+REST Layer is an opinionated framework. Unlike many API frameworks, you don't directly control the routing and you don't have to write handlers. You just define resources and sub-resources with a [schema](#resource-configuration), the framework automatically figures out what routes to generate behind the scene. You don't have to take care of the HTTP headers and response, JSON encoding, etc. either. REST layer handles HTTP [conditional requests](#conditional-requests), caching, [integrity checking](#data-integrity-and-concurrency-control) for you.
 
-REST Layer is composed of several sub-packages:
+A powerful and extensible [validation engine](#resource-configuration) make sure that data comes pre-validated to your [custom storage handlers](#data-storage-handler). Generic resource handlers for [MongoDB](http://github.com/rs/rest-layer-mongo), [ElastiSearch](http://github.com/rs/rest-layer-es) and other databases are also available so you have few to no code to write to make the whole system work.
+
+Moreover, REST Layer let you create a graph API by linking resources between them. Thanks to its advanced [field selection](field-selection) syntax (and coming support of GraphQL), you can gather resources and their dependencies in a single request, saving you from costly network roundtrips.
+
+REST Layer is composed of several packages:
 
 * [rest](https://godoc.org/github.com/rs/rest-layer/rest): Holds the `net/http` handler responsible for the implementation of the RESTful API.
 * [schema](https://godoc.org/github.com/rs/rest-layer/schema): Provides a validation framework for the API resources.
 * [resource](https://godoc.org/github.com/rs/rest-layer/resource): Defines resources, manages the resource graph and manages the interface with resource storage handler.
 
-<!-- TOC depth:6 withLinks:1 updateOnSave:1 orderedList:0 -->
+# Documentation
 
-- [REST Layer](#rest-layer)
-	- [Features](#features)
-		- [Extensions](#extensions)
-		- [Storage Handlers](#storage-handlers)
-	- [Usage](#usage)
-	- [Resource Configuration](#resource-configuration)
-		- [Schema](#schema)
-		- [Binding](#binding)
-		- [Modes](#modes)
-		- [Sub Resources](#sub-resources)
-		- [Dependency](#dependency)
-	- [Filtering](#filtering)
-	- [Sorting](#sorting)
-	- [Field Selection](#field-selection)
-		- [Field Aliasing](#field-aliasing)
-		- [Embedding](#embedding)
-		- [Field Parameters](#field-parameters)
-	- [Pagination](#pagination)
-	- [Conditional Requests](#conditional-requests)
-	- [Data Integrity and Concurrency Control](#data-integrity-and-concurrency-control)
-	- [Data Validation](#data-validation)
-		- [Nullable Values](#nullable-values)
-		- [Extensible Data Validation](#extensible-data-validation)
-	- [Timeout and Request Cancellation](#timeout-and-request-cancellation)
-	- [Logging](#logging)
-	- [Data Storage Handler](#data-storage-handler)
-	- [Custom Response Formatter / Sender](#custom-response-formatter-sender)
-	- [Middleware](#middleware)
-
-<!-- /TOC -->
+- [Features](#features)
+	- [Extensions](#extensions)
+	- [Storage Handlers](#storage-handlers)
+- [Usage](#usage)
+- [Resource Configuration](#resource-configuration)
+	- [Schema](#schema)
+	- [Binding](#binding)
+	- [Modes](#modes)
+	- [Sub Resources](#sub-resources)
+	- [Dependency](#dependency)
+- [Filtering](#filtering)
+- [Sorting](#sorting)
+- [Field Selection](#field-selection)
+	- [Field Aliasing](#field-aliasing)
+	- [Embedding](#embedding)
+	- [Field Parameters](#field-parameters)
+- [Pagination](#pagination)
+- [Conditional Requests](#conditional-requests)
+- [Data Integrity and Concurrency Control](#data-integrity-and-concurrency-control)
+- [Data Validation](#data-validation)
+	- [Nullable Values](#nullable-values)
+	- [Extensible Data Validation](#extensible-data-validation)
+- [Timeout and Request Cancellation](#timeout-and-request-cancellation)
+- [Logging](#logging)
+- [Data Storage Handler](#data-storage-handler)
+- [Custom Response Formatter / Sender](#custom-response-formatter-sender)
+- [Middleware](#middleware)
 
 ## Features
 
@@ -73,7 +74,7 @@ REST Layer is composed of several sub-packages:
 - [x] Data integrity and concurrency control (If-Match)
 - [x] Timeout and request cancellation thru [net/context](https://godoc.org/golang.org/x/net/context)
 - [x] Logging
-- [ ] Multi-GET
+- [x] Multi-GET
 - [ ] Bulk inserts
 - [x] Default and nullable values
 - [ ] Per resource cache control
@@ -270,7 +271,7 @@ func main() {
 
 Just run this code (or use the provided `cmd/demo/`):
 
-	> go run cmd/demo/main.go
+	> go run examples/demo/main.go
 	2015/07/27 20:54:55 Serving API on http://localhost:8080
 
 Using [HTTPie](http://httpie.org/), you can now play with your API.
@@ -299,7 +300,7 @@ Vary: Origin
 
 As you can see, the `id`, `created` and `updated` fields have been automatically generated by our `OnInit` field hooks.
 
-Also notice the `Etag` and `Last-Modified` headers. Those guys allow data integrity and concurrency control through the use of the `If-Match` and `If-Unmodified-Since` headers. They can also serve for conditional requests using `If-None-Match` and `If-Modified-Since` headers.
+Also notice the `Etag` and `Last-Modified` headers. Those guys allow data integrity and concurrency control *down to the storage layer* through the use of the `If-Match` and `If-Unmodified-Since` headers. They can also serve for conditional requests using `If-None-Match` and `If-Modified-Since` headers.
 
 Here is an example of conditional request:
 
@@ -353,6 +354,8 @@ Vary: Origin
 }
 ```
 
+Note that even if you don't use conditional request, the `Etag` is always used by the storage handler to manage concurrency control between requests.
+
 Another cool thing is sub-resources. We've set our `posts` resource as a child of the `users` resource. This way we can handle ownership very easily as routes are constructed as `/users/:user_id/posts`.
 
 Lets create a post:
@@ -385,7 +388,7 @@ Notice how the `user` field has been set with the user id provided in the route,
 We defined that we can create posts but we can't modify them, lets verify that:
 
 ```http
-http PUT :8080/api/users/821d…/posts/ar6ejs6kj5lflgc28es0 \
+http PATCH :8080/api/users/821d…/posts/ar6ejs6kj5lflgc28es0 \
   private=true
 
 HTTP/1.1 405 Method Not Allowed
@@ -427,7 +430,7 @@ X-Total: 1
 ]
 ```
 
-Notice the added `_etag` field. This is to let you get etags of multiple items without having to `GET` each one of them.
+Notice the added `_etag` field. This is to let you get etags of multiple items without having to `GET` each one of them throught individual requests.
 
 Now, let's get user's information for each posts in a single request:
 
@@ -504,18 +507,20 @@ For REST Layer to be able to expose resources, you have to first define what fie
 
 ### Schema
 
-Resource field configuration is performed thru the [schema](https://godoc.org/github.com/rs/rest-layer/schema) package. A schema is a map of field name pointing to field definition. The field definition contains the following properties:
+Resource field configuration is performed throught the [schema](https://godoc.org/github.com/rs/rest-layer/schema) package. A schema is a map of field name pointing to field definition. The field definition contains the following properties:
 
 | Property     | Description
 | ------------ | -------------
 | `Required`   | If `true`, the field must be provided when the resource is created and can't be set to `null`. The client may be able to omit a required field if a `Default` or a hook sets its content.
-| `ReadOnly`   | If `true`, the field can not be set by the client, only a `Default` or a hook can alter its value. You may specify a value for a read-only field in your mutation request if the value is equal to the old value, REST Layer won't complain about it. This let your client to `PUT` the same document it `GET` without having to take care of removing read-only fields.
-| `Default`    | The value to be set when resource is created and the client didn't provide a value for the field. The content of` this` variable must still pass validation.
-| `OnInit`     | A function to be executed when the resource is created. The function gets the current value of the field (a`fter` `Default` has been set if any) and returns the new value to be set.
-| `OnUpdate`   | A function to be executed when the resource is updated. The function gets the current (updated) value of the fi`eld` and returns the new value to be set.
+| `ReadOnly`   | If `true`, the field can not be set by the client, only a `Default` or a hook can alter its value. You may specify a value for a read-only field in your mutation request if the value is equal to the old value, REST Layer won't complain about it. This let your client to `PUT` the same document it has `GET` without having to take care of removing the read-only fields.
+| `Hidden`     | Hidden allows writes but hides the field's content from the client. When this field is enabled, PUTing the document without the field would not remove the field but use the previous document's value if any.
+| `Default`    | The value to be set when resource is created and the client didn't provide a value for the field. The content of this variable must still pass validation.
+| `OnInit`     | A function to be executed when the resource is created. The function gets the current value of the field (after `Default` has been set if any) and returns the new value to be set.
+| `OnUpdate`   | A function to be executed when the resource is updated. The function gets the current (updated) value of the field and returns the new value to be set.
+| `Params`     | Params defines a param handler for the field. The handler may change the field's value depending on the passed parameters. See [Field Parameters](#field-parameters) section for some examples.
 | `Validator`  | A `schema.FieldValidator` to validate the content of the field.
-| `Dependency` | A query using `filter` format created with `schema.Q("{\"field\": \"value\"}")`. If the query doesn't match the document, the field generates a dependency error.
-| `Filterable` | If `true`, the field can be used with the `filter` parameter. You may want to ensure the backend database has this field indexed when enabled.
+| `Dependency` | A query using `filter` format created with ``schema.Q(`{"field": "value"}`)``. If the query doesn't match the document, the field generates a dependency error.
+| `Filterable` | If `true`, the field can be used with the `filter` parameter. You may want to ensure the backend database has this field indexed when enabled. Some storage handlers may not support all the operators of the filter parameter, see their documentation for more information.
 | `Sortable`   | If `true`, the field can be used with the `sort` parameter. You may want to ensure the backend database has this field indexed when enabled.
 | `Schema`     | An optional sub schema to validate hierarchical documents.
 
@@ -556,14 +561,14 @@ Some common hook handler to be used with `OnInit` and `OnUpdate` are also provid
 | Hook           | Description
 | -------------- | -------------
 | `schema.Now`   | Returns the current time ignoring the input (current) value.
-| `schema.NewID` | Returns a unique identified if input value is `nil`.
+| `schema.NewID` | Returns a unique identifier using [xid](https://github.com/rs/xid) if input value is `nil`.
 
-Some common field configuration are also provided as variable:
+Some common field configuration are also provided as variables:
 
 | Field Config           | Description
 | ---------------------- | -------------
-| `schema.IDField`       | A required, read-only field with `schema.NewID` set as `OnInit` hook and a `schema.String` va`lidator.
-| `schema.CreatedField`  | A required, read-only field with `schema.Now` set on `OnInit` hook with a `schema.Time` validator
+| `schema.IDField`       | A required, read-only field with `schema.NewID` set as `OnInit` hook and a `schema.String` validator matching [xid](https://github.com/rs/xid) format.
+| `schema.CreatedField`  | A required, read-only field with `schema.Now` set on `OnInit` hook with a `schema.Time` validator.
 | `schema.UpdatedField`  | A required, read-only field with `schema.Now` set on `OnInit` and `OnUpdate` hooks with a `schema.Time` validator.
 | `schema.PasswordField` | A hidden, required field with a `schema.Password` validator.
 
@@ -602,7 +607,7 @@ post = schema.Schema{
 			},
 		},
 	},
-
+}
 ```
 
 ### Binding
@@ -628,9 +633,9 @@ The `resource.Conf` type has the following customizable properties:
 
 ### Modes
 
-REST Layer handles mapping of HTTP methods to your resource URLs automatically. With REST, there is two kind of resource URL pathes: collection and item URLs. Collection URLs (`/<resource>`) are pointing to the collection of items while item URL (`/<resource>/<item_id>`) points to a specific item in that collection. HTTP methods are used to perform CRUDL operations on those resource.
+REST Layer handles mapping of HTTP methods to your resource URLs automatically. With REST, there is two kind of resource URL pathes: collection and item URLs. Collection URLs (`/<resource>`) are pointing to the collection of items while item URL (`/<resource>/<item_id>`) points to a specific item in that collection. HTTP methods are used to perform [CRUDL](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete) operations on those resource.
 
-You can easily dis/allow operation on a per resource basis using `resource.Conf` `AllowedModes` property. The use of modes instead of HTTP methods in the configuration adds a layer of abstraction necessary to handle specific cases like `PUT` HTTP method performing a `create` if the specified item does not exist or a `replace` if it does. This gives you precise control of what you want to allow or not.
+You can easily dis/allow operation on a per resource basis using `resource.Conf`'s `AllowedModes` property. The use of modes instead of HTTP methods in the configuration adds a layer of abstraction necessary to handle specific cases like `PUT` HTTP method performing a `create` if the specified item does not exist or a `replace` if it does. This gives you precise control of what you want to allow or not.
 
 Modes are passed as configuration to resources as follow:
 
@@ -642,16 +647,17 @@ users := index.Bind("users", resource.New(user, mem.NewHandler(), resource.Conf{
 
 The following table shows how REST layer map CRUDL operations to HTTP methods and `modes`:
 
+
 | Mode      | HTTP Method | Context    | Description
 | --------- | ----------- | ---------- | -------------
-| `Read`    | GET         | Item       | Get an individual item by its ID
-| `List`    | GET         | Collection | List/find items using filters and sorts
-| `Create`  | POST        | Collection | Create an item letting the system generate its ID
-| `Create`  | PUT         | Item       | Create an item by choosing its ID
-| `Update`  | PATCH       | Item       | Partialy modify the item following [RFC-5789](http://tools.ietf.org/html/rfc5789)
-| `Replace` | PUT         | Item       | Replace the item by a new on
-| `Delete`  | DELETE      | Item       | Delete the item by its ID
-| `Clear`   | DELETE      | Collection | Delete all items from the collection matching the context and/or filters
+| `Read`    | GET         | Item       | Get an individual item by its ID.
+| `List`    | GET         | Collection | List/find items using filters and sorts.
+| `Create`  | POST        | Collection | Create an item letting the system generate its ID.
+| `Create`  | PUT         | Item       | Create an item by choosing its ID.
+| `Update`  | PATCH       | Item       | Partially modify the item following [RFC-5789](http://tools.ietf.org/html/rfc5789).
+| `Replace` | PUT         | Item       | Replace the item by a new on.
+| `Delete`  | DELETE      | Item       | Delete the item by its ID.
+| `Clear`   | DELETE      | Collection | Delete all items from the collection matching the context and/or filters.
 
 ### Sub Resources
 
@@ -671,9 +677,37 @@ The second argument `"post"` defines the field in the `comments` resource that r
 
 When performing a `GET` on `/posts/:post_id/comments`, it is like adding the filter `{"post":"<post_id>"}` to the request to comments resource.
 
+Additionally, thanks to REST Layer's [embedding](#embedding), this relationship can be embedded in the parent object as a sub-query:
+
+    /posts?fields=id,title,comments(limit=5,sort=-updated){id,user{id,name},message}
+
+Here we would get all post with their respective 5 last comments embedded in the `comments` field of each post object with the user commenting to post embedded in each comment's sub-document:
+
+```json
+[
+    {
+        "id": "abc",
+        "comments": [
+            {
+                "id": "def",
+                "user": {
+                    "id": "ghi",
+                    "name": "John Doe",
+                },
+                "message": "Last comment"
+            },
+            ...
+        ]
+    },
+    ...
+]
+```
+
+See [embedding](#embedding) for more information.
+
 ### Dependency
 
-Fields can depends on other field in order to be changed. To configure dependency, set a filter on the `Dependency` property of the field using the [schema.Q()](https://godoc.org/github.com/rs/rest-layer/schema#Q) method.
+Fields can depends on other fields in order to be changed. To configure dependency, set a filter on the `Dependency` property of the field using the [schema.Q()](https://godoc.org/github.com/rs/rest-layer/schema#Q) method.
 
 In this example, the `body` field can't be changed if the `published` field is not set to `true`:
 
@@ -683,7 +717,7 @@ post = schema.Schema{
 		Validator:  &schema.Bool{},
 	},
 	"body": schema.Field{
-		Dependency: schema.Q("{\"published\": false}"),
+		Dependency: schema.Q(`{"published": true}`),
 		Validator:  &schema.String{},
 	},
 }
@@ -691,7 +725,7 @@ post = schema.Schema{
 
 ## Filtering
 
-To filter resources, use the `filter` query-string parameter. The format of the parameter is inspired the [MongoDB query format](http://docs.mongodb.org/manual/tutorial/query-documents/). The `filter` parameter can be used with `GET` and `DELETE` methods on collection URLs.
+To filter resources, you use the `filter` query-string parameter. The format of the parameter is inspired the [MongoDB query format](http://docs.mongodb.org/manual/tutorial/query-documents/). The `filter` parameter can be used with `GET` and `DELETE` methods on collection URLs.
 
 To use a resource field with the `filter` parameter, the field must be defined on the resource and the `Filterable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
 
@@ -701,13 +735,13 @@ A query can specify conditions for more than one field. Implicitly, a logical `A
 
 Using the the `$or` operator, you can specify a compound query that joins each clause with a logical `OR` conjunction so that the query selects the items that match at least one condition.
 
-In the following example, the query document selects all documents in the collection where the field `quantity` has a value greater than (`$gt`) `100` or the value of the `price` field is less than (`$lt`) `9.95`:
+In the following example, the query document selects all items in the collection where the field `quantity` has a value greater than (`$gt`) `100` or the value of the `price` field is less than (`$lt`) `9.95`:
 
 ```json
 {"$or": [{"quantity": {"$gt": 100}}, {"price": {"$lt": 9.95}}]}
 ```
 
-Match on sub-fields is performed thru field path separated by dots. This example shows an exact match on the subfields `country` and `city` of the `address` sub-document:
+Match on sub-fields is performed throught field path separated by dots. This example shows an exact match on the subfields `country` and `city` of the `address` sub-document:
 
 ```json
 {"address.country": "France", "address.city": "Paris"}
@@ -723,7 +757,7 @@ The opposite `$nin` is also available.
 
 The following numeric comparisons operators are supported: `$lt`, `$lte`, `$gt`, `$gte`.
 
-The `$exists` operator matches document containing the field, even if this field is `null`"
+The `$exists` operator matches document containing the field, even if this field is `null`
 
 ```json
 {"type": {"$exists": true}}
@@ -731,11 +765,26 @@ The `$exists` operator matches document containing the field, even if this field
 
 You can invert the operator by passing `false`.
 
+### Filter operators
+
+| Operator  | Usage                               | Description
+| --------- | ----------------------------------- | ------------
+| `$or`     | `{"$or": [{"a": "b"}, {"a": "c"}]}` | Join two clauses with a logical `OR` conjunction.
+| `$in`     | `{"a": {"$in": ["b", "c"]}}`        | Match a field against several values.
+| `$nin`    | `{"a": {"$nin": ["b", "c"]}}`       | Opposite of `$in`.
+| `$lt`     | `{"a": {"$lt": 10}}`                | Fields value is lower than specified number.
+| `$lte`    | `{"a": {"$lte": 10}}`               | Fields value is lower than or equal to the specified number.
+| `$gt`     | `{"a": {"$gt": 10}}`                | Fields value is greater than specified number.
+| `$gte`    | `{"a": {"$gte": 10}}`               | Fields value is greater than or equal to the specified number.
+| `$exists` | `{"a": {"$exists": true}}`          | Match if the field is present (or not if set to `false`) in the item, event if `nil`.
+
+*Some storage handlers may not support all operators. Refer to the storage handler's documentation for more info.*
+
 ## Sorting
 
-Sorting is of resource items is defined thru the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (,). To invert a field's sort, you can prefix it's with a minus (-) character.
+Sorting is of resource items is defined throught the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix it's with a minus (`-`) character.
 
-To use a resource field with the `filter` parameter, the field must be defined on the resource and the `Sortable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
+To use a resource field with the `sort` parameter, the field must be defined on the resource and the `Sortable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
 
 Here we sort the result by ascending quantity and descending date:
 
@@ -743,9 +792,9 @@ Here we sort the result by ascending quantity and descending date:
 
 ## Field Selection
 
-REST APIs tend to grow over time. Resources get more and more fields to full fill the needs of new features. But each time fields are added, all existing API clients automatically gets the additional cost. This tend to lead to huge wast of bandwidth and added latency due to bad useless/useful fields ratio.
+REST APIs tend to grow over time. Resources get more and more fields to fulfill the needs for new features. But each time fields are added, all existing API clients automatically gets the additional cost. This tend to lead to huge wast of bandwidth and added latency due to the transfer of unnecessary data.
 
-To workaround this issue, REST Layer provides an powerful fill selection (also named projection) system. If you provide the `fields` parameter with a list of fields for the resource you are interested in separated by comas, only those fields will be returned in the document:
+To workaround this issue, REST Layer provides a powerful fields selection (also named projection) system. If you provide the `fields` parameter with a list of fields for the resource you are interested in separated by comas, only those fields will be returned in the document:
 
 ```http
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name'
@@ -755,9 +804,24 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name'
 }
 ```
 
+If your document has sub-fields, you can use brackets to select sub-fields:
+
+```http
+$ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body}'
+[
+    {
+        "_etag": "ar6eimukj5lfl07r0uv0",
+        "meta": {
+            "title": "test",
+            "body": "example"
+        }
+    }
+]
+```
+
 ### Field Aliasing
 
-It's also possible to rename fields in the response using aliasing. To create an alias, suffix the field name by the wanted alias separated by a colon (:):
+It's also possible to rename fields in the response using aliasing. To create an alias, suffix the field name by the wanted alias separated by a colon (`:`):
 
 ```http
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name,name:n'
@@ -768,9 +832,9 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name,name:n'
 }
 ```
 
-As you see, you can specify several time the same field. It's doesn't seem useful in this example, but with parameters, it becomes very powerful (see below).
+As you see, you can specify several time the same field. It's doesn't seem useful in this example, but with [fields parameters](#field-parameters), it becomes very powerful (see below).
 
-If your document has sub-fields, you can use brackets to select sub-fields:
+Aliasing works with sub-fields as well:
 
 ```http
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body:b}'
@@ -778,40 +842,12 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body:b}
     {
         "_etag": "ar6eimukj5lfl07r0uv0",
         "meta": {
-            "b": "example",
-            "title": "test"
+            "title": "test",
+            "b": "example"
         }
     }
 ]
 ```
-
-### Embedding
-
-With sub-fields notation you can also request referenced resources or connections (sub-resources), REST Layer will recognize it and will fetch the associated resources, and embed their result in the response. This can save a lot of unnecessary sequential rount-trips:
-
-```http
-$ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts \
-  fields=='meta{title},user{name},comments(sort="-created",limit=10){user{name},body}'
-[
-    {
-        "_etag": "ar6eimukj5lfl07r0uv0",
-        "meta": {
-            "title": "test"
-        },
-        "user": {
-            "name": "John Doe"
-        },
-        "comments": [
-            "user": {
-                "name": "Paul Wolf"
-            },
-            "body": "That's awesome!"
-        ]
-    }
-]
-```
-
-In the above example, the user field is a reference on the `users` resource. REST Layer did fetch the user referenced by the post and embedded the requested fields. Same for `comments`: `comments` is set as a sub-resource of the `posts` resource. With this syntax, it's easy to get the last 10 comments on the post in the same REST request. Such request can quickly generate a lot of storage requests. To ensure a fast response time. REST layer execute those storage requests concurrently whenever possible.
 
 ### Field Parameters
 
@@ -823,8 +859,8 @@ By combining field aliasing and field parameters, we can expose this resizer API
 
 ```http
 $ http -b :8080/api/videos fields=='id,
-                          thumbnail_url(width:80,height:60):thumb_small_url,
-                          thumbnail_url(width:800,height:600):thumb_large_url'
+                                    thumbnail_url(width:80,height:60):thumb_small_url,
+                                    thumbnail_url(width:800,height:600):thumb_large_url'
 [
     {
         "_etag": "ar6eimukj5lfl07r0uv0",
@@ -857,9 +893,49 @@ schema.Schema{
 
 Only parameters with listed in validators will be accepted. You `Handler` function is then called with the current value of the field and the parameter map. You function can apply wanted transformations on the value and return it. If an error is returned, a `422` error will be triggered with you error message associated to the field.
 
+### Embedding
+
+With sub-fields notation you can also request referenced resources or connections (sub-resources). REST Layer will recognize them automatically and fetch the associated resources in order embed their data in the response. This can save a lot of unnecessary sequential roundtrips:
+
+```http
+$ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts \
+  fields=='meta{title},user{id,name},comments(sort="-created",limit=10){user{id,name},body}'
+[
+    {
+        "_etag": "ar6eimukj5lfl07r0uv0",
+        "meta": {
+            "title": "test"
+        },
+        "user": {
+            "id": "ar6eimul07lfae7r4b5l",
+            "name": "John Doe"
+        },
+        "comments": [
+            {
+                "user": {
+                    "id": "ar6emul0kj5lfae7reimu",
+                    "name": "Paul Wolf"
+                },
+                "body": "That's awesome!"
+            },
+            ...
+        ]
+    },
+    ...
+]
+```
+
+In the above example, the `user` field is a reference on the `users` resource. REST Layer did fetch the user referenced by the post and embedded the requested sub-fields (`id` and `name`). Same for `comments`: `comments` is set as a sub-resource of the `posts` resource. With this syntax, it's easy to get the last 10 comments on the post in the same REST request. For each of those comment, we asked to embed the `user` field referenced resource with `id` and `name` fields again.
+
+Notice the `sort` and `limit` parameters passed to the `comments` field. Those are field parameter automatically exposed connections to let you control the embedded list order, filter and pagination. You can use `sort`, `filter`, `page` and `limit` parameters with those field with the same syntax as their top level query-string parameter counterpart.
+
+Such request can quickly generate a lot of queries on the storage handler. To ensure a fast response time, REST layer tries to coalesce those storage requests and to execute them concurrently whenever possible.
+
 ## Pagination
 
 Pagination is supported on collection URLs using `page` and `limit` query-string parameters. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated until you provide the `limit` query-string parameter.
+
+If your collections are large enough, failing to define a reasonable `PaginationDefaultLimit` parameter may render your API unusable.
 
 ## Conditional Requests
 
@@ -879,12 +955,13 @@ HTTP/1.1 304 Not Modified
 
 ## Data Integrity and Concurrency Control
 
-API responses include a `ETag` header which also allows for proper concurrency control. An `ETag` is a hash value representing the current state of the resource on the server. Clients may choose to ensure they update (`PATCH` or `PUT`) or delete (`DELETE`) a resource in the state they know it by providing the last known `ETag` for that resource. This prevents overwriting items with obsolete versions.
+API responses include a `ETag` header which also allows for proper concurrency control. An `ETag` is a hash value representing the current state of the resource on the server. Clients may choose to ensure they update (`PATCH` or `PUT`) or delete (`DELETE`) a resource in the state they know it by providing the last known `ETag` for that resource. This prevents overwriting items with obsolete data.
 
 Consider the following workflow:
 
 ```http
-$ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' name='John Doe'
+$ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' \
+    name='John Doe'
 HTTP/1.1 412 Precondition Failed
 ```
 
@@ -893,7 +970,9 @@ What went wrong? We provided a `If-Match` header with the last known `ETag`, but
 When this happen, it's up to the client to decide to inform the user of the error and/or refetch the latest version of the document to get the lattest `ETag` before retrying the operation.
 
 ```http
-$ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"80b81f314712932a4d4ea75ab0b76a4eea613012"' name='John Doe'
+$ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"80b81f314712932a4d4ea75ab0b76a4eea613012"' \
+    name='John Doe'
+HTTP/1.1 200 OK
 Etag: "7bb7a71b0f66197aa07c4c8fc9564616"
 Last-Modified: Mon, 27 Jul 2015 19:36:19 GMT
 ```
@@ -916,7 +995,7 @@ Vary: Origin
 
 {
     "code": 422,
-    "message": "Document contains error(s)"
+    "message": "Document contains error(s)",
     "issues": {
         "foo": [
             "invalid field"
@@ -924,7 +1003,7 @@ Vary: Origin
         "name": [
             "not a string"
         ]
-    },
+    }
 }
 ```
 
@@ -961,9 +1040,9 @@ type Compiler interface {
 }
 ```
 
-When a field validator implements this interface, the `Compile` method is called at the binding. It's a good place to pre-compute some data (i.e.: compile regexp) and verify validator configuration. If validator configuration contains issue, the `Compile` method must return an error, so the binding will generate un fatal error.
+When a field validator implements this interface, the `Compile` method is called at the server initialization. It's a good place to pre-compute some data (i.e.: compile regexp) and verify validator configuration. If validator configuration contains issue, the `Compile` method must return an error, so the initialization of the resource will generate un fatal error.
 
-Last but not least, a validator may implement some advanced serialization or transformation of the data to optimize it's storage. In order to read this data base and put it in a format suitable for JSON representation, a validator can implement the [schema.FieldSerializer](https://godoc.org/github.com/rs/rest-layer/schema#FieldSerializer) interface:
+Last but not least, a validator may implement some advanced serialization or transformation of the data to optimize it's storage. In order to read this data back and put it in a format suitable for JSON representation, a validator can implement the [schema.FieldSerializer](https://godoc.org/github.com/rs/rest-layer/schema#FieldSerializer) interface:
 
 ```go
 type FieldSerializer interface {
@@ -977,7 +1056,7 @@ See [schema.IP](https://godoc.org/github.com/rs/rest-layer/schema#IP) validator 
 
 ## Timeout and Request Cancellation
 
-REST Layer respects [net/context](https://golang.org/x/net/context) deadline from end to end. Timeout and request cancellation are thus handled thru `netc/context`. By default no cancellation handling or per request timeout are defined. You can easily add them using [xhandler](https://github.com/rs/xhandler) provided handlers as follow:
+REST Layer respects [net/context](https://golang.org/x/net/context) deadline from end to end. Timeout and request cancellation are thus handled throught `net/context`. By default no cancellation handling or per request timeout are defined. You can easily add them using [xhandler](https://github.com/rs/xhandler) provided handlers as follow:
 
 ```go
 // Init a xhandler chain (see http://github.com/rs/xhandler)
@@ -1053,12 +1132,13 @@ type Storer interface {
 	Delete(ctx context.Context, item *resource.Item) error
 	Clear(ctx context.Context, lookup *resource.Lookup) (int, error)
 }
-}
 ```
 
 Mutation methods like `Update` and `Delete` must ensure they are atomically mutating the same item as specified in argument by checking their `ETag` (the stored `ETag` must match the `ETag` of the provided item). In case the handler can't guarantee that, the storage must be left untouched, and a [resource.ErrConflict](https://godoc.org/github.com/rs/rest-layer/resource#pkg-variables) must be returned.
 
-If the the operation not immediate, the method must listen for cancellation on the passed `ctx`. If the operation is stopped due to context cancellation, the function must return the result of the [ctx.Err()](https://godoc.org/golang.org/x/net/context#Context) method. See [this blog post](https://blog.golang.org/context) for more information about how `net/context` works.
+If the operation is not immediate, the method must listen for cancellation on the passed `ctx`. If the operation is stopped due to context cancellation, the function must return the result of the [ctx.Err()](https://godoc.org/golang.org/x/net/context#Context) method. See [this blog post](https://blog.golang.org/context) for more information about how `net/context` works.
+
+If the backend storage is able to efficiently fetch multiple document by their id, it can implement the optional [resource.MultiGetter](https://godoc.org/github.com/rs/rest-layer/resource#MultiGetter) interface. REST Layer will automatically use it whenever possible.
 
 See [resource.Storer](https://godoc.org/github.com/rs/rest-layer/resource#Storer) documentation for more information on resource storage handler implementation details.
 

@@ -14,7 +14,7 @@ type Field struct {
 	// Default and OnInit/OnUpdate hooks can be used to set/change read-only
 	// fields.
 	ReadOnly bool
-	// Hidden allows writes but hides the fields content from the client. When
+	// Hidden allows writes but hides the field's content from the client. When
 	// this field is enabled, PUTing the document without the field would not
 	// remove the field but use the previous document's value if any.
 	Hidden bool
@@ -35,7 +35,7 @@ type Field struct {
 	// Validator is used to validate the field's format.
 	Validator FieldValidator
 	// Dependency rejects the field if the schema query doesn't match the document.
-	// Use schema.Q("{\"field\": \"value\"}") to populate this field.
+	// Use schema.Q(`{"field": "value"}`) to populate this field.
 	Dependency *PreQuery
 	// Filterable defines that the field can be used with the `filter` parameter.
 	// When this property is set to `true`, you may want to ensure the backend

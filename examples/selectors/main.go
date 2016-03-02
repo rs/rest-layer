@@ -127,6 +127,7 @@ func main() {
 		[]string{"PUT", "/users/fan1", `{"name": "Fan 1"}`},
 		[]string{"PUT", "/users/fan2", `{"name": "Fan 2"}`},
 		[]string{"PUT", "/users/fan3", `{"name": "Fan 3"}`},
+		[]string{"PUT", "/users/fan4", `{"name": "Fan 4"}`},
 		[]string{"PUT", "/posts/ar5qrgukj5l7a6eq2ps0",
 			`{
 				"user": "johndoe",

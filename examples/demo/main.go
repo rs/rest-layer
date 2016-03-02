@@ -97,7 +97,7 @@ var (
 				"body": schema.Field{
 					// Dependency defines that body field can't be changed if
 					// the published field is not "false".
-					Dependency: schema.Q("{\"published\": false}"),
+					Dependency: schema.Q(`{"published": false}`),
 					Validator: &schema.String{
 						MaxLen: 100000,
 					},
