@@ -466,7 +466,7 @@ Notice how we selected which fields we wanted in the result using the [field sel
 We can go even further and embed a sub-request list responses. Let's say we want a list of users with the last two posts:
 
 ```http
-http GET :8080/api/users fields='id,name,posts(limit=2){id,meta{title}}'
+http GET :8080/api/users fields='id,name,posts(limit:2){id,meta{title}}'
 
 HTTP/1.1 201 Created
 Content-Length: 155
@@ -899,7 +899,7 @@ With sub-fields notation you can also request referenced resources or connection
 
 ```http
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts \
-  fields=='meta{title},user{id,name},comments(sort="-created",limit=10){user{id,name},body}'
+  fields=='meta{title},user{id,name},comments(sort:"-created",limit:10){user{id,name},body}'
 [
     {
         "_etag": "ar6eimukj5lfl07r0uv0",

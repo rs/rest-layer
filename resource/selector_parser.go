@@ -23,18 +23,18 @@ fields can be specified as well by enclosing them between braces:
 field1{sub-field1,sub-field2},field2
 
 Fields can get some some parameters which can be passed to field filters to transform
-the value. Parameters are passed as key=value pairs enclosed in parenthezies, with value
+the value. Parameters are passed as key:value pairs enclosed in parenthezies, with value
 being either a quotted string or a numerical value:
 
-field1(param1="value", param2=123),field2
+field1(param1:"value", param2:123),field2
 
 You can combine field params and sub-field definition:
 
-field1(param1="value", param2=123){sub-field1,sub-field2},field2
+field1(param1:"value", param2:123){sub-field1,sub-field2},field2
 
 Or pass params to sub-fields:
 
-field1{sub-field1(param1="value"),sub-field2},field2
+field1{sub-field1(param1:"value"),sub-field2},field2
 
 Fields can also be renamed (aliased). This is useful when you want to have several times
 the same fields with different sets of parameters. To define aliases, append to the field
@@ -135,18 +135,18 @@ func parseSelectorFieldParams(exp []byte, pos *int, ln int) (map[string]interfac
 		for *pos < ln {
 			c := exp[*pos]
 			switch c {
-			case '=':
+			case ':', '=': // accept both : and = for backward compat
 				found = true
 				break L
 			case ' ', '\n', '\r', '\t':
 				// ignore whitespaces
 			default:
-				return nil, fmt.Errorf("looking for = at char %d", *pos)
+				return nil, fmt.Errorf("looking for : at char %d", *pos)
 			}
 			*pos++
 		}
 		if !found {
-			return nil, fmt.Errorf("looking for = at char %d", *pos)
+			return nil, fmt.Errorf("looking for : at char %d", *pos)
 		}
 		*pos++
 		value, err := scanSelectorParamValue(exp, pos, ln)
