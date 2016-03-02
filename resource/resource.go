@@ -14,7 +14,6 @@ import (
 // Resource holds information about a class of items exposed on the API
 type Resource struct {
 	name      string
-	bound     bool
 	validator validatorFallback
 	storage   Storer
 	conf      Conf
@@ -66,9 +65,10 @@ func (v connection) Validate(value interface{}) (interface{}, error) {
 	return value, nil
 }
 
-// New creates a new resource with provided spec, handler and config
-func New(v schema.Validator, s Storer, c Conf) *Resource {
+// new creates a new resource with provided spec, handler and config
+func new(name string, v schema.Validator, s Storer, c Conf) *Resource {
 	return &Resource{
+		name: name,
 		validator: validatorFallback{
 			Validator: v,
 			schema:    schema.Schema{},
@@ -103,20 +103,19 @@ func (r *Resource) Compile() error {
 // Bind a sub-resource with the provided name. The field parameter defines the parent
 // resource's which contains the sub resource id.
 //
-//     users := api.Bind("users", userResource)
+//     users := api.Bind("users", userSchema, userHandler, userConf)
 //     // Bind a sub resource on /users/:user_id/posts[/:post_id]
 //     // and reference the user on each post using the "user" field.
-//     posts := users.Bind("posts", "user", postResource)
+//     posts := users.Bind("posts", "user", postSchema, postHandler, postConf)
 //
 // This method will panic an alias or a resource with the same name is already bound
 // or if the specified field doesn't exist in the parent resource spec.
-func (r *Resource) Bind(name, field string, s *Resource) *Resource {
-	assertNotBound(name, s, r.resources, r.aliases)
-	if f := s.validator.Validator.GetField(field); f == nil {
+func (r *Resource) Bind(name, field string, v schema.Validator, h Storer, c Conf) *Resource {
+	assertNotBound(name, r.resources, r.aliases)
+	if f := v.GetField(field); f == nil {
 		log.Panicf("Cannot bind `%s' as sub-resource: field `%s' does not exist in the sub-resource'", name, field)
 	}
-	s.name = name
-	s.bound = true
+	s := new(name, v, h, c)
 	r.resources = append(r.resources, &subResource{
 		field:    field,
 		resource: s,
@@ -150,7 +149,7 @@ func (r *Resource) Bind(name, field string, s *Resource) *Resource {
 //
 // This method will panic an alias or a resource with the same name is already bound
 func (r *Resource) Alias(name string, v url.Values) {
-	assertNotBound(name, nil, r.resources, r.aliases)
+	assertNotBound(name, r.resources, r.aliases)
 	r.aliases[name] = v
 }
 

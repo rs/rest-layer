@@ -96,9 +96,9 @@ func main() {
 	index := resource.NewIndex()
 
 	// Bind user on /users
-	users := index.Bind("users", resource.New(user, mem.NewHandler(), resource.Conf{
+	users := index.Bind("users", user, mem.NewHandler(), resource.Conf{
 		AllowedModes: resource.ReadWrite,
-	}))
+	})
 
 	// Init the db with some users (user registration is not handled by this example)
 	secret, _ := schema.Password{}.Validate("secret")
@@ -116,9 +116,9 @@ func main() {
 	})
 
 	// Bind post on /posts
-	index.Bind("posts", resource.New(post, mem.NewHandler(), resource.Conf{
+	index.Bind("posts", post, mem.NewHandler(), resource.Conf{
 		AllowedModes: resource.ReadWrite,
-	}))
+	})
 
 	// Create API HTTP handler for the resource graph
 	api, err := rest.NewHandler(index)

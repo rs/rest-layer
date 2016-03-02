@@ -109,18 +109,18 @@ func Example() {
 	index := resource.NewIndex()
 
 	// Add a resource on /users[/:user_id]
-	users := index.Bind("users", resource.New(user, mem.NewHandler(), resource.Conf{
+	users := index.Bind("users", user, mem.NewHandler(), resource.Conf{
 		// We allow all REST methods
 		// (rest.ReadWrite is a shortcut for []rest.Mode{Create, Read, Update, Delete, List})
 		AllowedModes: resource.ReadWrite,
-	}))
+	})
 
 	// Bind a sub resource on /users/:user_id/posts[/:post_id]
 	// and reference the user on each post using the "user" field of the posts resource.
-	posts := users.Bind("posts", "user", resource.New(post, mem.NewHandler(), resource.Conf{
+	posts := users.Bind("posts", "user", post, mem.NewHandler(), resource.Conf{
 		// Posts can only be read, created and deleted, not updated
 		AllowedModes: []resource.Mode{resource.Read, resource.List, resource.Create, resource.Delete},
-	}))
+	})
 
 	// Add a friendly alias to public posts
 	// (equivalent to /users/:user_id/posts?filter={"public":true})

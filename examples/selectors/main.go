@@ -95,17 +95,17 @@ var (
 func main() {
 	index := resource.NewIndex()
 
-	index.Bind("users", resource.New(user, mem.NewHandler(), resource.Conf{
+	index.Bind("users", user, mem.NewHandler(), resource.Conf{
 		AllowedModes: resource.ReadWrite,
-	}))
+	})
 
-	posts := index.Bind("posts", resource.New(post, mem.NewHandler(), resource.Conf{
+	posts := index.Bind("posts", post, mem.NewHandler(), resource.Conf{
 		AllowedModes: resource.ReadWrite,
-	}))
+	})
 
-	posts.Bind("followers", "post", resource.New(postFollower, mem.NewHandler(), resource.Conf{
+	posts.Bind("followers", "post", postFollower, mem.NewHandler(), resource.Conf{
 		AllowedModes: resource.ReadWrite,
-	}))
+	})
 
 	// Create API HTTP handler for the resource graph
 	api, err := rest.NewHandler(index)

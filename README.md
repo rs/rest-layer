@@ -217,18 +217,18 @@ func main() {
 	index := resource.NewIndex()
 
 	// Add a resource on /users[/:user_id]
-	users := index.Bind("users", resource.New(user, mem.NewHandler(), resource.Conf{
+	users := index.Bind("users", user, mem.NewHandler(), resource.Conf{
 		// We allow all REST methods
 		// (rest.ReadWrite is a shortcut for []resource.Mode{resource.Create, resource.Read, resource.Update, resource.Delete, resource,List})
 		AllowedModes: resource.ReadWrite,
-	}))
+	})
 
 	// Bind a sub resource on /users/:user_id/posts[/:post_id]
 	// and reference the user on each post using the "user" field of the posts resource.
-	posts := users.Bind("posts", "user", resource.New(post, mem.NewHandler(), resource.Conf{
+	posts := users.Bind("posts", "user", post, mem.NewHandler(), resource.Conf{
 		// Posts can only be read, created and deleted, not updated
 		AllowedModes: []resource.Mode{resource.Read, resource.List, resource.Create, resource.Delete},
-	}))
+	})
 
 	// Add a friendly alias to public posts
 	// (equivalent to /users/:user_id/posts?filter={"published":true})
@@ -616,7 +616,7 @@ Now you just need to bind this schema at a specific endpoint on the [resource.In
 
 ```go
 index := resource.NewIndex()
-posts := index.Bind("posts", resource.New(post, mem.NewHandler(), resource.DefaultConf)
+posts := index.Bind("posts", post, mem.NewHandler(), resource.DefaultConf)
 ```
 
 This tells the `resource.Index` to bind the `post` schema at the `posts` endpoint. The resource collection URL is then `/posts` and item URLs are `/posts/<post_id>`.
@@ -640,9 +640,9 @@ You can easily dis/allow operation on a per resource basis using `resource.Conf`
 Modes are passed as configuration to resources as follow:
 
 ```go
-users := index.Bind("users", resource.New(user, mem.NewHandler(), resource.Conf{
+users := index.Bind("users", user, mem.NewHandler(), resource.Conf{
 	AllowedModes: []resource.Mode{resource.Read, resource.List, resource.Create, resource.Delete},
-}))
+})
 ```
 
 The following table shows how REST layer map CRUDL operations to HTTP methods and `modes`:
@@ -666,9 +666,9 @@ Sub resources can be used to express a one-to-may parent-child relationship betw
 To create a sub-resource, you bind you resource on the object returned by the binding of the parent resource. For instance, here we bind a `comments` resource to a `posts` resource:
 
 ```go
-posts := index.Bind("posts", resource.New(post, mem.NewHandler(), resource.DefaultConf)
+posts := index.Bind("posts", post, mem.NewHandler(), resource.DefaultConf)
 // Bind comment as sub-resource of the posts resource
-posts.Bind("comments", "post", resource.New(comment, mem.NewHandler(), resource.DefaultConf)
+posts.Bind("comments", "post", comment, mem.NewHandler(), resource.DefaultConf)
 ```
 
 The second argument `"post"` defines the field in the `comments` resource that refers to the parent. This field must be present in the resource and the backend storage must support filtering on it. As a result, we get a new hierarchical route as follow:

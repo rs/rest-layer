@@ -57,9 +57,9 @@ func TestFindRoute(t *testing.T) {
 	index := resource.NewIndex()
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
 	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
-	foo := index.Bind("foo", resource.New(schema.Schema{}, h, resource.DefaultConf))
-	bar := foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf))
-	barbar := bar.Bind("bar", "b", resource.New(schema.Schema{"b": schema.Field{}}, h, resource.DefaultConf))
+	foo := index.Bind("foo", schema.Schema{}, h, resource.DefaultConf)
+	bar := foo.Bind("bar", "f", schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf)
+	barbar := bar.Bind("bar", "b", schema.Schema{"b": schema.Field{}}, h, resource.DefaultConf)
 	bar.Alias("baz", url.Values{"sort": []string{"foo"}})
 
 	route = newRoute("GET")
@@ -194,9 +194,9 @@ func TestRoutePathParentsExists(t *testing.T) {
 	index := resource.NewIndex()
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
 	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
-	foo := index.Bind("foo", resource.New(schema.Schema{}, h, resource.DefaultConf))
-	bar := foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf))
-	bar.Bind("baz", "b", resource.New(schema.Schema{"f": schema.Field{}, "b": schema.Field{}}, h, resource.DefaultConf))
+	foo := index.Bind("foo", schema.Schema{}, h, resource.DefaultConf)
+	bar := foo.Bind("bar", "f", schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf)
+	bar.Bind("baz", "b", schema.Schema{"f": schema.Field{}, "b": schema.Field{}}, h, resource.DefaultConf)
 	ctx := context.Background()
 
 	route = newRoute("GET")
@@ -236,8 +236,8 @@ func TestRoutePathParentsNotExists(t *testing.T) {
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
 	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
 	empty := &mockHandler{[]*resource.Item{}, nil, []schema.Query{}, sync.Mutex{}}
-	foo := index.Bind("foo", resource.New(schema.Schema{}, empty, resource.DefaultConf))
-	foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf))
+	foo := index.Bind("foo", schema.Schema{}, empty, resource.DefaultConf)
+	foo.Bind("bar", "f", schema.Schema{"f": schema.Field{}}, h, resource.DefaultConf)
 	ctx := context.Background()
 
 	route := newRoute("GET")

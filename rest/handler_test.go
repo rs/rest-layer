@@ -41,13 +41,13 @@ func TestNewHandler(t *testing.T) {
 
 func TestNewHandlerNoCompile(t *testing.T) {
 	i := resource.NewIndex()
-	i.Bind("foo", resource.New(schema.Schema{
+	i.Bind("foo", schema.Schema{
 		"f": schema.Field{
 			Validator: schema.String{
 				Regexp: "[",
 			},
 		},
-	}, nil, resource.DefaultConf))
+	}, nil, resource.DefaultConf)
 	_, err := NewHandler(i)
 	assert.EqualError(t, err, "foo: schema compilation error: f: not a schema.Validator pointer")
 }
@@ -66,7 +66,7 @@ func TestHandlerGetContext(t *testing.T) {
 
 func TestHandlerServeHTTP(t *testing.T) {
 	i := resource.NewIndex()
-	i.Bind("foo", resource.New(schema.Schema{}, nil, resource.DefaultConf))
+	i.Bind("foo", schema.Schema{}, nil, resource.DefaultConf)
 	h, _ := NewHandler(i)
 	w := newRecorder()
 	defer w.Close()
@@ -90,8 +90,8 @@ func TestHandlerServeHTTPNotFound(t *testing.T) {
 
 func TestHandlerServeHTTPParentNotFound(t *testing.T) {
 	i := resource.NewIndex()
-	foo := i.Bind("foo", resource.New(schema.Schema{}, mem.NewHandler(), resource.DefaultConf))
-	foo.Bind("bar", "f", resource.New(schema.Schema{"f": schema.Field{}}, nil, resource.DefaultConf))
+	foo := i.Bind("foo", schema.Schema{}, mem.NewHandler(), resource.DefaultConf)
+	foo.Bind("bar", "f", schema.Schema{"f": schema.Field{}}, nil, resource.DefaultConf)
 	h, _ := NewHandler(i)
 	w := newRecorder()
 	defer w.Close()
