@@ -183,7 +183,7 @@ func checkReferences(ctx context.Context, payload map[string]interface{}, s sche
 				if !ok {
 					return &Error{500, "Router not available in context", nil}
 				}
-				rsrc, _, found := router.GetResource(ref.Path, nil)
+				rsrc, found := router.GetResource(ref.Path, nil)
 				if !found {
 					return &Error{500, fmt.Sprintf("Invalid resource reference for field `%s': %s", name, ref.Path), nil}
 				}

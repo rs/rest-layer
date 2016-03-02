@@ -55,7 +55,7 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			if !ok {
 				return nil, errors.New("router not available in context")
 			}
-			rsrc, _, found := router.GetResource(path, route.Resource())
+			rsrc, found := router.GetResource(path, route.Resource())
 			if !found {
 				return nil, fmt.Errorf("invalid resource reference: %s", path)
 			}

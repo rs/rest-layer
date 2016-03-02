@@ -13,26 +13,22 @@ import (
 
 // Resource holds information about a class of items exposed on the API
 type Resource struct {
-	name      string
-	validator validatorFallback
-	storage   Storer
-	conf      Conf
-	resources subResources
-	aliases   map[string]url.Values
+	parentField string
+	name        string
+	path        string
+	validator   validatorFallback
+	storage     Storer
+	conf        Conf
+	resources   subResources
+	aliases     map[string]url.Values
 }
 
-// subResource is used to bind resources and sub-resources
-type subResource struct {
-	field    string
-	resource *Resource
-}
+type subResources []*Resource
 
-type subResources []*subResource
-
-func (sr subResources) get(name string) *subResource {
+func (sr subResources) get(name string) *Resource {
 	// TODO pre-sort and use sort package to search
 	for _, r := range sr {
-		if r.resource.name == name {
+		if r.name == name {
 			return r
 		}
 	}
@@ -69,6 +65,7 @@ func (v connection) Validate(value interface{}) (interface{}, error) {
 func new(name string, v schema.Validator, s Storer, c Conf) *Resource {
 	return &Resource{
 		name: name,
+		path: name,
 		validator: validatorFallback{
 			Validator: v,
 			schema:    schema.Schema{},
@@ -80,6 +77,22 @@ func new(name string, v schema.Validator, s Storer, c Conf) *Resource {
 	}
 }
 
+// Name returns the name of the resource
+func (r *Resource) Name() string {
+	return r.name
+}
+
+// Path returns the full path of the resource composed of names of each
+// intermediate resources separated by dots (i.e.: res1.res2.res3)
+func (r *Resource) Path() string {
+	return r.path
+}
+
+// ParentField returns the name of the field on which the resource is bound to its parent if any.
+func (r *Resource) ParentField() string {
+	return r.parentField
+}
+
 // Compile the resource graph and report any error
 func (r *Resource) Compile() error {
 	// Compile schema and panic on any compilation error
@@ -88,13 +101,13 @@ func (r *Resource) Compile() error {
 			return fmt.Errorf(": schema compilation error: %s", err)
 		}
 	}
-	for _, subResource := range r.resources {
-		if err := subResource.resource.Compile(); err != nil {
+	for _, r := range r.resources {
+		if err := r.Compile(); err != nil {
 			if err.Error()[0] == ':' {
 				// Check if I'm the direct ancestor of the raised sub-error
-				return fmt.Errorf("%s%s", subResource.resource.name, err)
+				return fmt.Errorf("%s%s", r.name, err)
 			}
-			return fmt.Errorf("%s.%s", subResource.resource.name, err)
+			return fmt.Errorf("%s.%s", r.name, err)
 		}
 	}
 	return nil
@@ -116,10 +129,9 @@ func (r *Resource) Bind(name, field string, v schema.Validator, h Storer, c Conf
 		log.Panicf("Cannot bind `%s' as sub-resource: field `%s' does not exist in the sub-resource'", name, field)
 	}
 	s := new(name, v, h, c)
-	r.resources = append(r.resources, &subResource{
-		field:    field,
-		resource: s,
-	})
+	s.parentField = field
+	s.path = r.path + "." + name
+	r.resources = append(r.resources, s)
 	r.validator.schema[name] = schema.Field{
 		ReadOnly: true,
 		Validator: connection{
@@ -193,7 +205,7 @@ func (r *Resource) Get(ctx context.Context, id interface{}) (item *Item, err err
 // is not found, their slot in the response is set to nil.
 func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*Item, err error) {
 	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.MultiGet(%v)", r.name, ids, xlog.F{
+		xlog.FromContext(ctx).Debugf("%s.MultiGet(%v)", r.path, ids, xlog.F{
 			"duration": time.Since(t),
 			"found":    len(items),
 			"error":    err,
@@ -257,7 +269,7 @@ func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage int) 
 		if list != nil {
 			found = len(list.Items)
 		}
-		xlog.FromContext(ctx).Debugf("%s.Find(..., %d, %d)", r.name, page, perPage, xlog.F{
+		xlog.FromContext(ctx).Debugf("%s.Find(..., %d, %d)", r.path, page, perPage, xlog.F{
 			"duration": time.Since(t),
 			"found":    found,
 			"error":    err,
@@ -302,7 +314,7 @@ func wrapMgetList(items []*Item, err error) (*ItemList, error) {
 // Insert implements Storer interface
 func (r *Resource) Insert(ctx context.Context, items []*Item) (err error) {
 	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.Insert(items[%d])", r.name, len(items), xlog.F{
+		xlog.FromContext(ctx).Debugf("%s.Insert(items[%d])", r.path, len(items), xlog.F{
 			"duration": time.Since(t),
 			"error":    err,
 		})
@@ -319,7 +331,7 @@ func (r *Resource) Insert(ctx context.Context, items []*Item) (err error) {
 // Update implements Storer interface
 func (r *Resource) Update(ctx context.Context, item *Item, original *Item) (err error) {
 	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.Update(%v, %v)", r.name, item.ID, original.ID, xlog.F{
+		xlog.FromContext(ctx).Debugf("%s.Update(%v, %v)", r.path, item.ID, original.ID, xlog.F{
 			"duration": time.Since(t),
 			"error":    err,
 		})
@@ -336,7 +348,7 @@ func (r *Resource) Update(ctx context.Context, item *Item, original *Item) (err 
 // Delete implements Storer interface
 func (r *Resource) Delete(ctx context.Context, item *Item) (err error) {
 	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.Delete(%v)", r.name, item.ID, xlog.F{
+		xlog.FromContext(ctx).Debugf("%s.Delete(%v)", r.path, item.ID, xlog.F{
 			"duration": time.Since(t),
 			"error":    err,
 		})
@@ -353,7 +365,7 @@ func (r *Resource) Delete(ctx context.Context, item *Item) (err error) {
 // Clear implements Storer interface
 func (r *Resource) Clear(ctx context.Context, lookup *Lookup) (deleted int, err error) {
 	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.Clear(%v)", r.name, lookup, xlog.F{
+		xlog.FromContext(ctx).Debugf("%s.Clear(%v)", r.path, lookup, xlog.F{
 			"duration": time.Since(t),
 			"deleted":  deleted,
 			"error":    err,
