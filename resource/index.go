@@ -20,20 +20,22 @@ type Index interface {
 
 // index is the root of the resource graph
 type index struct {
-	resources map[string]*subResource
+	resources subResources
 }
 
 // NewIndex creates a new resource index
 func NewIndex() Index {
 	return &index{
-		resources: map[string]*subResource{},
+		resources: subResources{},
 	}
 }
 
 // Bind a resource at the specified endpoint name
 func (r *index) Bind(name string, s *Resource) *Resource {
-	assertNotBound(name, r.resources, nil)
-	r.resources[name] = &subResource{resource: s}
+	assertNotBound(name, s, r.resources, nil)
+	s.name = name
+	s.bound = true
+	r.resources = append(r.resources, &subResource{resource: s})
 	return s
 }
 
@@ -61,7 +63,7 @@ func (r *index) GetResource(path string, parent *Resource) (*Resource, string, b
 	}
 	var resource *Resource
 	for _, comp := range strings.Split(path, ".") {
-		if subResource, found := resources[comp]; found {
+		if subResource := resources.get(comp); subResource != nil {
 			resource = subResource.resource
 			field = subResource.field
 			resources = resource.resources
@@ -72,23 +74,28 @@ func (r *index) GetResource(path string, parent *Resource) (*Resource, string, b
 	return resource, field, true
 }
 
-func compileResourceGraph(resources map[string]*subResource) error {
-	for field, subResource := range resources {
+func compileResourceGraph(resources subResources) error {
+	for _, subResource := range resources {
 		if err := subResource.resource.Compile(); err != nil {
 			sep := "."
 			if err.Error()[0] == ':' {
 				sep = ""
 			}
-			return fmt.Errorf("%s%s%s", field, sep, err)
+			return fmt.Errorf("%s%s%s", subResource.resource.name, sep, err)
 		}
 	}
 	return nil
 }
 
 // assertNotBound asserts a given resource name is not already bound
-func assertNotBound(name string, resources map[string]*subResource, aliases map[string]url.Values) {
-	if _, found := resources[name]; found {
-		log.Panicf("Cannot bind `%s': already bound as resource'", name)
+func assertNotBound(name string, s *Resource, resources []*subResource, aliases map[string]url.Values) {
+	if s != nil && s.bound {
+		log.Panicf("Cannot bind `%s': resource already bound'", s.name)
+	}
+	for _, r := range resources {
+		if r.resource.name == name {
+			log.Panicf("Cannot bind `%s': already bound as resource'", name)
+		}
 	}
 	if _, found := aliases[name]; found {
 		log.Panicf("Cannot bind `%s': already bound as alias'", name)
