@@ -16,6 +16,7 @@ type Resource struct {
 	parentField string
 	name        string
 	path        string
+	schema      schema.Schema
 	validator   validatorFallback
 	storage     Storer
 	conf        Conf
@@ -39,14 +40,14 @@ func (sr subResources) get(name string) *Resource {
 // returns nil on a given name
 type validatorFallback struct {
 	schema.Validator
-	schema schema.Schema
+	fallback schema.Schema
 }
 
 func (v validatorFallback) GetField(name string) *schema.Field {
 	if f := v.Validator.GetField(name); f != nil {
 		return f
 	}
-	return v.schema.GetField(name)
+	return v.fallback.GetField(name)
 }
 
 // connection is a special internal validator to hook a validator of a sub resource
@@ -62,15 +63,16 @@ func (v connection) Validate(value interface{}) (interface{}, error) {
 }
 
 // new creates a new resource with provided spec, handler and config
-func new(name string, v schema.Validator, s Storer, c Conf) *Resource {
+func new(name string, s schema.Schema, h Storer, c Conf) *Resource {
 	return &Resource{
-		name: name,
-		path: name,
+		name:   name,
+		path:   name,
+		schema: s,
 		validator: validatorFallback{
-			Validator: v,
-			schema:    schema.Schema{},
+			Validator: s,
+			fallback:  schema.Schema{},
 		},
-		storage:   s,
+		storage:   h,
 		conf:      c,
 		resources: subResources{},
 		aliases:   map[string]url.Values{},
@@ -123,16 +125,16 @@ func (r *Resource) Compile() error {
 //
 // This method will panic an alias or a resource with the same name is already bound
 // or if the specified field doesn't exist in the parent resource spec.
-func (r *Resource) Bind(name, field string, v schema.Validator, h Storer, c Conf) *Resource {
+func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *Resource {
 	assertNotBound(name, r.resources, r.aliases)
-	if f := v.GetField(field); f == nil {
+	if f := s.GetField(field); f == nil {
 		log.Panicf("Cannot bind `%s' as sub-resource: field `%s' does not exist in the sub-resource'", name, field)
 	}
-	s := new(name, v, h, c)
-	s.parentField = field
-	s.path = r.path + "." + name
-	r.resources = append(r.resources, s)
-	r.validator.schema[name] = schema.Field{
+	sr := new(name, s, h, c)
+	sr.parentField = field
+	sr.path = r.path + "." + name
+	r.resources = append(r.resources, sr)
+	r.validator.fallback[name] = schema.Field{
 		ReadOnly: true,
 		Validator: connection{
 			path: "." + name,
@@ -150,7 +152,12 @@ func (r *Resource) Bind(name, field string, v schema.Validator, h Storer, c Conf
 			},
 		},
 	}
-	return s
+	return sr
+}
+
+// GetResources returns first level resources
+func (r *Resource) GetResources() []*Resource {
+	return r.resources
 }
 
 // Alias adds an pre-built resource query on /<resource>/<alias>.
@@ -169,6 +176,11 @@ func (r *Resource) Alias(name string, v url.Values) {
 func (r *Resource) GetAlias(name string) (url.Values, bool) {
 	a, found := r.aliases[name]
 	return a, found
+}
+
+// Schema returns the resource's schema
+func (r *Resource) Schema() schema.Schema {
+	return r.schema
 }
 
 // Validator returns the resource's validator

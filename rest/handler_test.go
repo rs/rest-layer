@@ -11,7 +11,6 @@ import (
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 type closeNotifyRecorder struct {
@@ -52,14 +51,10 @@ func TestNewHandlerNoCompile(t *testing.T) {
 	assert.EqualError(t, err, "foo: schema compilation error: f: not a schema.Validator pointer")
 }
 
-func TestHandlerGetContext(t *testing.T) {
-	var c context.Context
-	var err *Error
-	h, _ := NewHandler(resource.NewIndex())
+func TestGetContext(t *testing.T) {
 	w := newRecorder()
 	defer w.Close()
-	c, err = h.getContext(w, &http.Request{URL: &url.URL{}})
-	assert.Nil(t, err)
+	c := getContext(w, &http.Request{URL: &url.URL{}})
 	_, ok := c.Deadline()
 	assert.False(t, ok)
 }

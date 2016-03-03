@@ -29,6 +29,7 @@ REST Layer is composed of several sub-packages:
 
  - rest: Holds the `net/http` handler responsible for the implementation of the
    RESTful API.
+ - gql: Holds a `net/http` handler to expose the API using the GraphQL protocol.
  - schema: Provides a validation framework for the API resources.
  - resource: Defines resources, manages the resource graph and manages the
    interface with resource storage handler.

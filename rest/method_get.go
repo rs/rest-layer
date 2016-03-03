@@ -25,7 +25,7 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		if p := r.URL.Query().Get("page"); p != "" {
 			i, err := strconv.ParseUint(p, 10, 32)
 			if err != nil {
-				return 422, nil, &Error{422, "Invalid `page` paramter", nil}
+				return 422, nil, &Error{422, "Invalid `page` parameter", nil}
 			}
 			page = int(i)
 		}

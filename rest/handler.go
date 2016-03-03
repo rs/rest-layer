@@ -40,7 +40,7 @@ func NewHandler(i resource.Index) (*Handler, error) {
 // getContext creates a context for the request to add net/context support when used as a
 // standard http.Handler, without net/context support. The context will automatically be
 // canceled as soon as passed request connection will be closed.
-func (h *Handler) getContext(w http.ResponseWriter, r *http.Request) (context.Context, *Error) {
+func getContext(w http.ResponseWriter, r *http.Request) context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 	// Handle canceled requests using net/context by passing a context
 	// to the request handler that will be canceled as soon as the client
@@ -53,18 +53,12 @@ func (h *Handler) getContext(w http.ResponseWriter, r *http.Request) (context.Co
 			cancel()
 		}()
 	}
-	return ctx, nil
+	return ctx
 }
 
 // ServeHTTP handles requests as a http.Handler
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Skip body if method is HEAD
-	skipBody := r.Method == "HEAD"
-	ctx, err := h.getContext(w, r)
-	if err != nil {
-		h.sendResponse(context.Background(), w, 0, http.Header{}, err, skipBody, nil)
-		return
-	}
+	ctx := getContext(w, r)
 	h.ServeHTTPC(ctx, w, r)
 }
 

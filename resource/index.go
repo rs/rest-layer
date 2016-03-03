@@ -13,7 +13,7 @@ import (
 // from a resource graph.
 type Index interface {
 	// Bind a new resource at the "name" endpoint
-	Bind(name string, v schema.Validator, h Storer, c Conf) *Resource
+	Bind(name string, s schema.Schema, h Storer, c Conf) *Resource
 	// GetResource retrives a given resource by it's path.
 	// For instance if a resource user has a sub-resource posts,
 	// a users.posts path can be use to retrieve the posts resource.
@@ -21,6 +21,8 @@ type Index interface {
 	// If a parent is given and the path starts with a dot, the lookup is started at the
 	// parent's location instead of root's.
 	GetResource(path string, parent *Resource) (*Resource, bool)
+	// GetResources returns first level resources
+	GetResources() []*Resource
 }
 
 // index is the root of the resource graph
@@ -36,11 +38,11 @@ func NewIndex() Index {
 }
 
 // Bind a resource at the specified endpoint name
-func (r *index) Bind(name string, v schema.Validator, h Storer, c Conf) *Resource {
+func (r *index) Bind(name string, s schema.Schema, h Storer, c Conf) *Resource {
 	assertNotBound(name, r.resources, nil)
-	s := new(name, v, h, c)
-	r.resources = append(r.resources, s)
-	return s
+	sr := new(name, s, h, c)
+	r.resources = append(r.resources, sr)
+	return sr
 }
 
 // Compile the resource graph and report any error
@@ -73,6 +75,11 @@ func (r *index) GetResource(path string, parent *Resource) (*Resource, bool) {
 		}
 	}
 	return sr, true
+}
+
+// GetResources returns first level resources
+func (r *index) GetResources() []*Resource {
+	return r.resources
 }
 
 func compileResourceGraph(resources subResources) error {

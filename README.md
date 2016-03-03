@@ -12,11 +12,12 @@ REST Layer is an opinionated framework. Unlike many API frameworks, you don't di
 
 A powerful and extensible [validation engine](#resource-configuration) make sure that data comes pre-validated to your [custom storage handlers](#data-storage-handler). Generic resource handlers for [MongoDB](http://github.com/rs/rest-layer-mongo), [ElastiSearch](http://github.com/rs/rest-layer-es) and other databases are also available so you have few to no code to write to make the whole system work.
 
-Moreover, REST Layer let you create a graph API by linking resources between them. Thanks to its advanced [field selection](field-selection) syntax (and coming support of GraphQL), you can gather resources and their dependencies in a single request, saving you from costly network roundtrips.
+Moreover, REST Layer let you create a graph API by linking resources between them. Thanks to its advanced [field selection](#field-selection) syntax or [GraphQL](#graphql) support, you can gather resources and their dependencies in a single request, saving you from costly network roundtrips.
 
 REST Layer is composed of several packages:
 
 * [rest](https://godoc.org/github.com/rs/rest-layer/rest): Holds the `net/http` handler responsible for the implementation of the RESTful API.
+* [gql](https://godoc.org/github.com/rs/rest-layer/gql): Holds a `net/http` handler to expose the API using the GraphQL protocol.
 * [schema](https://godoc.org/github.com/rs/rest-layer/schema): Provides a validation framework for the API resources.
 * [resource](https://godoc.org/github.com/rs/rest-layer/resource): Defines resources, manages the resource graph and manages the interface with resource storage handler.
 
@@ -49,6 +50,7 @@ REST Layer is composed of several packages:
 - [Data Storage Handler](#data-storage-handler)
 - [Custom Response Formatter / Sender](#custom-response-formatter-sender)
 - [Middleware](#middleware)
+- [GraphQL](#graphql)
 
 ## Features
 
@@ -57,7 +59,8 @@ REST Layer is composed of several packages:
 - [x] Plays well with other `net/http` middleware
 - [x] Pluggable resources storage
 - [x] Pluggable response sender
-- [ ] GraphQL support
+- [x] GraphQL query support
+- [ ] GraphQL mutation support
 - [ ] Swagger Documentation
 - [ ] Testing framework
 - [x] Sub resources
@@ -1252,3 +1255,25 @@ api.Use(rest.NewMiddleware(func(ctx context.Context, r *http.Request, next rest.
 	return next(ctx)
 })
 ```
+
+## GraphQL
+
+In parallel of the REST API handler, REST Layer is also able to handle GraphQL queries (mutation will come later). GraphQL is a query language created by Facebook which provides a common interface fetch and manipulate data. REST Layer's GraphQL handler is able to read a [resource.Index](https://godoc.org/github.com/rs/rest-layer/resource#Index) and create a corresponding GraphQL schema.
+
+GraphQL doesn't expose resources directly, but queries. REST Layer take all the resources defined at the root of the `resource.Index` and create two GraphQL queries for each one. On query is just the name of the endpoint, so `/users` would result in `users` and another is the name of the endpoint suffixed with `List`, as `usersList`. The item queries takes an `id` parameter and the list queries take `page`, `limit`, `filter` and `sort` parameters. All sub-resources are accessible using GraphQL sub-selection syntax.
+
+You can bind the GraphQL endpoint wherever you want as follow:
+
+```go
+index := resource.NewIndex()
+// Bind some resources
+
+h, err := gql.NewHandler(index)
+if err != nil {
+	log.Fatal(err)
+}
+http.Handle("/graphql", h)
+http.ListenAndServe(":8080", nil)
+```
+
+GraphQL support is experimental.

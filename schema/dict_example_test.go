@@ -12,8 +12,8 @@ func ExampleDict() {
 				},
 				// Allow either string or integer as dict value
 				ValuesValidator: &schema.AnyOf{
-					&schema.String{},
-					&schema.Integer{},
+					0: &schema.String{},
+					1: &schema.Integer{},
 				},
 			},
 		},

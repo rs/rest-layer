@@ -70,8 +70,7 @@ func (m myAuthMiddleware) Handle(ctx context.Context, r *http.Request, next rest
 		}
 		if schema.VerifyPassword(user.Payload["password"], []byte(p)) {
 			// Get the current route from the context
-			route, ok := rest.RouteFromContext(ctx)
-			if ok {
+			if route, ok := rest.RouteFromContext(ctx); ok {
 				// If the current resource is "users", set the resource field to "id"
 				// as user resource doesn't reference itself thru a "user" field.
 				field := "user"

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/rs/rest-layer-mem"
+	"github.com/rs/rest-layer/gql"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
@@ -118,8 +119,15 @@ func main() {
 	c.UseC(xlog.NewHandler(xlog.Config{}))
 	c.UseC(xaccess.NewHandler())
 
-	// Bind the API under the root path
-	http.Handle("/", c.Handler(api))
+	// Bind the API under /api/ path
+	http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
+
+	// Create and bind the graphql endpoint
+	graphql, err := gql.NewHandler(index)
+	if err != nil {
+		log.Fatal(err)
+	}
+	http.Handle("/graphql", c.Handler(graphql))
 
 	// Inject some fixtures
 	fixtures := [][]string{
@@ -156,11 +164,11 @@ func main() {
 	// Serve it
 	log.Print("Serving API on http://localhost:8080")
 	log.Println("Play with (httpie):\n",
-		"- http :8080/posts fields=='id,thumbnail_url(height:80):thumb_s_url'\n",
-		"- http :8080/posts fields=='id:i,meta{title:t, body:b}:m,thumbnail_url(height:80):thumb_small_url'\n",
-		"- http :8080/posts fields=='id,meta,user{id,name}'\n",
-		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0/followers fields=='post{id,meta{title}},user{id,name}'\n",
-		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0 fields=='id,meta{title},followers(limit:2){user{id,name}}'")
+		"- http :8080/graphql query=='{postsList{id,thumb_s_url:thumbnail_url(height:80)}}'\n",
+		"- http :8080/graphql query=='{postsList{i:id,m:meta{t:title, b:body},thumb_small_url:thumbnail_url(height:80)}}'\n",
+		"- http :8080/graphql query=='{postsList{id,meta{title},user{id,name}}}'\n",
+		"- http :8080/graphql query=='{posts(id:\"ar5qrgukj5l7a6eq2ps0\"){followers{post{id,meta{title}},user{id,name}}}}'\n",
+		"- http :8080/graphql query=='{posts(id:\"ar5qrgukj5l7a6eq2ps0\"){id,meta{title},followers(limit:2){user{id,name}}}}'")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}
