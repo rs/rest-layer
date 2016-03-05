@@ -51,6 +51,7 @@ REST Layer is composed of several packages:
 - [Custom Response Formatter / Sender](#custom-response-formatter-sender)
 - [Middleware](#middleware)
 - [GraphQL](#graphql)
+- [Hystrix](#hystrix)
 
 ## Features
 
@@ -87,6 +88,7 @@ REST Layer is composed of several packages:
 - [x] Sub-request concurrency control
 - [x] Custom ID field
 - [ ] Data versioning
+- [x] Per resource circuit breaker using [Hystrix](https://godoc.org/github.com/afex/hystrix-go/hystrix)
 
 ### Extensions
 
@@ -1298,3 +1300,28 @@ http.ListenAndServe(":8080", nil)
 ```
 
 GraphQL support is experimental. Only querying is supported for now, mutation will come later. Sub-queries are executed sequentially and may generate quite a lot of query on the storage backend on complex queries. You may prefer the REST endpoint with [field selection](#field-selection) which benefits from a lot of optimization for now.
+
+## Hystrix
+
+REST Layer supports Hystrix as a circuit breaker. You can enable Hystrix on a per resource basis by setting the `Hystrix` flag to `true` in the resource's configuration:
+
+```go
+index.Bind("posts", post, mongo.NewHandler(), resource.Conf{
+	AllowedModes: resource.ReadWrite,
+	Hystrix:      true,
+})
+```
+
+When enabled, one Hystrix command is created per resource action, with the name formatted as `<resource_name>.<Action>`. Possible actions are:
+
+- `Get`: when a single item is retrieved.
+- `MultiGet`: when several items are retrieved by their ids.
+- `Find`: when a collection of items is requested.
+- `Insert`: when items are created.
+- `Update`: when items are modified.
+- `Delete`: when a single item is deleted by its id.
+- `Clear`: when a collection of items matching a filter are deleted.
+
+Once enabled, you must configure Hystrix for each command and start the Hystrix metrics stream handler.
+
+See [Hystrix godoc](https://godoc.org/github.com/afex/hystrix-go/hystrix) for more info and `examples/hystrix/main.go` for a complete usage example with REST layer.
