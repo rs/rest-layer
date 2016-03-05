@@ -148,9 +148,6 @@ type ReferenceResolver func(path string) (*Resource, error)
 
 // ApplySelector applies fields filtering / rename to the payload fields
 func (l *Lookup) ApplySelector(ctx context.Context, r *Resource, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
-	if len(l.selector) == 0 {
-		return p, nil
-	}
 	payload, err := applySelector(ctx, l.selector, r.Validator(), p, resolver)
 	if err == nil {
 		// The resulting payload may contain some asyncSelector, we must execute them
