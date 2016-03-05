@@ -16,22 +16,24 @@ var (
 	// CreatedField is a common schema field configuration for "created" fields. It stores
 	// the creation date of the item.
 	CreatedField = Field{
-		Required:  true,
-		ReadOnly:  true,
-		OnInit:    &Now,
-		Sortable:  true,
-		Validator: &Time{},
+		Description: "The time at which the item has been inserted",
+		Required:    true,
+		ReadOnly:    true,
+		OnInit:      &Now,
+		Sortable:    true,
+		Validator:   &Time{},
 	}
 
 	// UpdatedField is a common schema field configuration for "updated" fields. It stores
 	// the current date each time the item is modified.
 	UpdatedField = Field{
-		Required:  true,
-		ReadOnly:  true,
-		OnInit:    &Now,
-		OnUpdate:  &Now,
-		Sortable:  true,
-		Validator: &Time{},
+		Description: "The time at which the item has been last updated",
+		Required:    true,
+		ReadOnly:    true,
+		OnInit:      &Now,
+		OnUpdate:    &Now,
+		Sortable:    true,
+		Validator:   &Time{},
 	}
 
 	formats = []string{

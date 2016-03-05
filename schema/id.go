@@ -20,11 +20,12 @@ var (
 
 	// IDField is a common schema field configuration that generate an UUID for new item id.
 	IDField = Field{
-		Required:   true,
-		ReadOnly:   true,
-		OnInit:     &NewID,
-		Filterable: true,
-		Sortable:   true,
+		Description: "The item's id",
+		Required:    true,
+		ReadOnly:    true,
+		OnInit:      &NewID,
+		Filterable:  true,
+		Sortable:    true,
 		Validator: &String{
 			Regexp: "^[0-9a-v]{20}$",
 		},

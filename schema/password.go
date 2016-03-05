@@ -21,9 +21,10 @@ var (
 	// PasswordField is a common schema field for passwords. It encrypt the password using bcrypt
 	// before storage and hide the value so the hash can't be read back.
 	PasswordField = Field{
-		Required:  true,
-		Hidden:    true,
-		Validator: &Password{},
+		Description: "Write-only field storing a secret password.",
+		Required:    true,
+		Hidden:      true,
+		Validator:   &Password{},
 	}
 )
 
