@@ -266,7 +266,7 @@ func getAsyncGetResolver(p map[string]interface{}) []asyncSelectorResolver {
 			}
 			// Route back the value to corresponding asyncGet handlers
 			for i, ag := range ags {
-				val, err := ag.handler(items[i])
+				val, err := ag.handler(ctx, items[i])
 				if err != nil {
 					done <- err
 					return
