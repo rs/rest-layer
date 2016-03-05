@@ -58,8 +58,8 @@ func TestFindRoute(t *testing.T) {
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
 	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
 	foo := index.Bind("foo", schema.Schema{}, h, resource.DefaultConf)
-	bar := foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": schema.Field{}}}, h, resource.DefaultConf)
-	barbar := bar.Bind("bar", "b", schema.Schema{Fields: schema.Fields{"b": schema.Field{}}}, h, resource.DefaultConf)
+	bar := foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": {}}}, h, resource.DefaultConf)
+	barbar := bar.Bind("bar", "b", schema.Schema{Fields: schema.Fields{"b": {}}}, h, resource.DefaultConf)
 	bar.Alias("baz", url.Values{"sort": []string{"foo"}})
 
 	route = newRoute("GET")
@@ -195,8 +195,8 @@ func TestRoutePathParentsExists(t *testing.T) {
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
 	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
 	foo := index.Bind("foo", schema.Schema{}, h, resource.DefaultConf)
-	bar := foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": schema.Field{}}}, h, resource.DefaultConf)
-	bar.Bind("baz", "b", schema.Schema{Fields: schema.Fields{"f": schema.Field{}, "b": schema.Field{}}}, h, resource.DefaultConf)
+	bar := foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": {}}}, h, resource.DefaultConf)
+	bar.Bind("baz", "b", schema.Schema{Fields: schema.Fields{"f": {}, "b": {}}}, h, resource.DefaultConf)
 	ctx := context.Background()
 
 	route = newRoute("GET")
@@ -237,7 +237,7 @@ func TestRoutePathParentsNotExists(t *testing.T) {
 	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
 	empty := &mockHandler{[]*resource.Item{}, nil, []schema.Query{}, sync.Mutex{}}
 	foo := index.Bind("foo", schema.Schema{}, empty, resource.DefaultConf)
-	foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": schema.Field{}}}, h, resource.DefaultConf)
+	foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": {}}}, h, resource.DefaultConf)
 	ctx := context.Background()
 
 	route := newRoute("GET")

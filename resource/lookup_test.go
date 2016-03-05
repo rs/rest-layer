@@ -20,15 +20,15 @@ func TestLookupSetSort(t *testing.T) {
 	l := NewLookup()
 	s := schema.Schema{
 		Fields: schema.Fields{
-			"foo": schema.Field{
+			"foo": {
 				Sortable: true,
 				Schema: &schema.Schema{
 					Fields: schema.Fields{
-						"bar": schema.Field{Sortable: true},
+						"bar": {Sortable: true},
 					},
 				},
 			},
-			"baz": schema.Field{Sortable: true},
+			"baz": {Sortable: true},
 		},
 	}
 	err = l.SetSort("foo", s)
@@ -45,7 +45,7 @@ func TestLookupSetSort(t *testing.T) {
 func TestLookupSetSortUnsortableField(t *testing.T) {
 	var err error
 	l := NewLookup()
-	s := schema.Schema{Fields: schema.Fields{"foo": schema.Field{Sortable: false}}}
+	s := schema.Schema{Fields: schema.Fields{"foo": {Sortable: false}}}
 	err = l.SetSort("foo", s)
 	assert.EqualError(t, err, "field is not sortable: foo")
 }
@@ -53,7 +53,7 @@ func TestLookupSetSortUnsortableField(t *testing.T) {
 func TestLookupSetSortInvalidField(t *testing.T) {
 	var err error
 	l := NewLookup()
-	s := schema.Schema{Fields: schema.Fields{"foo": schema.Field{Sortable: true}}}
+	s := schema.Schema{Fields: schema.Fields{"foo": {Sortable: true}}}
 	err = l.SetSort("bar", s)
 	assert.EqualError(t, err, "invalid sort field: bar")
 	err = l.SetSort("", s)
@@ -69,18 +69,18 @@ func TestLookupAddFilter(t *testing.T) {
 	l := NewLookup()
 	s := schema.Schema{
 		Fields: schema.Fields{
-			"foo": schema.Field{
+			"foo": {
 				Filterable: true,
 				Schema: &schema.Schema{
 					Fields: schema.Fields{
-						"bar": schema.Field{
+						"bar": {
 							Validator:  schema.String{},
 							Filterable: true,
 						},
 					},
 				},
 			},
-			"baz": schema.Field{
+			"baz": {
 				Validator:  schema.Integer{},
 				Filterable: true,
 			},

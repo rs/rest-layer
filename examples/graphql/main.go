@@ -22,7 +22,7 @@ var (
 	user = schema.Schema{
 		Description: "Defines user information",
 		Fields: schema.Fields{
-			"id": schema.Field{
+			"id": {
 				Required:   true,
 				ReadOnly:   true,
 				Filterable: true,
@@ -33,7 +33,7 @@ var (
 			},
 			"created": schema.CreatedField,
 			"updated": schema.UpdatedField,
-			"name":    schema.Field{},
+			"name":    {},
 		},
 	}
 
@@ -41,10 +41,10 @@ var (
 		Description: "Link a post to its followers",
 		Fields: schema.Fields{
 			"id": schema.IDField,
-			"post": schema.Field{
+			"post": {
 				Validator: &schema.Reference{Path: "posts"},
 			},
-			"user": schema.Field{
+			"user": {
 				Filterable: true,
 				Sortable:   true,
 				Validator:  &schema.Reference{Path: "users"},
@@ -58,10 +58,10 @@ var (
 			"id":      schema.IDField,
 			"created": schema.CreatedField,
 			"updated": schema.UpdatedField,
-			"user": schema.Field{
+			"user": {
 				Validator: &schema.Reference{Path: "users"},
 			},
-			"thumbnail_url": schema.Field{
+			"thumbnail_url": {
 				Description: "Resizable thumbnail URL for a post. Use width and height parameters to get a specific size.",
 				Params: schema.Params{
 					"width": {
@@ -97,11 +97,11 @@ var (
 					return str, nil
 				},
 			},
-			"meta": schema.Field{
+			"meta": {
 				Schema: &schema.Schema{
 					Fields: schema.Fields{
-						"title": schema.Field{},
-						"body":  schema.Field{},
+						"title": {},
+						"body":  {},
 					},
 				},
 			},

@@ -20,7 +20,7 @@ import (
 var (
 	user = schema.Schema{
 		Fields: schema.Fields{
-			"id": schema.Field{
+			"id": {
 				Required:   true,
 				ReadOnly:   true,
 				Filterable: true,
@@ -31,17 +31,17 @@ var (
 			},
 			"created": schema.CreatedField,
 			"updated": schema.UpdatedField,
-			"name":    schema.Field{},
+			"name":    {},
 		},
 	}
 
 	postFollower = schema.Schema{
 		Fields: schema.Fields{
 			"id": schema.IDField,
-			"post": schema.Field{
+			"post": {
 				Validator: &schema.Reference{Path: "posts"},
 			},
-			"user": schema.Field{
+			"user": {
 				Filterable: true,
 				Sortable:   true,
 				Validator:  &schema.Reference{Path: "users"},
@@ -57,7 +57,7 @@ var (
 			"user": {
 				Validator: &schema.Reference{Path: "users"},
 			},
-			"thumbnail_url": schema.Field{
+			"thumbnail_url": {
 				Params: schema.Params{
 					"width": {
 						Validator: schema.Integer{
@@ -90,7 +90,7 @@ var (
 					return str, nil
 				},
 			},
-			"meta": schema.Field{
+			"meta": {
 				Schema: &schema.Schema{
 					Fields: schema.Fields{
 						"title": {},

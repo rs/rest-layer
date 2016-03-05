@@ -20,13 +20,13 @@ var (
 	// Define a user resource schema
 	user = schema.Schema{
 		Fields: schema.Fields{
-			"id": schema.Field{
+			"id": {
 				Validator: &schema.String{
 					MinLen: 2,
 					MaxLen: 50,
 				},
 			},
-			"name": schema.Field{
+			"name": {
 				Required:   true,
 				Filterable: true,
 				Validator: &schema.String{
@@ -44,20 +44,20 @@ var (
 			// Define a user field which references the user owning the post.
 			// See bellow, the content of this field is enforced by the fact
 			// that posts is a sub-resource of users.
-			"user": schema.Field{
+			"user": {
 				Required:   true,
 				Filterable: true,
 				Validator: &schema.Reference{
 					Path: "users",
 				},
 			},
-			"title": schema.Field{
+			"title": {
 				Required: true,
 				Validator: &schema.String{
 					MaxLen: 150,
 				},
 			},
-			"body": schema.Field{
+			"body": {
 				Validator: &schema.String{},
 			},
 		},

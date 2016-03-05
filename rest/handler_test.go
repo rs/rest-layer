@@ -42,7 +42,7 @@ func TestNewHandlerNoCompile(t *testing.T) {
 	i := resource.NewIndex()
 	i.Bind("foo", schema.Schema{
 		Fields: schema.Fields{
-			"f": schema.Field{
+			"f": {
 				Validator: schema.String{
 					Regexp: "[",
 				},
@@ -88,7 +88,7 @@ func TestHandlerServeHTTPNotFound(t *testing.T) {
 func TestHandlerServeHTTPParentNotFound(t *testing.T) {
 	i := resource.NewIndex()
 	foo := i.Bind("foo", schema.Schema{}, mem.NewHandler(), resource.DefaultConf)
-	foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": schema.Field{}}}, nil, resource.DefaultConf)
+	foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, resource.DefaultConf)
 	h, _ := NewHandler(i)
 	w := newRecorder()
 	defer w.Close()

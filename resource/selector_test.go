@@ -12,13 +12,13 @@ import (
 func TestValidateSelector(t *testing.T) {
 	s := schema.Schema{
 		Fields: schema.Fields{
-			"parent": schema.Field{
+			"parent": {
 				Schema: &schema.Schema{
-					Fields: schema.Fields{"child": schema.Field{}},
+					Fields: schema.Fields{"child": {}},
 				},
 			},
 			"simple": schema.Field{},
-			"with_params": schema.Field{
+			"with_params": {
 				Params: schema.Params{
 					"foo": {
 						Validator: schema.Integer{},
@@ -54,15 +54,15 @@ func TestValidateSelector(t *testing.T) {
 func TestApplySelector(t *testing.T) {
 	s := schema.Schema{
 		Fields: schema.Fields{
-			"parent": schema.Field{
+			"parent": {
 				Schema: &schema.Schema{
 					Fields: schema.Fields{
-						"child": schema.Field{},
+						"child": {},
 					},
 				},
 			},
 			"simple": schema.Field{},
-			"with_params": schema.Field{
+			"with_params": {
 				Params: schema.Params{
 					"foo": {Validator: schema.Integer{}},
 				},

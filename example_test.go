@@ -21,7 +21,7 @@ func Example() {
 		// Define a user resource schema
 		user = schema.Schema{
 			Fields: schema.Fields{
-				"id": schema.Field{
+				"id": {
 					Required: true,
 					// When a field is read-only, on default values or hooks can
 					// set their value. The client can't change it.
@@ -38,7 +38,7 @@ func Example() {
 						Regexp: "^[0-9a-f]{32}$",
 					},
 				},
-				"created": schema.Field{
+				"created": {
 					Required:   true,
 					ReadOnly:   true,
 					Filterable: true,
@@ -46,7 +46,7 @@ func Example() {
 					OnInit:     &schema.Now,
 					Validator:  &schema.Time{},
 				},
-				"updated": schema.Field{
+				"updated": {
 					Required:   true,
 					ReadOnly:   true,
 					Filterable: true,
@@ -58,7 +58,7 @@ func Example() {
 					Validator: &schema.Time{},
 				},
 				// Define a name field as required with a string validator
-				"name": schema.Field{
+				"name": {
 					Required:   true,
 					Filterable: true,
 					Validator: &schema.String{
@@ -78,28 +78,28 @@ func Example() {
 				// Define a user field which references the user owning the post.
 				// See bellow, the content of this field is enforced by the fact
 				// that posts is a sub-resource of users.
-				"user": schema.Field{
+				"user": {
 					Required:   true,
 					Filterable: true,
 					Validator: &schema.Reference{
 						Path: "users",
 					},
 				},
-				"public": schema.Field{
+				"public": {
 					Filterable: true,
 					Validator:  &schema.Bool{},
 				},
 				// Sub-documents are handled via a sub-schema
-				"meta": schema.Field{
+				"meta": {
 					Schema: &schema.Schema{
 						Fields: schema.Fields{
-							"title": schema.Field{
+							"title": {
 								Required: true,
 								Validator: &schema.String{
 									MaxLen: 150,
 								},
 							},
-							"body": schema.Field{
+							"body": {
 								Validator: &schema.String{
 									MaxLen: 100000,
 								},

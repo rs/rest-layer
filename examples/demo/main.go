@@ -20,7 +20,7 @@ var (
 	// Define a user resource schema
 	user = schema.Schema{
 		Fields: schema.Fields{
-			"id": schema.Field{
+			"id": {
 				Required: true,
 				// When a field is read-only, on default values or hooks can
 				// set their value. The client can't change it.
@@ -37,7 +37,7 @@ var (
 					Regexp: "^[0-9a-zA-Z_-]{16}$",
 				},
 			},
-			"created": schema.Field{
+			"created": {
 				Required:   true,
 				ReadOnly:   true,
 				Filterable: true,
@@ -45,7 +45,7 @@ var (
 				OnInit:     &schema.Now,
 				Validator:  &schema.Time{},
 			},
-			"updated": schema.Field{
+			"updated": {
 				Required:   true,
 				ReadOnly:   true,
 				Filterable: true,
@@ -57,7 +57,7 @@ var (
 				Validator: &schema.Time{},
 			},
 			// Define a name field as required with a string validator
-			"name": schema.Field{
+			"name": {
 				Required:   true,
 				Filterable: true,
 				Validator: &schema.String{
@@ -77,28 +77,28 @@ var (
 			// Define a user field which references the user owning the post.
 			// See bellow, the content of this field is enforced by the fact
 			// that posts is a sub-resource of users.
-			"user": schema.Field{
+			"user": {
 				Required:   true,
 				Filterable: true,
 				Validator: &schema.Reference{
 					Path: "users",
 				},
 			},
-			"published": schema.Field{
+			"published": {
 				Filterable: true,
 				Validator:  &schema.Bool{},
 			},
 			// Sub-documents are handled via a sub-schema
-			"meta": schema.Field{
+			"meta": {
 				Schema: &schema.Schema{
 					Fields: schema.Fields{
-						"title": schema.Field{
+						"title": {
 							Required: true,
 							Validator: &schema.String{
 								MaxLen: 150,
 							},
 						},
-						"body": schema.Field{
+						"body": {
 							// Dependency defines that body field can't be changed if
 							// the published field is not "false".
 							Dependency: schema.Q(`{"published": false}`),
