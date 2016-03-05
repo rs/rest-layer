@@ -139,16 +139,26 @@ func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *
 		Validator: connection{
 			path: "." + name,
 		},
-		Params: &schema.Params{
-			Validators: map[string]schema.FieldValidator{
-				"page": schema.Integer{
+		Params: schema.Params{
+			"page": schema.Param{
+				Description: "The page number",
+				Validator: schema.Integer{
 					Boundaries: &schema.Boundaries{Min: 1, Max: 1000},
 				},
-				"limit": schema.Integer{
+			},
+			"limit": schema.Param{
+				Description: "The number of items to return per page",
+				Validator: schema.Integer{
 					Boundaries: &schema.Boundaries{Min: 0, Max: 1000},
 				},
-				"sort":   schema.String{},
-				"filter": schema.String{},
+			},
+			"sort": schema.Param{
+				Description: "The field(s) to sort on",
+				Validator:   schema.String{},
+			},
+			"filter": schema.Param{
+				Description: "The filter query",
+				Validator:   schema.String{},
 			},
 		},
 	}

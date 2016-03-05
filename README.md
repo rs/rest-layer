@@ -896,14 +896,18 @@ schema.Schema{
 	Fields: schema.Fields{
 		"field": schema.Field{
 			Params: schema.Params{
-				Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
-					// your transformation logic here
-					return value, nil
+				"width": {
+					Description: "Change the width of the thumbnail to the value in pixels",
+					Validator: schema.Integer{}
 				},
-				Validators: map[string]schema.FieldValidator{
-					"width": schema.Integer{},
-					"height": schema.Integer{},
+				"height": {
+					Description: "Change the width of the thumbnail to the value in pixels",
+					Validator: schema.Integer{},
 				},
+			},
+			Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
+				// your transformation logic here
+				return value, nil
 			},
 		},
 	},

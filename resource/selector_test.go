@@ -19,9 +19,9 @@ func TestValidateSelector(t *testing.T) {
 			},
 			"simple": schema.Field{},
 			"with_params": schema.Field{
-				Params: &schema.Params{
-					Validators: map[string]schema.FieldValidator{
-						"foo": schema.Integer{},
+				Params: schema.Params{
+					"foo": {
+						Validator: schema.Integer{},
 					},
 				},
 			},
@@ -63,19 +63,17 @@ func TestApplySelector(t *testing.T) {
 			},
 			"simple": schema.Field{},
 			"with_params": schema.Field{
-				Params: &schema.Params{
-					Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
-						if val, found := params["foo"]; found {
-							if val == -1 {
-								return nil, errors.New("some error")
-							}
-							return fmt.Sprintf("param is %d", val), nil
+				Params: schema.Params{
+					"foo": {Validator: schema.Integer{}},
+				},
+				Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
+					if val, found := params["foo"]; found {
+						if val == -1 {
+							return nil, errors.New("some error")
 						}
-						return "no param", nil
-					},
-					Validators: map[string]schema.FieldValidator{
-						"foo": schema.Integer{},
-					},
+						return fmt.Sprintf("param is %d", val), nil
+					}
+					return "no param", nil
 				},
 			},
 		},
@@ -110,11 +108,6 @@ func TestApplySelector(t *testing.T) {
 		map[string]interface{}{"with_params": "value"}, nil)
 	assert.EqualError(t, err, "with_params: some error")
 	assert.Nil(t, p)
-	// Param call on a field with no param set
-	p, err = applySelector([]Field{{Name: "simple", Params: map[string]interface{}{"foo": "bar"}}}, s,
-		map[string]interface{}{"simple": "value"}, nil)
-	assert.EqualError(t, err, "simple: params not allowed")
-	assert.Nil(t, p)
 	// Deep field lookup on a field with no child
 	p, err = applySelector([]Field{{Name: "simple", Fields: []Field{{Name: "child"}}}}, s,
 		map[string]interface{}{"simple": "value"}, nil)
@@ -124,10 +117,5 @@ func TestApplySelector(t *testing.T) {
 	p, err = applySelector([]Field{{Name: "parent", Fields: []Field{{Name: "child"}}}}, s,
 		map[string]interface{}{"parent": "value"}, nil)
 	assert.EqualError(t, err, "parent: invalid value: not a dict")
-	assert.Nil(t, p)
-	// Deep field lookup with invalid child
-	p, err = applySelector([]Field{{Name: "parent", Fields: []Field{{Name: "child", Params: map[string]interface{}{"foo": "bar"}}}}}, s,
-		map[string]interface{}{"parent": map[string]interface{}{"child": "value"}}, nil)
-	assert.EqualError(t, err, "parent.child: params not allowed")
 	assert.Nil(t, p)
 }

@@ -37,7 +37,9 @@ type Field struct {
 	OnUpdate *func(value interface{}) interface{}
 	// Params defines a param handler for the field. The handler may change the field's
 	// value depending on the passed parameters.
-	Params *Params
+	Params Params
+	// Handler is the piece of logic modifying the field value based on passed parameters.
+	Handler FieldHandler
 	// Validator is used to validate the field's format.
 	Validator FieldValidator
 	// Dependency rejects the field if the schema query doesn't match the document.
@@ -54,6 +56,9 @@ type Field struct {
 	// Schema can be set to a sub-schema to allow multi-level schema.
 	Schema *Schema
 }
+
+// FieldHandler is the piece of logic modifying the field value based on passed parameters
+type FieldHandler func(value interface{}, params map[string]interface{}) (interface{}, error)
 
 // FieldValidator is an interface for all individual validators. It takes a value
 // to validate as argument and returned the normalized value or an error if validation failed.

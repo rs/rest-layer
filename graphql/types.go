@@ -48,7 +48,7 @@ func (t types) getFields(idx resource.Index, s schema.Schema) graphql.Fields {
 				Description: def.Description,
 				Type:        getFType(def.Validator),
 				Args:        getFArgs(def.Params),
-				Resolve:     getFArgsResolver(name, def.Params),
+				Resolve:     getFResolver(name, def.Handler),
 			}
 		}
 		// TODO: add sub-resources as fields
@@ -56,21 +56,22 @@ func (t types) getFields(idx resource.Index, s schema.Schema) graphql.Fields {
 	return flds
 }
 
-func getFArgs(p *schema.Params) graphql.FieldConfigArgument {
+func getFArgs(p schema.Params) graphql.FieldConfigArgument {
 	if p == nil {
 		return nil
 	}
 	args := graphql.FieldConfigArgument{}
-	for name, v := range p.Validators {
+	for name, param := range p {
 		args[name] = &graphql.ArgumentConfig{
-			Type: getFType(v),
+			Description: param.Description,
+			Type:        getFType(param.Validator),
 		}
 	}
 	return args
 }
 
-func getFArgsResolver(fieldName string, p *schema.Params) graphql.FieldResolveFn {
-	if p == nil {
+func getFResolver(fieldName string, h schema.FieldHandler) graphql.FieldResolveFn {
+	if h == nil {
 		return nil
 	}
 	return func(rp graphql.ResolveParams) (interface{}, error) {
@@ -78,7 +79,7 @@ func getFArgsResolver(fieldName string, p *schema.Params) graphql.FieldResolveFn
 		if !ok {
 			return nil, nil
 		}
-		return p.Handler(data[fieldName], rp.Args)
+		return h(data[fieldName], rp.Args)
 	}
 }
 

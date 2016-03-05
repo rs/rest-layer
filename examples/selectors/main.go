@@ -54,45 +54,47 @@ var (
 			"id":      schema.IDField,
 			"created": schema.CreatedField,
 			"updated": schema.UpdatedField,
-			"user": schema.Field{
+			"user": {
 				Validator: &schema.Reference{Path: "users"},
 			},
 			"thumbnail_url": schema.Field{
-				Params: &schema.Params{
-					// Appends a "w" and/or "h" query string parameter(s) to the value (URL) if width or height params passed
-					Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
-						str, ok := value.(string)
-						if !ok {
-							return nil, errors.New("not a string")
-						}
-						sep := "?"
-						if strings.IndexByte(str, '?') > 0 {
-							sep = "&"
-						}
-						if width, found := params["width"]; found {
-							str = fmt.Sprintf("%s%sw=%d", str, sep, width)
-							sep = "&"
-						}
-						if height, found := params["height"]; found {
-							str = fmt.Sprintf("%s%sy=%d", str, sep, height)
-						}
-						return str, nil
-					},
-					Validators: map[string]schema.FieldValidator{
-						"width": schema.Integer{
-							Boundaries: &schema.Boundaries{Max: 1000},
-						},
-						"height": schema.Integer{
+				Params: schema.Params{
+					"width": {
+						Validator: schema.Integer{
 							Boundaries: &schema.Boundaries{Max: 1000},
 						},
 					},
+					"height": {
+						Validator: schema.Integer{
+							Boundaries: &schema.Boundaries{Max: 1000},
+						},
+					},
+				},
+				// Appends a "w" and/or "h" query string parameter(s) to the value (URL) if width or height params passed
+				Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
+					str, ok := value.(string)
+					if !ok {
+						return nil, errors.New("not a string")
+					}
+					sep := "?"
+					if strings.IndexByte(str, '?') > 0 {
+						sep = "&"
+					}
+					if width, found := params["width"]; found {
+						str = fmt.Sprintf("%s%sw=%d", str, sep, width)
+						sep = "&"
+					}
+					if height, found := params["height"]; found {
+						str = fmt.Sprintf("%s%sy=%d", str, sep, height)
+					}
+					return str, nil
 				},
 			},
 			"meta": schema.Field{
 				Schema: &schema.Schema{
 					Fields: schema.Fields{
-						"title": schema.Field{},
-						"body":  schema.Field{},
+						"title": {},
+						"body":  {},
 					},
 				},
 			},

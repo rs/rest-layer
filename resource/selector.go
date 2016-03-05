@@ -39,19 +39,19 @@ func validateSelector(s []Field, v schema.Validator) error {
 			}
 		}
 		if len(f.Params) > 0 {
-			if def.Params == nil {
+			if len(def.Params) == 0 {
 				return fmt.Errorf("%s: params not allowed", f.Name)
 			}
-			for param, value := range f.Params {
-				val, found := def.Params.Validators[param]
+			for name, value := range f.Params {
+				param, found := def.Params[name]
 				if !found {
-					return fmt.Errorf("%s: unsupported param name: %s", f.Name, param)
+					return fmt.Errorf("%s: unsupported param name: %s", f.Name, name)
 				}
-				value, err := val.Validate(value)
+				value, err := param.Validator.Validate(value)
 				if err != nil {
-					return fmt.Errorf("%s: invalid param `%s' value: %s", f.Name, param, err.Error())
+					return fmt.Errorf("%s: invalid param `%s' value: %s", f.Name, name, err.Error())
 				}
-				f.Params[param] = value
+				f.Params[name] = value
 			}
 		}
 	}
@@ -78,13 +78,12 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 			// Handle selector params
 			if len(f.Params) > 0 {
 				def := v.GetField(f.Name)
-				if def == nil || def.Params == nil {
-					return nil, fmt.Errorf("%s: params not allowed", f.Name)
-				}
-				var err error
-				val, err = def.Params.Handler(val, f.Params)
-				if err != nil {
-					return nil, fmt.Errorf("%s: %s", f.Name, err.Error())
+				if def.Handler != nil {
+					var err error
+					val, err = def.Handler(val, f.Params)
+					if err != nil {
+						return nil, fmt.Errorf("%s: %s", f.Name, err.Error())
+					}
 				}
 			}
 			// Handle sub field selection (if field has a value)
