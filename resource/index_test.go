@@ -19,11 +19,11 @@ func TestNewIndex(t *testing.T) {
 func TestIndexBind(t *testing.T) {
 	r, ok := NewIndex().(*index)
 	if assert.True(t, ok) {
-		r.Bind("foo", nil, nil, DefaultConf)
+		r.Bind("foo", schema.Schema{}, nil, DefaultConf)
 		assert.Len(t, r.resources, 1)
 		log.SetOutput(ioutil.Discard)
 		assert.Panics(t, func() {
-			r.Bind("foo", nil, nil, DefaultConf)
+			r.Bind("foo", schema.Schema{}, nil, DefaultConf)
 		})
 	}
 }
@@ -31,7 +31,7 @@ func TestIndexBind(t *testing.T) {
 func TestIndexCompile(t *testing.T) {
 	r, ok := NewIndex().(*index)
 	if assert.True(t, ok) {
-		s := schema.Schema{"f": schema.Field{}}
+		s := schema.Schema{Fields: schema.Fields{"f": schema.Field{}}}
 		r.Bind("foo", s, nil, DefaultConf)
 		assert.NoError(t, r.Compile())
 	}
@@ -40,7 +40,11 @@ func TestIndexCompile(t *testing.T) {
 func TestIndexCompileError(t *testing.T) {
 	r, ok := NewIndex().(*index)
 	if assert.True(t, ok) {
-		s := schema.Schema{"f": schema.Field{Validator: schema.String{Regexp: "["}}}
+		s := schema.Schema{
+			Fields: schema.Fields{
+				"f": schema.Field{Validator: schema.String{Regexp: "["}},
+			},
+		}
 		r.Bind("foo", s, nil, DefaultConf)
 		assert.Error(t, r.Compile())
 	}
@@ -49,9 +53,9 @@ func TestIndexCompileError(t *testing.T) {
 func TestIndexCompileSubError(t *testing.T) {
 	r, ok := NewIndex().(*index)
 	if assert.True(t, ok) {
-		foo := r.Bind("foo", schema.Schema{"f": schema.Field{}}, nil, DefaultConf)
-		bar := foo.Bind("bar", "f", schema.Schema{"f": schema.Field{}}, nil, DefaultConf)
-		s := schema.Schema{"f": schema.Field{Validator: &schema.String{Regexp: "["}}}
+		foo := r.Bind("foo", schema.Schema{Fields: schema.Fields{"f": schema.Field{}}}, nil, DefaultConf)
+		bar := foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": schema.Field{}}}, nil, DefaultConf)
+		s := schema.Schema{Fields: schema.Fields{"f": schema.Field{Validator: &schema.String{Regexp: "["}}}}
 		bar.Bind("baz", "f", s, nil, DefaultConf)
 		assert.EqualError(t, r.Compile(), "foo.bar.baz: schema compilation error: f: invalid regexp: error parsing regexp: missing closing ]: `[`")
 	}
@@ -59,8 +63,8 @@ func TestIndexCompileSubError(t *testing.T) {
 
 func TestIndexGetResource(t *testing.T) {
 	r := NewIndex()
-	foo := r.Bind("foo", schema.Schema{"f": schema.Field{}}, nil, DefaultConf)
-	foo.Bind("bar", "f", schema.Schema{"f": schema.Field{}}, nil, DefaultConf)
+	foo := r.Bind("foo", schema.Schema{Fields: schema.Fields{"f": schema.Field{}}}, nil, DefaultConf)
+	foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": schema.Field{}}}, nil, DefaultConf)
 	res, found := r.GetResource("foo", nil)
 	assert.True(t, found)
 	assert.Equal(t, "foo", res.name)

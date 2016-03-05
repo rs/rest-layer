@@ -11,16 +11,18 @@ import (
 
 func TestValidateSelector(t *testing.T) {
 	s := schema.Schema{
-		"parent": schema.Field{
-			Schema: &schema.Schema{
-				"child": schema.Field{},
+		Fields: schema.Fields{
+			"parent": schema.Field{
+				Schema: &schema.Schema{
+					Fields: schema.Fields{"child": schema.Field{}},
+				},
 			},
-		},
-		"simple": schema.Field{},
-		"with_params": schema.Field{
-			Params: &schema.Params{
-				Validators: map[string]schema.FieldValidator{
-					"foo": schema.Integer{},
+			"simple": schema.Field{},
+			"with_params": schema.Field{
+				Params: &schema.Params{
+					Validators: map[string]schema.FieldValidator{
+						"foo": schema.Integer{},
+					},
 				},
 			},
 		},
@@ -51,25 +53,29 @@ func TestValidateSelector(t *testing.T) {
 
 func TestApplySelector(t *testing.T) {
 	s := schema.Schema{
-		"parent": schema.Field{
-			Schema: &schema.Schema{
-				"child": schema.Field{},
-			},
-		},
-		"simple": schema.Field{},
-		"with_params": schema.Field{
-			Params: &schema.Params{
-				Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
-					if val, found := params["foo"]; found {
-						if val == -1 {
-							return nil, errors.New("some error")
-						}
-						return fmt.Sprintf("param is %d", val), nil
-					}
-					return "no param", nil
+		Fields: schema.Fields{
+			"parent": schema.Field{
+				Schema: &schema.Schema{
+					Fields: schema.Fields{
+						"child": schema.Field{},
+					},
 				},
-				Validators: map[string]schema.FieldValidator{
-					"foo": schema.Integer{},
+			},
+			"simple": schema.Field{},
+			"with_params": schema.Field{
+				Params: &schema.Params{
+					Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
+						if val, found := params["foo"]; found {
+							if val == -1 {
+								return nil, errors.New("some error")
+							}
+							return fmt.Sprintf("param is %d", val), nil
+						}
+						return "no param", nil
+					},
+					Validators: map[string]schema.FieldValidator{
+						"foo": schema.Integer{},
+					},
 				},
 			},
 		},

@@ -28,7 +28,7 @@ func (q *PreQuery) compile(v Validator) error {
 // compileDependencies recusively compiles all field.Dependency against the validator
 // and report any error
 func compileDependencies(s Schema, v Validator) error {
-	for _, def := range s {
+	for _, def := range s.Fields {
 		if def.Dependency != nil {
 			if err := def.Dependency.compile(v); err != nil {
 				return err

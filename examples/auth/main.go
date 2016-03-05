@@ -19,43 +19,47 @@ type myAuthMiddleware struct {
 var (
 	// Define a user resource schema
 	user = schema.Schema{
-		"id": schema.Field{
-			Validator: &schema.String{
-				MinLen: 2,
-				MaxLen: 50,
+		Fields: schema.Fields{
+			"id": schema.Field{
+				Validator: &schema.String{
+					MinLen: 2,
+					MaxLen: 50,
+				},
 			},
-		},
-		"name": schema.Field{
-			Required:   true,
-			Filterable: true,
-			Validator: &schema.String{
-				MaxLen: 150,
+			"name": schema.Field{
+				Required:   true,
+				Filterable: true,
+				Validator: &schema.String{
+					MaxLen: 150,
+				},
 			},
+			"password": schema.PasswordField,
 		},
-		"password": schema.PasswordField,
 	}
 
 	// Define a post resource schema
 	post = schema.Schema{
-		"id": schema.IDField,
-		// Define a user field which references the user owning the post.
-		// See bellow, the content of this field is enforced by the fact
-		// that posts is a sub-resource of users.
-		"user": schema.Field{
-			Required:   true,
-			Filterable: true,
-			Validator: &schema.Reference{
-				Path: "users",
+		Fields: schema.Fields{
+			"id": schema.IDField,
+			// Define a user field which references the user owning the post.
+			// See bellow, the content of this field is enforced by the fact
+			// that posts is a sub-resource of users.
+			"user": schema.Field{
+				Required:   true,
+				Filterable: true,
+				Validator: &schema.Reference{
+					Path: "users",
+				},
 			},
-		},
-		"title": schema.Field{
-			Required: true,
-			Validator: &schema.String{
-				MaxLen: 150,
+			"title": schema.Field{
+				Required: true,
+				Validator: &schema.String{
+					MaxLen: 150,
+				},
 			},
-		},
-		"body": schema.Field{
-			Validator: &schema.String{},
+			"body": schema.Field{
+				Validator: &schema.String{},
+			},
 		},
 	}
 )

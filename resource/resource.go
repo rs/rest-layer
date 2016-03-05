@@ -70,7 +70,7 @@ func new(name string, s schema.Schema, h Storer, c Conf) *Resource {
 		schema: s,
 		validator: validatorFallback{
 			Validator: s,
-			fallback:  schema.Schema{},
+			fallback:  schema.Schema{Fields: schema.Fields{}},
 		},
 		storage:   h,
 		conf:      c,
@@ -134,7 +134,7 @@ func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *
 	sr.parentField = field
 	sr.path = r.path + "." + name
 	r.resources = append(r.resources, sr)
-	r.validator.fallback[name] = schema.Field{
+	r.validator.fallback.Fields[name] = schema.Field{
 		ReadOnly: true,
 		Validator: connection{
 			path: "." + name,

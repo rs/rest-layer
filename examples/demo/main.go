@@ -19,87 +19,93 @@ import (
 var (
 	// Define a user resource schema
 	user = schema.Schema{
-		"id": schema.Field{
-			Required: true,
-			// When a field is read-only, on default values or hooks can
-			// set their value. The client can't change it.
-			ReadOnly: true,
-			// This is a field hook called when a new user is created.
-			// The schema.NewID hook is a provided hook to generate a
-			// unique id when no value is provided.
-			OnInit: &schema.NewID,
-			// The Filterable and Sortable allows usage of filter and sort
-			// on this field in requests.
-			Filterable: true,
-			Sortable:   true,
-			Validator: &schema.String{
-				Regexp: "^[0-9a-zA-Z_-]{16}$",
+		Fields: schema.Fields{
+			"id": schema.Field{
+				Required: true,
+				// When a field is read-only, on default values or hooks can
+				// set their value. The client can't change it.
+				ReadOnly: true,
+				// This is a field hook called when a new user is created.
+				// The schema.NewID hook is a provided hook to generate a
+				// unique id when no value is provided.
+				OnInit: &schema.NewID,
+				// The Filterable and Sortable allows usage of filter and sort
+				// on this field in requests.
+				Filterable: true,
+				Sortable:   true,
+				Validator: &schema.String{
+					Regexp: "^[0-9a-zA-Z_-]{16}$",
+				},
 			},
-		},
-		"created": schema.Field{
-			Required:   true,
-			ReadOnly:   true,
-			Filterable: true,
-			Sortable:   true,
-			OnInit:     &schema.Now,
-			Validator:  &schema.Time{},
-		},
-		"updated": schema.Field{
-			Required:   true,
-			ReadOnly:   true,
-			Filterable: true,
-			Sortable:   true,
-			OnInit:     &schema.Now,
-			// The OnUpdate hook is called when the item is edited. Here we use
-			// provided Now hook which just return the current time.
-			OnUpdate:  &schema.Now,
-			Validator: &schema.Time{},
-		},
-		// Define a name field as required with a string validator
-		"name": schema.Field{
-			Required:   true,
-			Filterable: true,
-			Validator: &schema.String{
-				MaxLen: 150,
+			"created": schema.Field{
+				Required:   true,
+				ReadOnly:   true,
+				Filterable: true,
+				Sortable:   true,
+				OnInit:     &schema.Now,
+				Validator:  &schema.Time{},
+			},
+			"updated": schema.Field{
+				Required:   true,
+				ReadOnly:   true,
+				Filterable: true,
+				Sortable:   true,
+				OnInit:     &schema.Now,
+				// The OnUpdate hook is called when the item is edited. Here we use
+				// provided Now hook which just return the current time.
+				OnUpdate:  &schema.Now,
+				Validator: &schema.Time{},
+			},
+			// Define a name field as required with a string validator
+			"name": schema.Field{
+				Required:   true,
+				Filterable: true,
+				Validator: &schema.String{
+					MaxLen: 150,
+				},
 			},
 		},
 	}
 
 	// Define a post resource schema
 	post = schema.Schema{
-		// schema.*Field are shortcuts for common fields (identical to users' same fields)
-		"id":      schema.IDField,
-		"created": schema.CreatedField,
-		"updated": schema.UpdatedField,
-		// Define a user field which references the user owning the post.
-		// See bellow, the content of this field is enforced by the fact
-		// that posts is a sub-resource of users.
-		"user": schema.Field{
-			Required:   true,
-			Filterable: true,
-			Validator: &schema.Reference{
-				Path: "users",
-			},
-		},
-		"published": schema.Field{
-			Filterable: true,
-			Validator:  &schema.Bool{},
-		},
-		// Sub-documents are handled via a sub-schema
-		"meta": schema.Field{
-			Schema: &schema.Schema{
-				"title": schema.Field{
-					Required: true,
-					Validator: &schema.String{
-						MaxLen: 150,
-					},
+		Fields: schema.Fields{
+			// schema.*Field are shortcuts for common fields (identical to users' same fields)
+			"id":      schema.IDField,
+			"created": schema.CreatedField,
+			"updated": schema.UpdatedField,
+			// Define a user field which references the user owning the post.
+			// See bellow, the content of this field is enforced by the fact
+			// that posts is a sub-resource of users.
+			"user": schema.Field{
+				Required:   true,
+				Filterable: true,
+				Validator: &schema.Reference{
+					Path: "users",
 				},
-				"body": schema.Field{
-					// Dependency defines that body field can't be changed if
-					// the published field is not "false".
-					Dependency: schema.Q(`{"published": false}`),
-					Validator: &schema.String{
-						MaxLen: 100000,
+			},
+			"published": schema.Field{
+				Filterable: true,
+				Validator:  &schema.Bool{},
+			},
+			// Sub-documents are handled via a sub-schema
+			"meta": schema.Field{
+				Schema: &schema.Schema{
+					Fields: schema.Fields{
+						"title": schema.Field{
+							Required: true,
+							Validator: &schema.String{
+								MaxLen: 150,
+							},
+						},
+						"body": schema.Field{
+							// Dependency defines that body field can't be changed if
+							// the published field is not "false".
+							Dependency: schema.Q(`{"published": false}`),
+							Validator: &schema.String{
+								MaxLen: 100000,
+							},
+						},
 					},
 				},
 			},

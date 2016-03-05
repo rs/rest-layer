@@ -16,8 +16,9 @@ func (t types) getObjectType(idx resource.Index, name string, s schema.Schema) *
 	o := t[name]
 	if o == nil {
 		o = graphql.NewObject(graphql.ObjectConfig{
-			Name:   name,
-			Fields: t.getFields(idx, s),
+			Name:        name,
+			Description: s.Description,
+			Fields:      t.getFields(idx, s),
 		})
 		t[name] = o
 	}
@@ -26,12 +27,13 @@ func (t types) getObjectType(idx resource.Index, name string, s schema.Schema) *
 
 func (t types) getFields(idx resource.Index, s schema.Schema) graphql.Fields {
 	flds := graphql.Fields{}
-	for name, def := range s {
+	for name, def := range s.Fields {
 		if def.Schema != nil {
 			flds[name] = &graphql.Field{
 				Type: graphql.NewObject(graphql.ObjectConfig{
-					Name:   name,
-					Fields: t.getFields(idx, *def.Schema),
+					Name:        name,
+					Description: def.Description,
+					Fields:      t.getFields(idx, *def.Schema),
 				}),
 			}
 		} else if ref, ok := def.Validator.(*schema.Reference); ok {
@@ -40,11 +42,13 @@ func (t types) getFields(idx resource.Index, s schema.Schema) graphql.Fields {
 				log.Panicf("resource reference not found: %s", ref.Path)
 			}
 			flds[name] = t.getSubQuery(idx, r, name)
+			flds[name].Description = def.Description
 		} else {
 			flds[name] = &graphql.Field{
-				Type:    getFType(def.Validator),
-				Args:    getFArgs(def.Params),
-				Resolve: getFArgsResolver(name, def.Params),
+				Description: def.Description,
+				Type:        getFType(def.Validator),
+				Args:        getFArgs(def.Params),
+				Resolve:     getFArgsResolver(name, def.Params),
 			}
 		}
 		// TODO: add sub-resources as fields

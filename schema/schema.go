@@ -8,7 +8,12 @@ import (
 )
 
 // Schema defines fields for a document
-type Schema map[string]Field
+type Schema struct {
+	// Description of the object described by this schema
+	Description string
+	// Fields defines the schema's allowed fields
+	Fields Fields
+}
 
 // Validator is an interface used to validate schema against actual data
 type Validator interface {
@@ -57,7 +62,7 @@ func (s Schema) Compile() error {
 	if err := compileDependencies(s, s); err != nil {
 		return err
 	}
-	for field, def := range s {
+	for field, def := range s.Fields {
 		// Compile each field
 		if err := def.Compile(); err != nil {
 			return fmt.Errorf("%s%s", field, err.Error())
@@ -102,7 +107,7 @@ func (s Schema) GetField(name string) *Field {
 	// the rest of the path as second element if dot notation is used
 	// (i.e.: field.subfield.subsubfield -> field, subfield.subsubfield)
 	path := strings.SplitN(name, ".", 2)
-	if field, found := s[path[0]]; found {
+	if field, found := s.Fields[path[0]]; found {
 		if len(path) == 2 && field.Schema != nil {
 			// Recursively call has field to consume the whole path
 			return field.Schema.GetField(path[1])
@@ -135,7 +140,7 @@ func (s Schema) GetField(name string) *Field {
 func (s Schema) Prepare(payload map[string]interface{}, original *map[string]interface{}, replace bool) (changes map[string]interface{}, base map[string]interface{}) {
 	changes = map[string]interface{}{}
 	base = map[string]interface{}{}
-	for field, def := range s {
+	for field, def := range s.Fields {
 		value, found := payload[field]
 		if original == nil {
 			if replace == true {
@@ -233,7 +238,7 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 	}
 	// Assign all out of schema fields to the changes map so Validate() can complain about it
 	for field, value := range payload {
-		if _, found := s[field]; !found {
+		if _, found := s.Fields[field]; !found {
 			changes[field] = value
 		}
 	}
@@ -249,7 +254,7 @@ func (s Schema) Validate(changes map[string]interface{}, base map[string]interfa
 func (s Schema) validate(changes map[string]interface{}, base map[string]interface{}, isRoot bool) (doc map[string]interface{}, errs map[string][]interface{}) {
 	doc = map[string]interface{}{}
 	errs = map[string][]interface{}{}
-	for field, def := range s {
+	for field, def := range s.Fields {
 		// Check read only fields
 		if def.ReadOnly {
 			if _, found := changes[field]; found {
@@ -299,7 +304,7 @@ func (s Schema) validate(changes map[string]interface{}, base map[string]interfa
 	}
 	for field, value := range doc {
 		// Check invalid field (fields provided in the payload by not present in the schema)
-		def, found := s[field]
+		def, found := s.Fields[field]
 		if !found {
 			addFieldError(errs, field, "invalid field")
 			continue

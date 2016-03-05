@@ -35,7 +35,8 @@ func newRootQuery(idx resource.Index) *graphql.Object {
 
 func (t types) getGetQuery(idx resource.Index, r *resource.Resource) *graphql.Field {
 	return &graphql.Field{
-		Type: t.getObjectType(idx, r.Name(), r.Schema()),
+		Description: fmt.Sprintf("Get %s by id", r.Name()),
+		Type:        t.getObjectType(idx, r.Name(), r.Schema()),
 		Args: graphql.FieldConfigArgument{
 			"id": &graphql.ArgumentConfig{
 				Type: graphql.String,
@@ -57,7 +58,8 @@ func (t types) getGetQuery(idx resource.Index, r *resource.Resource) *graphql.Fi
 
 func (t types) getListQuery(idx resource.Index, r *resource.Resource) *graphql.Field {
 	return &graphql.Field{
-		Type: graphql.NewList(t.getObjectType(idx, r.Name(), r.Schema())),
+		Description: fmt.Sprintf("Get a list of %s", r.Name()),
+		Type:        graphql.NewList(t.getObjectType(idx, r.Name(), r.Schema())),
 		Args: graphql.FieldConfigArgument{
 			"page": &graphql.ArgumentConfig{
 				Type: graphql.Int,

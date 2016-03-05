@@ -19,74 +19,82 @@ import (
 
 var (
 	user = schema.Schema{
-		"id": schema.Field{
-			Required:   true,
-			ReadOnly:   true,
-			Filterable: true,
-			Sortable:   true,
-			Validator: &schema.String{
-				Regexp: "^[0-9a-z_-]{2,150}$",
+		Fields: schema.Fields{
+			"id": schema.Field{
+				Required:   true,
+				ReadOnly:   true,
+				Filterable: true,
+				Sortable:   true,
+				Validator: &schema.String{
+					Regexp: "^[0-9a-z_-]{2,150}$",
+				},
 			},
+			"created": schema.CreatedField,
+			"updated": schema.UpdatedField,
+			"name":    schema.Field{},
 		},
-		"created": schema.CreatedField,
-		"updated": schema.UpdatedField,
-		"name":    schema.Field{},
 	}
 
 	postFollower = schema.Schema{
-		"id": schema.IDField,
-		"post": schema.Field{
-			Validator: &schema.Reference{Path: "posts"},
-		},
-		"user": schema.Field{
-			Filterable: true,
-			Sortable:   true,
-			Validator:  &schema.Reference{Path: "users"},
+		Fields: schema.Fields{
+			"id": schema.IDField,
+			"post": schema.Field{
+				Validator: &schema.Reference{Path: "posts"},
+			},
+			"user": schema.Field{
+				Filterable: true,
+				Sortable:   true,
+				Validator:  &schema.Reference{Path: "users"},
+			},
 		},
 	}
 
 	post = schema.Schema{
-		"id":      schema.IDField,
-		"created": schema.CreatedField,
-		"updated": schema.UpdatedField,
-		"user": schema.Field{
-			Validator: &schema.Reference{Path: "users"},
-		},
-		"thumbnail_url": schema.Field{
-			Params: &schema.Params{
-				// Appends a "w" and/or "h" query string parameter(s) to the value (URL) if width or height params passed
-				Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
-					str, ok := value.(string)
-					if !ok {
-						return nil, errors.New("not a string")
-					}
-					sep := "?"
-					if strings.IndexByte(str, '?') > 0 {
-						sep = "&"
-					}
-					if width, found := params["width"]; found {
-						str = fmt.Sprintf("%s%sw=%d", str, sep, width)
-						sep = "&"
-					}
-					if height, found := params["height"]; found {
-						str = fmt.Sprintf("%s%sy=%d", str, sep, height)
-					}
-					return str, nil
-				},
-				Validators: map[string]schema.FieldValidator{
-					"width": schema.Integer{
-						Boundaries: &schema.Boundaries{Max: 1000},
+		Fields: schema.Fields{
+			"id":      schema.IDField,
+			"created": schema.CreatedField,
+			"updated": schema.UpdatedField,
+			"user": schema.Field{
+				Validator: &schema.Reference{Path: "users"},
+			},
+			"thumbnail_url": schema.Field{
+				Params: &schema.Params{
+					// Appends a "w" and/or "h" query string parameter(s) to the value (URL) if width or height params passed
+					Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
+						str, ok := value.(string)
+						if !ok {
+							return nil, errors.New("not a string")
+						}
+						sep := "?"
+						if strings.IndexByte(str, '?') > 0 {
+							sep = "&"
+						}
+						if width, found := params["width"]; found {
+							str = fmt.Sprintf("%s%sw=%d", str, sep, width)
+							sep = "&"
+						}
+						if height, found := params["height"]; found {
+							str = fmt.Sprintf("%s%sy=%d", str, sep, height)
+						}
+						return str, nil
 					},
-					"height": schema.Integer{
-						Boundaries: &schema.Boundaries{Max: 1000},
+					Validators: map[string]schema.FieldValidator{
+						"width": schema.Integer{
+							Boundaries: &schema.Boundaries{Max: 1000},
+						},
+						"height": schema.Integer{
+							Boundaries: &schema.Boundaries{Max: 1000},
+						},
 					},
 				},
 			},
-		},
-		"meta": schema.Field{
-			Schema: &schema.Schema{
-				"title": schema.Field{},
-				"body":  schema.Field{},
+			"meta": schema.Field{
+				Schema: &schema.Schema{
+					Fields: schema.Fields{
+						"title": schema.Field{},
+						"body":  schema.Field{},
+					},
+				},
 			},
 		},
 	}

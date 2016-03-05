@@ -6,8 +6,14 @@ import (
 	"reflect"
 )
 
+// Fields defines a map of name -> field pairs
+type Fields map[string]Field
+
 // Field specifies the info for a single field of a spec
 type Field struct {
+	// Description stores a short description of the field useful for automatic
+	// documentation generation.
+	Description string
 	// Required throws an error when the field is not provided at creation.
 	Required bool
 	// ReadOnly throws an error when a field is changed by the client.
