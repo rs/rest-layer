@@ -141,7 +141,7 @@ func decodePayload(r *http.Request, payload *map[string]interface{}) *Error {
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 	if err := decoder.Decode(payload); err != nil {
-		return &Error{400, fmt.Sprintf("Malformed body: %s", err.Error()), nil}
+		return &Error{400, fmt.Sprintf("Malformed body: %v", err), nil}
 	}
 	return nil
 }

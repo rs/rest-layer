@@ -65,7 +65,7 @@ func (s Schema) Compile() error {
 	for field, def := range s.Fields {
 		// Compile each field
 		if err := def.Compile(); err != nil {
-			return fmt.Errorf("%s%s", field, err.Error())
+			return fmt.Errorf("%s%v", field, err)
 		}
 	}
 	return nil

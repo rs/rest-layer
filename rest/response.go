@@ -58,7 +58,7 @@ func (s DefaultResponseSender) Send(ctx context.Context, w http.ResponseWriter, 
 		if err != nil {
 			w.WriteHeader(500)
 			xlog.FromContext(ctx).Errorf("Can't build response: %v", err)
-			msg := fmt.Sprintf("Can't build response: %s", strconv.Quote(err.Error()))
+			msg := fmt.Sprintf("Can't build response: %q", err.Error())
 			w.Write([]byte(fmt.Sprintf("{\"code\": 500, \"msg\": \"%s\"}", msg)))
 			return
 		}
@@ -145,7 +145,7 @@ func formatResponse(ctx context.Context, f ResponseFormatter, w http.ResponseWri
 		if s, ok := validator.(schema.Serializer); ok {
 			// Prepare the payload for marshaling by calling eventual field serializers
 			if err := s.Serialize(resp.Payload); err != nil {
-				err = fmt.Errorf("Error while preparing item: %s", err.Error())
+				err = fmt.Errorf("Error while preparing item: %v", err)
 				ctx, body = f.FormatError(ctx, http.Header{}, err, skipBody)
 				return ctx, 500, body
 			}
@@ -156,7 +156,7 @@ func formatResponse(ctx context.Context, f ResponseFormatter, w http.ResponseWri
 			// Prepare the payload for marshaling by calling eventual field serializers
 			for i, item := range resp.Items {
 				if err := s.Serialize(item.Payload); err != nil {
-					err = fmt.Errorf("Error while preparing item #%d: %s", i, err.Error())
+					err = fmt.Errorf("Error while preparing item #%d: %v", i, err)
 					ctx, body = f.FormatError(ctx, http.Header{}, err, skipBody)
 					return ctx, 500, body
 				}

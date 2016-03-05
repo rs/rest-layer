@@ -82,13 +82,13 @@ func (f Field) Compile() error {
 	if f.Schema != nil {
 		// Recusively compile sub schema if any
 		if err := f.Schema.Compile(); err != nil {
-			return fmt.Errorf(".%s", err.Error())
+			return fmt.Errorf(".%v", err)
 		}
 	} else if f.Validator != nil {
 		// Compile validator if it implements Compiler interface
 		if c, ok := f.Validator.(Compiler); ok {
 			if err := c.Compile(); err != nil {
-				return fmt.Errorf(": %s", err.Error())
+				return fmt.Errorf(": %v", err)
 			}
 		}
 		if reflect.ValueOf(f.Validator).Kind() != reflect.Ptr {

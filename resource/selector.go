@@ -28,7 +28,7 @@ func validateSelector(s []Field, v schema.Validator) error {
 			if def.Schema != nil {
 				// Sub-field on a dict (sub-schema)
 				if err := validateSelector(f.Fields, def.Schema); err != nil {
-					return fmt.Errorf("%s.%s", f.Name, err.Error())
+					return fmt.Errorf("%s.%v", f.Name, err)
 				}
 			} else if _, ok := def.Validator.(*schema.Reference); ok {
 				// Sub-field on a reference (sub-request)
@@ -49,7 +49,7 @@ func validateSelector(s []Field, v schema.Validator) error {
 				}
 				value, err := param.Validator.Validate(value)
 				if err != nil {
-					return fmt.Errorf("%s: invalid param `%s' value: %s", f.Name, name, err.Error())
+					return fmt.Errorf("%s: invalid param `%s' value: %v", f.Name, name, err)
 				}
 				f.Params[name] = value
 			}
@@ -82,7 +82,7 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 					var err error
 					val, err = def.Handler(val, f.Params)
 					if err != nil {
-						return nil, fmt.Errorf("%s: %s", f.Name, err.Error())
+						return nil, fmt.Errorf("%s: %v", f.Name, err)
 					}
 				}
 			}
@@ -97,13 +97,13 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 					var err error
 					res[name], err = applySelector(f.Fields, def.Schema, subval, resolver)
 					if err != nil {
-						return nil, fmt.Errorf("%s.%s", f.Name, err.Error())
+						return nil, fmt.Errorf("%s.%v", f.Name, err)
 					}
 				} else if ref, ok := def.Validator.(*schema.Reference); ok {
 					// Sub-field on a reference (sub-request)
 					rsrc, err := resolver(ref.Path)
 					if err != nil {
-						return nil, fmt.Errorf("%s: error linking sub-field resource: %s", f.Name, err.Error())
+						return nil, fmt.Errorf("%s: error linking sub-field resource: %v", f.Name, err)
 					}
 					// Do not execute the sub-request right away, store a asyncSelector type of
 					// lambda that will be executed later with concurrency control
@@ -115,7 +115,7 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 						handler: func(item *Item) (interface{}, error) {
 							subval, err := applySelector(f.Fields, rsrc.Validator(), item.Payload, resolver)
 							if err != nil {
-								return nil, fmt.Errorf("%s: error applying selector on sub-field: %s", f.Name, err.Error())
+								return nil, fmt.Errorf("%s: error applying selector on sub-field: %v", f.Name, err)
 							}
 							return subval, nil
 						},
@@ -132,7 +132,7 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 				// Sub-field on a sub resource (sub-request)
 				rsrc, err := resolver(ref.path)
 				if err != nil {
-					return nil, fmt.Errorf("%s: error linking sub-resource: %s", f.Name, err.Error())
+					return nil, fmt.Errorf("%s: error linking sub-resource: %v", f.Name, err)
 				}
 				// Do not execute the sub-request right away, store a asyncSelector type of
 				// lambda that will be executed later with concurrency control
@@ -141,13 +141,13 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 					if filter, ok := f.Params["filter"].(string); ok {
 						err := l.AddFilter(filter, rsrc.Validator())
 						if err != nil {
-							return nil, fmt.Errorf("%s: invalid filter: %s", f.Name, err.Error())
+							return nil, fmt.Errorf("%s: invalid filter: %v", f.Name, err)
 						}
 					}
 					if sort, ok := f.Params["sort"].(string); ok {
 						err := l.SetSort(sort, rsrc.Validator())
 						if err != nil {
-							return nil, fmt.Errorf("%s: invalid sort: %s", f.Name, err.Error())
+							return nil, fmt.Errorf("%s: invalid sort: %v", f.Name, err)
 						}
 					}
 					page := 1
@@ -160,13 +160,13 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 					}
 					list, err := rsrc.Find(ctx, l, page, perPage)
 					if err != nil {
-						return nil, fmt.Errorf("%s: error fetching sub-resource: %s", f.Name, err.Error())
+						return nil, fmt.Errorf("%s: error fetching sub-resource: %v", f.Name, err)
 					}
 					subvals := []map[string]interface{}{}
 					for i, item := range list.Items {
 						subval, err := applySelector(f.Fields, rsrc.Validator(), item.Payload, resolver)
 						if err != nil {
-							return nil, fmt.Errorf("%s: error applying selector on sub-resource item #%d: %s", f.Name, i, err.Error())
+							return nil, fmt.Errorf("%s: error applying selector on sub-resource item #%d: %v", f.Name, i, err)
 						}
 						subvals = append(subvals, subval)
 					}
