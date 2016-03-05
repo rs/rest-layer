@@ -5,6 +5,8 @@ import (
 	"log"
 	"reflect"
 	"strings"
+
+	"golang.org/x/net/context"
 )
 
 // Schema defines fields for a document
@@ -18,7 +20,7 @@ type Schema struct {
 // Validator is an interface used to validate schema against actual data
 type Validator interface {
 	GetField(name string) *Field
-	Prepare(payload map[string]interface{}, original *map[string]interface{}, replace bool) (changes map[string]interface{}, base map[string]interface{})
+	Prepare(ctx context.Context, payload map[string]interface{}, original *map[string]interface{}, replace bool) (changes map[string]interface{}, base map[string]interface{})
 	Validate(changes map[string]interface{}, base map[string]interface{}) (doc map[string]interface{}, errs map[string][]interface{})
 }
 
@@ -137,7 +139,7 @@ func (s Schema) GetField(name string) *Field {
 // in the change map (instead of just behing absent). This instruct the validator that the field
 // has been edited, so ReadOnly flag can throw an error and the field will be removed from the
 // output document. The OnInit is also called instead of the OnUpdate.
-func (s Schema) Prepare(payload map[string]interface{}, original *map[string]interface{}, replace bool) (changes map[string]interface{}, base map[string]interface{}) {
+func (s Schema) Prepare(ctx context.Context, payload map[string]interface{}, original *map[string]interface{}, replace bool) (changes map[string]interface{}, base map[string]interface{}) {
 	changes = map[string]interface{}{}
 	base = map[string]interface{}{}
 	for field, def := range s.Fields {
@@ -194,7 +196,7 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 				if subPayload, ok := value.(map[string]interface{}); ok {
 					// If payload contains a sub-document for this field, validate it
 					// using the sub-validator
-					c, b := def.Schema.Prepare(subPayload, subOriginal, replace)
+					c, b := def.Schema.Prepare(ctx, subPayload, subOriginal, replace)
 					changes[field] = c
 					base[field] = b
 				} else {
@@ -203,7 +205,7 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 			} else {
 				// If the payload doesn't contain a sub-document, perform validation
 				// on an empty one so we don't miss default values
-				c, b := def.Schema.Prepare(map[string]interface{}{}, subOriginal, replace)
+				c, b := def.Schema.Prepare(ctx, map[string]interface{}{}, subOriginal, replace)
 				if len(c) > 0 || len(b) > 0 {
 					// Only apply prepared field if something was added
 					changes[field] = c
@@ -213,7 +215,7 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 		}
 		// Call the OnInit or OnUpdate depending on the presence of the original doc and the
 		// state of the replace argument.
-		var hook *func(value interface{}) interface{}
+		var hook *func(ctx context.Context, value interface{}) interface{}
 		if original == nil || replace {
 			hook = def.OnInit
 		} else {
@@ -226,13 +228,13 @@ func (s Schema) Prepare(payload map[string]interface{}, original *map[string]int
 					// If the field has a tombstone, apply the handler on the base
 					// and remove the tombstone so it doesn't appear as a user
 					// generated change
-					base[field] = (*hook)(base[field])
+					base[field] = (*hook)(ctx, base[field])
 					delete(changes, field)
 				} else {
-					changes[field] = (*hook)(value)
+					changes[field] = (*hook)(ctx, value)
 				}
 			} else {
-				base[field] = (*hook)(base[field])
+				base[field] = (*hook)(ctx, base[field])
 			}
 		}
 	}

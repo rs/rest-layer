@@ -151,7 +151,7 @@ func (l *Lookup) ApplySelector(ctx context.Context, r *Resource, p map[string]in
 	if len(l.selector) == 0 {
 		return p, nil
 	}
-	payload, err := applySelector(l.selector, r.Validator(), p, resolver)
+	payload, err := applySelector(ctx, l.selector, r.Validator(), p, resolver)
 	if err == nil {
 		// The resulting payload may contain some asyncSelector, we must execute them
 		// concurrently until there's no more

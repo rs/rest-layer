@@ -528,7 +528,8 @@ Resource field configuration is performed throught the [schema](https://godoc.or
 | `Default`    | The value to be set when resource is created and the client didn't provide a value for the field. The content of this variable must still pass validation.
 | `OnInit`     | A function to be executed when the resource is created. The function gets the current value of the field (after `Default` has been set if any) and returns the new value to be set.
 | `OnUpdate`   | A function to be executed when the resource is updated. The function gets the current (updated) value of the field and returns the new value to be set.
-| `Params`     | Params defines a param handler for the field. The handler may change the field's value depending on the passed parameters. See [Field Parameters](#field-parameters) section for some examples.
+| `Params`     | Params defines the list of parameters allowed for this field. See [Field Parameters](#field-parameters) section for some examples.
+| `Handler`    | Handler defines function able change the field's value depending on the passed parameters. See [Field Parameters](#field-parameters) section for some examples.
 | `Validator`  | A `schema.FieldValidator` to validate the content of the field.
 | `Dependency` | A query using `filter` format created with ``schema.Q(`{"field": "value"}`)``. If the query doesn't match the document, the field generates a dependency error.
 | `Filterable` | If `true`, the field can be used with the `filter` parameter. You may want to ensure the backend database has this field indexed when enabled. Some storage handlers may not support all the operators of the filter parameter, see their documentation for more information.
@@ -905,7 +906,7 @@ schema.Schema{
 					Validator: schema.Integer{},
 				},
 			},
-			Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
+			Handler: func(ctx context.Context, value interface{}, params map[string]interface{}) (interface{}, error) {
 				// your transformation logic here
 				return value, nil
 			},
@@ -914,7 +915,7 @@ schema.Schema{
 }
 ```
 
-Only parameters with listed in validators will be accepted. You `Handler` function is then called with the current value of the field and the parameter map. You function can apply wanted transformations on the value and return it. If an error is returned, a `422` error will be triggered with you error message associated to the field.
+Only parameters with listed in validators will be accepted. You `Handler` function is called with the current value of the field and parameters sent by the user if any. Your function can apply wanted transformations on the value and return it. If an error is returned, a `422` error will be triggered with you error message associated to the field.
 
 ### Embedding
 

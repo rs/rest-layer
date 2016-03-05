@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
@@ -71,7 +73,7 @@ var (
 					},
 				},
 				// Appends a "w" and/or "h" query string parameter(s) to the value (URL) if width or height params passed
-				Handler: func(value interface{}, params map[string]interface{}) (interface{}, error) {
+				Handler: func(ctx context.Context, value interface{}, params map[string]interface{}) (interface{}, error) {
 					str, ok := value.(string)
 					if !ok {
 						return nil, errors.New("not a string")

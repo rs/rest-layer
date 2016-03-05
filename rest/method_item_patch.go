@@ -36,7 +36,7 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	if err := checkIntegrityRequest(r, original); err != nil {
 		return err.Code, nil, err
 	}
-	changes, base := rsrc.Validator().Prepare(payload, &original.Payload, false)
+	changes, base := rsrc.Validator().Prepare(ctx, payload, &original.Payload, false)
 	// Append lookup fields to base payload so it isn't caught by ReadOnly
 	// (i.e.: contains id and parent resource refs if any)
 	for k, v := range route.ResourcePath.Values() {

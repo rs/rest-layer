@@ -1,6 +1,9 @@
 package schema
 
-import "github.com/rs/xid"
+import (
+	"github.com/rs/xid"
+	"golang.org/x/net/context"
+)
 
 var (
 	// NewID is a field hook handler that generates a new unique id if none exist,
@@ -8,7 +11,7 @@ var (
 	//
 	// The generated ID is a Mongo like base64 object id (mgo/bson code has been embedded
 	// into this function to prevent dep)
-	NewID = func(value interface{}) interface{} {
+	NewID = func(ctx context.Context, value interface{}) interface{} {
 		if value == nil {
 			value = newID()
 		}

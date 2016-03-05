@@ -79,7 +79,7 @@ func getFResolver(fieldName string, h schema.FieldHandler) graphql.FieldResolveF
 		if !ok {
 			return nil, nil
 		}
-		return h(data[fieldName], rp.Args)
+		return h(rp.Context, data[fieldName], rp.Args)
 	}
 }
 

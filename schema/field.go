@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"golang.org/x/net/context"
 )
 
 // Fields defines a map of name -> field pairs
@@ -30,11 +32,11 @@ type Field struct {
 	// OnInit can be set to a function to generate the value of this field
 	// when item is created. The function takes the current value if any
 	// and returns the value to be stored.
-	OnInit *func(value interface{}) interface{}
+	OnInit *func(ctx context.Context, value interface{}) interface{}
 	// OnUpdate can be set to a function to generate the value of this field
 	// when item is updated. The function takes the current value if any
 	// and returns the value to be stored.
-	OnUpdate *func(value interface{}) interface{}
+	OnUpdate *func(ctx context.Context, value interface{}) interface{}
 	// Params defines a param handler for the field. The handler may change the field's
 	// value depending on the passed parameters.
 	Params Params
@@ -58,7 +60,7 @@ type Field struct {
 }
 
 // FieldHandler is the piece of logic modifying the field value based on passed parameters
-type FieldHandler func(value interface{}, params map[string]interface{}) (interface{}, error)
+type FieldHandler func(ctx context.Context, value interface{}, params map[string]interface{}) (interface{}, error)
 
 // FieldValidator is an interface for all individual validators. It takes a value
 // to validate as argument and returned the normalized value or an error if validation failed.

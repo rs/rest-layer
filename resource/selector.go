@@ -58,7 +58,7 @@ func validateSelector(s []Field, v schema.Validator) error {
 	return nil
 }
 
-func applySelector(s []Field, v schema.Validator, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
+func applySelector(ctx context.Context, s []Field, v schema.Validator, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
 	res := map[string]interface{}{}
 	if len(s) == 0 {
 		// When the field selector is empty, it's like saying "all fields".
@@ -80,7 +80,7 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 				def := v.GetField(f.Name)
 				if def.Handler != nil {
 					var err error
-					val, err = def.Handler(val, f.Params)
+					val, err = def.Handler(ctx, val, f.Params)
 					if err != nil {
 						return nil, fmt.Errorf("%s: %v", f.Name, err)
 					}
@@ -95,7 +95,7 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 						return nil, fmt.Errorf("%s: invalid value: not a dict", f.Name)
 					}
 					var err error
-					res[name], err = applySelector(f.Fields, def.Schema, subval, resolver)
+					res[name], err = applySelector(ctx, f.Fields, def.Schema, subval, resolver)
 					if err != nil {
 						return nil, fmt.Errorf("%s.%v", f.Name, err)
 					}
@@ -113,7 +113,7 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 						resource: rsrc,
 						id:       val,
 						handler: func(item *Item) (interface{}, error) {
-							subval, err := applySelector(f.Fields, rsrc.Validator(), item.Payload, resolver)
+							subval, err := applySelector(ctx, f.Fields, rsrc.Validator(), item.Payload, resolver)
 							if err != nil {
 								return nil, fmt.Errorf("%s: error applying selector on sub-field: %v", f.Name, err)
 							}
@@ -164,7 +164,7 @@ func applySelector(s []Field, v schema.Validator, p map[string]interface{}, reso
 					}
 					subvals := []map[string]interface{}{}
 					for i, item := range list.Items {
-						subval, err := applySelector(f.Fields, rsrc.Validator(), item.Payload, resolver)
+						subval, err := applySelector(ctx, f.Fields, rsrc.Validator(), item.Payload, resolver)
 						if err != nil {
 							return nil, fmt.Errorf("%s: error applying selector on sub-resource item #%d: %v", f.Name, i, err)
 						}

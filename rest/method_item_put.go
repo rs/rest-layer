@@ -47,11 +47,11 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	var base map[string]interface{}
 	if original == nil {
 		// PUT used to create a new document
-		changes, base = rsrc.Validator().Prepare(payload, nil, false)
+		changes, base = rsrc.Validator().Prepare(ctx, payload, nil, false)
 		status = 201
 	} else {
 		// PUT used to replace an existing document
-		changes, base = rsrc.Validator().Prepare(payload, &original.Payload, true)
+		changes, base = rsrc.Validator().Prepare(ctx, payload, &original.Payload, true)
 	}
 	// Append lookup fields to base payload so it isn't caught by ReadOnly
 	// (i.e.: contains id and parent resource refs if any)

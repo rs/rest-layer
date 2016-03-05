@@ -40,7 +40,7 @@ func (v FakeValidatorSerializer) GetField(name string) *schema.Field {
 	return nil
 }
 
-func (v FakeValidatorSerializer) Prepare(payload map[string]interface{}, original *map[string]interface{}, replace bool) (changes map[string]interface{}, base map[string]interface{}) {
+func (v FakeValidatorSerializer) Prepare(ctx context.Context, payload map[string]interface{}, original *map[string]interface{}, replace bool) (changes map[string]interface{}, base map[string]interface{}) {
 	return nil, nil
 }
 

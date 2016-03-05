@@ -16,7 +16,7 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 		return e.Code, nil, e
 	}
 	rsrc := route.Resource()
-	changes, base := rsrc.Validator().Prepare(payload, nil, false)
+	changes, base := rsrc.Validator().Prepare(ctx, payload, nil, false)
 	// Append lookup fields to base payload so it isn't caught by ReadOnly
 	// (i.e.: contains id and parent resource refs if any)
 	for k, v := range route.ResourcePath.Values() {
