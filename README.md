@@ -824,10 +824,10 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body}'
 
 ### Field Aliasing
 
-It's also possible to rename fields in the response using aliasing. To create an alias, suffix the field name by the wanted alias separated by a colon (`:`):
+It's also possible to rename fields in the response using aliasing. To create an alias, prefix the field name by the wanted alias separated by a colon (`:`):
 
 ```http
-$ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name,name:n'
+$ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name,n:name'
 {
     "id": "ar6eimekj5lfktka9mt0",
     "n": "John Doe",
@@ -840,7 +840,7 @@ As you see, you can specify several time the same field. It's doesn't seem usefu
 Aliasing works with sub-fields as well:
 
 ```http
-$ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body:b}'
+$ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,b:body}'
 [
     {
         "_etag": "ar6eimukj5lfl07r0uv0",
@@ -862,8 +862,8 @@ By combining field aliasing and field parameters, we can expose this resizer API
 
 ```http
 $ http -b :8080/api/videos fields=='id,
-                                    thumbnail_url(width:80,height:60):thumb_small_url,
-                                    thumbnail_url(width:800,height:600):thumb_large_url'
+                                    thumb_small_url:thumbnail_url(width:80,height:60),
+                                    thumb_large_url:thumbnail_url(width:800,height:600)'
 [
     {
         "_etag": "ar6eimukj5lfl07r0uv0",

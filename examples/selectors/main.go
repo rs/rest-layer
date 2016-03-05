@@ -156,8 +156,8 @@ func main() {
 	// Serve it
 	log.Print("Serving API on http://localhost:8080")
 	log.Println("Play with (httpie):\n",
-		"- http :8080/posts fields=='id,thumbnail_url(height:80):thumb_s_url'\n",
-		"- http :8080/posts fields=='id:i,meta{title:t, body:b}:m,thumbnail_url(height:80):thumb_small_url'\n",
+		"- http :8080/posts fields=='id,thumb_s_url:thumbnail_url(height:80)'\n",
+		"- http :8080/posts fields=='id:i,m:meta{t:title,b:body},thumb_small_url:thumbnail_url(height:80)'\n",
 		"- http :8080/posts fields=='id,meta,user{id,name}'\n",
 		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0/followers fields=='post{id,meta{title}},user{id,name}'\n",
 		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0 fields=='id,meta{title},followers(limit:2){user{id,name}}'")

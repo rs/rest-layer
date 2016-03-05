@@ -37,14 +37,14 @@ Or pass params to sub-fields:
 field1{sub-field1(param1:"value"),sub-field2},field2
 
 Fields can also be renamed (aliased). This is useful when you want to have several times
-the same fields with different sets of parameters. To define aliases, append to the field
-definition a colon (:) followed by the alias name:
+the same fields with different sets of parameters. To define aliases, prepend the field
+definition by the alias name and a colon (:):
 
 field:alias
 
 With params:
 
-thumbnail_url(size=80):thumbnail_small_url,thumbnail_url(size=500):thumbnail_large_url
+thumbnail_small_url:thumbnail_url(size=80),thumbnail_small_url:thumbnail_url(size=500)
 
 With this example, the resulted document would be:
 
@@ -59,19 +59,16 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 	var field *Field
 	for *pos < ln {
 		if field == nil {
-			name := scanSelectorFieldName(exp, pos, ln)
+			name, alias := scanSelectorFieldNameWithAlias(exp, pos, ln)
 			if name == "" {
 				return nil, fmt.Errorf("looking for field name at char %d", *pos)
 			}
-			field = &Field{Name: name}
+			field = &Field{Name: name, Alias: alias}
 			continue
 		}
 		c := exp[*pos]
 		switch c {
 		case '{':
-			if field.Alias != "" {
-				return nil, fmt.Errorf("looking for `,` and got `{' at char %d", *pos)
-			}
 			*pos++
 			flds, err := parseSelectorExpression(exp, pos, ln, true)
 			if err != nil {
@@ -86,26 +83,18 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 			return nil, fmt.Errorf("looking for field name and got `}' at char %d", *pos)
 		case '(':
 			*pos++
-			params, err := parseSelectorFieldParams(exp, pos, ln)
+			params, err := scanSelectorFieldParams(exp, pos, ln)
 			if err != nil {
 				return nil, err
 			}
 			field.Params = params
-		case ':':
-			*pos++
-			name := scanSelectorFieldName(exp, pos, ln)
-			if name == "" {
-				return nil, fmt.Errorf("looking for field alias at char %d", *pos)
-			}
-			field.Alias = name
-			continue
 		case ',':
 			selector = append(selector, *field)
 			field = nil
 		case ' ', '\n', '\r', '\t':
 			// ignore witespaces
 		default:
-			return nil, fmt.Errorf("invalid char at %d", *pos)
+			return nil, fmt.Errorf("invalid char `%c` at %d", c, *pos)
 		}
 		*pos++
 	}
@@ -118,12 +107,12 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 	return selector, nil
 }
 
-// parseSelectorFieldParams parses fields params until it finds a closing parenthesis.
+// scanSelectorFieldParams parses fields params until it finds a closing parenthesis.
 // If the max length is reached before or a syntax error is found, an error is returned.
 //
 // It gets the expression buffer as "exp", the current position after an opening
 // parenthesis as as "pos" and the max length to parse as ln.
-func parseSelectorFieldParams(exp []byte, pos *int, ln int) (map[string]interface{}, error) {
+func scanSelectorFieldParams(exp []byte, pos *int, ln int) (map[string]interface{}, error) {
 	params := map[string]interface{}{}
 	for *pos < ln {
 		name := scanSelectorFieldName(exp, pos, ln)
@@ -182,6 +171,21 @@ func scanSelectorFieldName(exp []byte, pos *int, ln int) string {
 		break
 	}
 	return string(field)
+}
+
+// scanSelectorFieldNameWithAlias parses a field optional alias followed by it's name
+// separated by a column at current position and advance the cursor position "pos" at the
+// next character following the field name.
+func scanSelectorFieldNameWithAlias(exp []byte, pos *int, ln int) (name string, alias string) {
+	name = scanSelectorFieldName(exp, pos, ln)
+	ignoreWhitespaces(exp, pos, ln)
+	if *pos < ln && exp[*pos] == ':' {
+		*pos++
+		ignoreWhitespaces(exp, pos, ln)
+		alias = name
+		name = scanSelectorFieldName(exp, pos, ln)
+	}
+	return name, alias
 }
 
 // scanSelectorParamValue captures a parameter value at the current position and
