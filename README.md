@@ -211,7 +211,7 @@ var (
 						"body": {
 							// Dependency defines that body field can't be changed if
 							// the published field is not "false".
-							Dependency: schema.Q("{\"published\": false}"),
+							Dependency: schema.Q(`{"published": false}`),
 							Validator: &schema.String{
 								MaxLen: 100000,
 							},
@@ -1297,4 +1297,4 @@ http.Handle("/graphql", h)
 http.ListenAndServe(":8080", nil)
 ```
 
-GraphQL support is experimental. Only querying is supported for now, mutation will come later. Sub-queries are executed sequencialy and may generate quite a lot of query on the storage backend on complex queries. You may prefer the REST endpoint with [field selection](#field-selection) which benefits from a lot of optimization for now.
+GraphQL support is experimental. Only querying is supported for now, mutation will come later. Sub-queries are executed sequentially and may generate quite a lot of query on the storage backend on complex queries. You may prefer the REST endpoint with [field selection](#field-selection) which benefits from a lot of optimization for now.
