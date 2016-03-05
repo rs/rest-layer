@@ -17,7 +17,7 @@ Moreover, REST Layer let you create a graph API by linking resources between the
 REST Layer is composed of several packages:
 
 * [rest](https://godoc.org/github.com/rs/rest-layer/rest): Holds the `net/http` handler responsible for the implementation of the RESTful API.
-* [gql](https://godoc.org/github.com/rs/rest-layer/gql): Holds a `net/http` handler to expose the API using the GraphQL protocol.
+* [graphql](https://godoc.org/github.com/rs/rest-layer/graphql): Holds a `net/http` handler to expose the API using the GraphQL protocol.
 * [schema](https://godoc.org/github.com/rs/rest-layer/schema): Provides a validation framework for the API resources.
 * [resource](https://godoc.org/github.com/rs/rest-layer/resource): Defines resources, manages the resource graph and manages the interface with resource storage handler.
 
@@ -1268,7 +1268,7 @@ You can bind the GraphQL endpoint wherever you want as follow:
 index := resource.NewIndex()
 // Bind some resources
 
-h, err := gql.NewHandler(index)
+h, err := graphql.NewHandler(index)
 if err != nil {
 	log.Fatal(err)
 }

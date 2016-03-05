@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/rs/rest-layer-mem"
-	"github.com/rs/rest-layer/gql"
+	"github.com/rs/rest-layer/graphql"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
@@ -123,7 +123,7 @@ func main() {
 	http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
 
 	// Create and bind the graphql endpoint
-	graphql, err := gql.NewHandler(index)
+	graphql, err := graphql.NewHandler(index)
 	if err != nil {
 		log.Fatal(err)
 	}
