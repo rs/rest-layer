@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -68,7 +69,15 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 	case "POST":
 		b, _ := ioutil.ReadAll(r.Body)
 		r.Body.Close()
-		query = string(b)
+		if r.Header.Get("Content-Type") == "application/json" {
+			q := map[string]interface{}{}
+			if err := json.Unmarshal(b, &q); err != nil {
+				http.Error(w, fmt.Sprintf("Cannot unmarshal JSON: %v", err), http.StatusBadRequest)
+			}
+			query, _ = q["query"].(string)
+		} else {
+			query = string(b)
+		}
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return

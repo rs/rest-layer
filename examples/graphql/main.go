@@ -140,6 +140,114 @@ func main() {
 		log.Fatal(err)
 	}
 	http.Handle("/graphql", c.Handler(graphql))
+	http.HandleFunc("/graphiql", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {height: 100%; margin: 0; overflow: hidden; width: 100%;}
+  </style>
+  <link href="//cdn.jsdelivr.net/graphiql/0.4.9/graphiql.css" rel="stylesheet" />
+  <script src="//cdn.jsdelivr.net/fetch/0.9.0/fetch.min.js"></script>
+  <script src="//cdn.jsdelivr.net/react/0.14.7/react.min.js"></script>
+  <script src="//cdn.jsdelivr.net/react/0.14.7/react-dom.min.js"></script>
+  <script src="//cdn.jsdelivr.net/graphiql/0.4.9/graphiql.min.js"></script>
+</head>
+<body>
+  <script>
+    // Collect the URL parameters
+    var parameters = {};
+    window.location.search.substr(1).split('&').forEach(function (entry) {
+      var eq = entry.indexOf('=');
+      if (eq >= 0) {
+        parameters[decodeURIComponent(entry.slice(0, eq))] =
+          decodeURIComponent(entry.slice(eq + 1));
+      }
+    });
+
+    // Produce a Location query string from a parameter object.
+    function locationQuery(params) {
+      return '/graphql?' + Object.keys(params).map(function (key) {
+        return encodeURIComponent(key) + '=' +
+          encodeURIComponent(params[key]);
+      }).join('&');
+    }
+
+    // Derive a fetch URL from the current URL, sans the GraphQL parameters.
+    var graphqlParamNames = {
+      query: true,
+      variables: true,
+      operationName: true
+    };
+
+    var otherParams = {};
+    for (var k in parameters) {
+      if (parameters.hasOwnProperty(k) && graphqlParamNames[k] !== true) {
+        otherParams[k] = parameters[k];
+      }
+    }
+    var fetchURL = locationQuery(otherParams);
+
+    // Defines a GraphQL fetcher using the fetch API.
+    function graphQLFetcher(graphQLParams) {
+      return fetch(fetchURL, {
+        method: 'post',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(graphQLParams),
+        credentials: 'include',
+      }).then(function (response) {
+        return response.text();
+      }).then(function (responseBody) {
+        try {
+          return JSON.parse(responseBody);
+        } catch (error) {
+          return responseBody;
+        }
+      });
+    }
+
+    // When the query and variables string is edited, update the URL bar so
+    // that it can be easily shared.
+    function onEditQuery(newQuery) {
+      parameters.query = newQuery;
+      updateURL();
+    }
+
+    function onEditVariables(newVariables) {
+      parameters.variables = newVariables;
+      updateURL();
+    }
+
+    function updateURL() {
+      history.replaceState(null, null, locationQuery(parameters));
+    }
+
+    // Render <GraphiQL /> into the body.
+    React.render(
+      React.createElement(GraphiQL, {
+        fetcher: graphQLFetcher,
+        onEditQuery: onEditQuery,
+        onEditVariables: onEditVariables,
+		defaultQuery: "{\
+  postsList{\
+    i: id,\
+    m: meta{\
+      t: title,\
+      b: body},\
+    thumb_small_url: thumbnail_url(height:80)\
+  }\
+}",
+      }),
+      document.body
+    );
+  </script>
+</body>
+</html>`))
+	})
 
 	// Inject some fixtures
 	fixtures := [][]string{
@@ -175,6 +283,7 @@ func main() {
 
 	// Serve it
 	log.Print("Serving API on http://localhost:8080")
+	log.Print("Visit http://localhost:8080/graphiql for a GraphiQL UI")
 	log.Println("Play with (httpie):\n",
 		"- http :8080/graphql query=='{postsList{id,thumb_s_url:thumbnail_url(height:80)}}'\n",
 		"- http :8080/graphql query=='{postsList{i:id,m:meta{t:title, b:body},thumb_small_url:thumbnail_url(height:80)}}'\n",
