@@ -111,6 +111,9 @@ func getFields(idx resource.Index, s schema.Schema) graphql.Fields {
 	flds := graphql.Fields{}
 	// Iter fields
 	for name, def := range s.Fields {
+		if def.Hidden {
+			continue
+		}
 		if _, ok := def.Validator.(*schema.Reference); ok {
 			// Handled by addConnections to prevent dead loops
 		}

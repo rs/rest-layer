@@ -108,16 +108,23 @@ func (s Schema) GetField(name string) *Field {
 	// Split the name to get the current level name on first element and
 	// the rest of the path as second element if dot notation is used
 	// (i.e.: field.subfield.subsubfield -> field, subfield.subsubfield)
-	path := strings.SplitN(name, ".", 2)
-	if field, found := s.Fields[path[0]]; found {
-		if len(path) == 2 && field.Schema != nil {
-			// Recursively call has field to consume the whole path
-			return field.Schema.GetField(path[1])
+	if i := strings.IndexByte(name, '.'); i != -1 {
+		remaining := name[i+1:]
+		name = name[:i]
+		field, found := s.Fields[name]
+		if !found {
+			// Invalid node
+			return nil
 		}
-		// Return the field only if the path has been fully consumed
-		if len(path) == 1 {
-			return &field
+		if field.Schema == nil {
+			// Invalid path
+			return nil
 		}
+		// Recursively call has field to consume the whole path
+		return field.Schema.GetField(remaining)
+	}
+	if field, found := s.Fields[name]; found {
+		return &field
 	}
 	return nil
 }

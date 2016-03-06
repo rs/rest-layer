@@ -31,9 +31,11 @@ var (
 					Regexp: "^[0-9a-z_-]{2,150}$",
 				},
 			},
-			"created": schema.CreatedField,
-			"updated": schema.UpdatedField,
-			"name":    {},
+			"created":  schema.CreatedField,
+			"updated":  schema.UpdatedField,
+			"name":     {},
+			"ip":       {Validator: &schema.IP{StoreBinary: true}},
+			"password": schema.PasswordField,
 		},
 	}
 
@@ -135,11 +137,11 @@ func main() {
 
 	// Inject some fixtures
 	fixtures := [][]string{
-		[]string{"PUT", "/users/johndoe", `{"name": "John Doe"}`},
-		[]string{"PUT", "/users/fan1", `{"name": "Fan 1"}`},
-		[]string{"PUT", "/users/fan2", `{"name": "Fan 2"}`},
-		[]string{"PUT", "/users/fan3", `{"name": "Fan 3"}`},
-		[]string{"PUT", "/users/fan4", `{"name": "Fan 4"}`},
+		[]string{"PUT", "/users/johndoe", `{"name": "John Doe", "ip": "1.2.3.4", "password": "secret"}`},
+		[]string{"PUT", "/users/fan1", `{"name": "Fan 1", "ip": "1.2.3.4", "password": "secret"}}`},
+		[]string{"PUT", "/users/fan2", `{"name": "Fan 2", "ip": "1.2.3.4", "password": "secret"}}`},
+		[]string{"PUT", "/users/fan3", `{"name": "Fan 3", "ip": "1.2.3.4", "password": "secret"}}`},
+		[]string{"PUT", "/users/fan4", `{"name": "Fan 4", "ip": "1.2.3.4", "password": "secret"}}`},
 		[]string{"PUT", "/posts/ar5qrgukj5l7a6eq2ps0",
 			`{
 				"user": "johndoe",

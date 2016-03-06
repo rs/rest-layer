@@ -24,6 +24,10 @@ func validateSelector(s []Field, v schema.Validator) error {
 		if def == nil {
 			return fmt.Errorf("%s: unknown field", f.Name)
 		}
+		if def.Hidden {
+			// Hidden fields can't be selected
+			return fmt.Errorf("%s: hidden field", f.Name)
+		}
 		if len(f.Fields) > 0 {
 			if def.Schema != nil {
 				// Sub-field on a dict (sub-schema)
@@ -75,6 +79,10 @@ func applySelector(ctx context.Context, s []Field, v schema.Validator, p map[str
 			name = f.Alias
 		}
 		def := v.GetField(f.Name)
+		// Skip hidden fields
+		if def.Hidden {
+			continue
+		}
 		if val, found := p[f.Name]; found {
 			// Handle sub field selection (if field has a value)
 			if len(f.Fields) > 0 && val != nil {
