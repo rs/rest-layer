@@ -141,7 +141,7 @@ func applySelector(ctx context.Context, s []Field, v schema.Validator, p map[str
 
 // resolveFieldHandler handles selector handler / params
 func resolveFieldHandler(ctx context.Context, f Field, def *schema.Field, val interface{}) (interface{}, error) {
-	if def.Handler != nil {
+	if def.Handler != nil && len(f.Params) > 0 {
 		var err error
 		val, err = def.Handler(ctx, val, f.Params)
 		if err != nil {

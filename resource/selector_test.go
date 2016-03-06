@@ -100,11 +100,11 @@ func TestApplySelector(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.Equal(t, map[string]interface{}{"with_params": "param is 1"}, p)
 	}
-	// If no param, handler is call anyway
+	// If no param, handler do not call handler
 	p, err = applySelector(ctx, []Field{{Name: "with_params"}}, s,
 		map[string]interface{}{"with_params": "value"}, nil)
 	if assert.NoError(t, err) {
-		assert.Equal(t, map[string]interface{}{"with_params": "no param"}, p)
+		assert.Equal(t, map[string]interface{}{"with_params": "value"}, p)
 	}
 	// Param call with valid value rejected by the handler
 	p, err = applySelector(ctx, []Field{{Name: "with_params", Params: map[string]interface{}{"foo": -1}}}, s,

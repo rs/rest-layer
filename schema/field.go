@@ -41,6 +41,7 @@ type Field struct {
 	// value depending on the passed parameters.
 	Params Params
 	// Handler is the piece of logic modifying the field value based on passed parameters.
+	// This handler is only called on reads if at least on parameter is provided.
 	Handler FieldHandler
 	// Validator is used to validate the field's format.
 	Validator FieldValidator
