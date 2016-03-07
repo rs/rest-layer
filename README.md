@@ -49,7 +49,6 @@ REST Layer is composed of several packages:
 - [Logging](#logging)
 - [Data Storage Handler](#data-storage-handler)
 - [Custom Response Formatter / Sender](#custom-response-formatter-sender)
-- [Middleware](#middleware)
 - [GraphQL](#graphql)
 - [Hystrix](#hystrix)
 
@@ -1142,8 +1141,6 @@ c.UseC(xlog.NewHandler(xlog.Config{
 c.UseC(xaccess.NewHandler())
 ```
 
-See [Middleware](#middleware) section for more info on how to use `xlog` from middleware.
-
 See [xlog](https://github.com/rs/xlog) documentation for more info.
 
 ## Data Storage Handler
@@ -1223,62 +1220,6 @@ func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header
 		"list": data,
 	}
 }
-```
-
-## Middleware
-
-A middleware is a piece of custom code wrapped around the REST Layer's request processing logic, just after the routing handler found the targeted resource. You can insert you own logic to extend the framework like adding access control, logging, etc.
-
-Middleware are guaranteed to be able to get the found [rest.RouteMatch](https://godoc.org/github.com/rs/rest-layer/rest#RouteMatch) and the current [resource.Index](https://godoc.org/github.com/rs/rest-layer/resource#Index) from the context by respectively calling [rest.RouteFromContext](https://godoc.org/github.com/rs/rest-layer/rest#RouteFromContext) and [rest.IndexFromContext](https://godoc.org/github.com/rs/rest-layer/rest#IndexFromContext).
-
-A middleware can also augment the context by adding its own values so other middleware, resource storage handlers or response sender can read it. See [net/context](https://golang.org/x/net/context) documentation to find out more about this technic.
-
-To implement a middleware, you must implement the [rest.Middleware](https://godoc.org/github.com/rs/rest-layer/rest#Middleware) interface:
-
-```go
-type Middleware interface {
-	Handle(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{})
-}
-```
-
-You may also directly attach the `Handle` function by wrapping it in [rest.NewMiddleware](https://godoc.org/github.com/rs/rest-layer/rest#NewMiddleware):
-
-```go
-// Add a very basic auth using a middleware
-api.Use(rest.NewMiddleware(func(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{})) {
-	if u, p, ok := r.BasicAuth(); ok && validateCredentials(u, p) {
-		// Store the authen user in the context
-		ctx = context.WithValue(ctx, "user", u)
-		// Pass to the next middleware
-		return next(ctx)
-	}
-	// Stop the middleware chain and return a 401 HTTP error
-	headers := http.Header{}
-	headers.Set("WWW-Authenticate", "Basic realm=\"API\"")
-	return ctx, 401, headers, &rest.Error{401, "Please provide proper credentials", nil}
-})
-```
-
-You may want to execute some middleware only under certain condition. To help you with that, REST Layer provides the [rest.If](https://godoc.org/github.com/rs/rest-layer/rest#If) middleware. This middleware takes a `Condition` function and based on its return, and forwards the execution to the `Then` or `Else` middleware:
-
-```go
-api.Use(rest.If{
-	Condition: func(ctx context.Context, r *http.Request) bool {
-		route, ok := rest.RouteFromContext(ctx)
-		// True if current resource endpoint is users
-		return ok && route.ResourcePath.Path() == "users"
-	},
-	Then: &SomeMiddleware{},
-})
-```
-
-If you need to log something in your middleware, it is advised to [xlog](https://github.com/rs/xlog) as follow:
-
-```go
-api.Use(rest.NewMiddleware(func(ctx context.Context, r *http.Request, next rest.Next) (context.Context, int, http.Header, interface{})) {
-	xlog.FromContext(ctx).Info("Hello World")
-	return next(ctx)
-})
 ```
 
 ## GraphQL

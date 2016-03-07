@@ -16,8 +16,6 @@ type Handler struct {
 	ResponseSender ResponseSender
 	// index stores the resource router
 	index resource.Index
-	// mw is the list of middlewares attached to this REST handler
-	mw []Middleware
 }
 
 type methodHandler func(ctx context.Context, r *http.Request, route *RouteMatch) (int, http.Header, interface{})
@@ -76,25 +74,17 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 	ctx = contextWithRoute(ctx, route)
 	ctx = contextWithIndex(ctx, h.index)
 
-	// Call the middleware + the main route handler
-	ctx, status, headers, res := h.callMiddlewares(ctx, r, func(ctx context.Context) (context.Context, int, http.Header, interface{}) {
-		// Execute the main route handler
-		status, headers, body := routeHandler(ctx, r, route)
-		if headers == nil {
-			headers = http.Header{}
-		}
-		return ctx, status, headers, body
-	})
-	h.sendResponse(ctx, w, status, headers, res, skipBody)
+	// Execute the main route handler
+	status, headers, body := routeHandler(ctx, r, route)
+	if headers == nil {
+		headers = http.Header{}
+	}
+	h.sendResponse(ctx, w, status, headers, body, skipBody)
 }
 
 // routeHandler executes the appropriate method handler for the request if allowed by the route configuration
 func routeHandler(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	// Check route's resource parent(s) exists
-	// We perform this check after middlewares, so middleware can prepend route.ResourcePath with
-	// some other resources like a user by auth. This will ensure this user resource for instance,
-	// 1) exists 2) is contained in all subsequent path resources 3) is set on all newly created
-	// resource.
 	if err := route.ResourcePath.ParentsExist(ctx); err != nil {
 		return 0, http.Header{}, err
 	}
