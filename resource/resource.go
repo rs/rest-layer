@@ -50,15 +50,6 @@ func (v validatorFallback) GetField(name string) *schema.Field {
 	return v.fallback.GetField(name)
 }
 
-func (v validatorFallback) Serialize(payload map[string]interface{}) error {
-	if s, ok := v.Validator.(schema.Serializer); ok {
-		if err := s.Serialize(payload); err != nil {
-			return err
-		}
-	}
-	return v.fallback.Serialize(payload)
-}
-
 // connection is a special internal validator to hook a validator of a sub resource
 // to the resource validator in order to allow embedding of sub resources during
 // field selection. Those connections are set on a fallback schema.

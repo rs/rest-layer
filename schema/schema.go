@@ -30,12 +30,6 @@ type Compiler interface {
 	Compile() error
 }
 
-// Serializer is an interface defining a validator able to serialize the data before validation
-// and which provide a symetric deserializer.
-type Serializer interface {
-	Serialize(payload map[string]interface{}) error
-}
-
 type internal struct{}
 
 // Tombstone is used to mark a field for removal
@@ -68,33 +62,6 @@ func (s Schema) Compile() error {
 		// Compile each field
 		if err := def.Compile(); err != nil {
 			return fmt.Errorf("%s%v", field, err)
-		}
-	}
-	return nil
-}
-
-// Serialize implements the Serializer interface by calling field serializer recusively
-// on every fields
-func (s Schema) Serialize(payload map[string]interface{}) error {
-	for field, value := range payload {
-		if def := s.GetField(field); def != nil {
-			if def.Hidden {
-				// If field is hidden, just remove it from the payload
-				delete(payload, field)
-			} else if s, ok := def.Validator.(FieldSerializer); ok {
-				value, err := s.Serialize(value)
-				if err != nil {
-					return fmt.Errorf("%s: %s", field, err)
-				}
-				payload[field] = value
-			}
-			if def.Schema != nil {
-				if sub, ok := value.(map[string]interface{}); ok {
-					if err := def.Schema.Serialize(sub); err != nil {
-						return fmt.Errorf("%s.%s", field, err)
-					}
-				}
-			}
 		}
 	}
 	return nil

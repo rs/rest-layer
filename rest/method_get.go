@@ -1,12 +1,8 @@
 package rest
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
-
-	"github.com/rs/rest-layer/resource"
 
 	"golang.org/x/net/context"
 )
@@ -15,8 +11,9 @@ import (
 func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	page := 1
 	perPage := 0
+	rsrc := route.Resource()
 	if route.Method != "HEAD" {
-		if l := route.Resource().Conf().PaginationDefaultLimit; l > 0 {
+		if l := rsrc.Conf().PaginationDefaultLimit; l > 0 {
 			perPage = l
 		} else {
 			// Default value on non HEAD request for perPage is -1 (pagination disabled)
@@ -44,23 +41,13 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	if e != nil {
 		return e.Code, nil, e
 	}
-	list, err := route.Resource().Find(ctx, lookup, page, perPage)
+	list, err := rsrc.Find(ctx, lookup, page, perPage)
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e
 	}
 	for _, item := range list.Items {
-		item.Payload, err = lookup.ApplySelector(ctx, route.Resource(), item.Payload, func(path string) (*resource.Resource, error) {
-			router, ok := IndexFromContext(ctx)
-			if !ok {
-				return nil, errors.New("router not available in context")
-			}
-			rsrc, found := router.GetResource(path, route.Resource())
-			if !found {
-				return nil, fmt.Errorf("invalid resource reference: %s", path)
-			}
-			return rsrc, err
-		})
+		item.Payload, err = lookup.ApplySelector(ctx, rsrc, item.Payload, getReferenceResolver(ctx, rsrc))
 		if err != nil {
 			e = NewError(err)
 			return e.Code, nil, e

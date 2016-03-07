@@ -1,12 +1,8 @@
 package rest
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/rs/rest-layer/resource"
 
 	"golang.org/x/net/context"
 )
@@ -17,7 +13,8 @@ func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	if e != nil {
 		return e.Code, nil, e
 	}
-	list, err := route.Resource().Find(ctx, lookup, 1, 1)
+	rsrc := route.Resource()
+	list, err := rsrc.Find(ctx, lookup, 1, 1)
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e
@@ -37,17 +34,7 @@ func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			return 304, nil, nil
 		}
 	}
-	item.Payload, err = lookup.ApplySelector(ctx, route.Resource(), item.Payload, func(path string) (*resource.Resource, error) {
-		router, ok := IndexFromContext(ctx)
-		if !ok {
-			return nil, errors.New("router not available in context")
-		}
-		rsrc, found := router.GetResource(path, route.Resource())
-		if !found {
-			return nil, fmt.Errorf("invalid resource reference: %s", path)
-		}
-		return rsrc, err
-	})
+	item.Payload, err = lookup.ApplySelector(ctx, rsrc, item.Payload, getReferenceResolver(ctx, rsrc))
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

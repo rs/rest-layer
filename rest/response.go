@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema"
 	"github.com/rs/xlog"
 	"golang.org/x/net/context"
 )
@@ -138,30 +137,12 @@ func (f DefaultResponseFormatter) FormatError(ctx context.Context, headers http.
 
 // formatResponse routes the type of response on the right ResponseFormater method for
 // internally supported types.
-func formatResponse(ctx context.Context, f ResponseFormatter, w http.ResponseWriter, status int, headers http.Header, resp interface{}, skipBody bool, validator schema.Validator) (context.Context, int, interface{}) {
+func formatResponse(ctx context.Context, f ResponseFormatter, w http.ResponseWriter, status int, headers http.Header, resp interface{}, skipBody bool) (context.Context, int, interface{}) {
 	var body interface{}
 	switch resp := resp.(type) {
 	case *resource.Item:
-		if s, ok := validator.(schema.Serializer); ok {
-			// Prepare the payload for marshaling by calling eventual field serializers
-			if err := s.Serialize(resp.Payload); err != nil {
-				err = fmt.Errorf("Error while preparing item: %v", err)
-				ctx, body = f.FormatError(ctx, http.Header{}, err, skipBody)
-				return ctx, 500, body
-			}
-		}
 		ctx, body = f.FormatItem(ctx, headers, resp, skipBody)
 	case *resource.ItemList:
-		if s, ok := validator.(schema.Serializer); ok {
-			// Prepare the payload for marshaling by calling eventual field serializers
-			for i, item := range resp.Items {
-				if err := s.Serialize(item.Payload); err != nil {
-					err = fmt.Errorf("Error while preparing item #%d: %v", i, err)
-					ctx, body = f.FormatError(ctx, http.Header{}, err, skipBody)
-					return ctx, 500, body
-				}
-			}
-		}
 		ctx, body = f.FormatList(ctx, headers, resp, skipBody)
 	case *Error:
 		if status == 0 {

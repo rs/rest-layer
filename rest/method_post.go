@@ -11,6 +11,10 @@ import (
 
 // listPost handles POST resquests on a resource URL
 func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
+	lookup, e := route.Lookup()
+	if e != nil {
+		return e.Code, nil, e
+	}
 	var payload map[string]interface{}
 	if e := decodePayload(r, &payload); e != nil {
 		return e.Code, nil, e
@@ -43,6 +47,12 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 	// TODO: add support for batch insert
 	if err := rsrc.Insert(ctx, []*resource.Item{item}); err != nil {
 		e := NewError(err)
+		return e.Code, nil, e
+	}
+	// Apply selector so response gets the same format as read requests
+	item.Payload, err = lookup.ApplySelector(ctx, rsrc, item.Payload, getReferenceResolver(ctx, rsrc))
+	if err != nil {
+		e = NewError(err)
 		return e.Code, nil, e
 	}
 	// See https://www.subbu.org/blog/2008/10/location-vs-content-location

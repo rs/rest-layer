@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
@@ -31,82 +30,32 @@ func (rf FakeResponseFormatter) FormatList(ctx context.Context, headers http.Hea
 	return ctx, nil
 }
 
-type FakeValidatorSerializer struct {
-	err        error
-	serialized bool
-}
-
-func (v FakeValidatorSerializer) GetField(name string) *schema.Field {
-	return nil
-}
-
-func (v FakeValidatorSerializer) Prepare(ctx context.Context, payload map[string]interface{}, original *map[string]interface{}, replace bool) (changes map[string]interface{}, base map[string]interface{}) {
-	return nil, nil
-}
-
-func (v FakeValidatorSerializer) Validate(changes map[string]interface{}, base map[string]interface{}) (doc map[string]interface{}, errs map[string][]interface{}) {
-	return nil, nil
-}
-
-func (v *FakeValidatorSerializer) Serialize(payload map[string]interface{}) error {
-	v.serialized = true
-	return v.err
-}
-
 func TestFormatResponse(t *testing.T) {
 	var trace []string
-	var v *FakeValidatorSerializer
 	reset := func() {
 		trace = []string{}
-		v = &FakeValidatorSerializer{err: nil}
 	}
 	reset()
 	rf := FakeResponseFormatter{trace: &trace}
 
-	_, status, _ := formatResponse(nil, rf, nil, 0, nil, nil, false, nil)
+	_, status, _ := formatResponse(nil, rf, nil, 0, nil, nil, false)
 	assert.Equal(t, 0, status)
 	assert.Equal(t, []string{}, trace)
 
 	reset()
-	_, status, _ = formatResponse(nil, rf, nil, 0, nil, errors.New("test"), false, nil)
+	_, status, _ = formatResponse(nil, rf, nil, 0, nil, errors.New("test"), false)
 	assert.Equal(t, 500, status)
 	assert.Equal(t, []string{"SendError"}, trace)
 
 	reset()
-	_, status, _ = formatResponse(nil, rf, nil, 0, nil, &resource.Item{}, false, nil)
+	_, status, _ = formatResponse(nil, rf, nil, 0, nil, &resource.Item{}, false)
 	assert.Equal(t, 0, status)
 	assert.Equal(t, []string{"SendItem"}, trace)
 
 	reset()
-	_, status, _ = formatResponse(nil, rf, nil, 0, nil, &resource.Item{}, false, v)
-	assert.True(t, v.serialized)
-	assert.Equal(t, 0, status)
-	assert.Equal(t, []string{"SendItem"}, trace)
-
-	reset()
-	v.err = errors.New("test")
-	_, status, _ = formatResponse(nil, rf, nil, 0, nil, &resource.Item{}, false, v)
-	assert.True(t, v.serialized)
-	assert.Equal(t, 500, status)
-	assert.Equal(t, []string{"SendError"}, trace)
-
-	reset()
-	_, status, _ = formatResponse(nil, rf, nil, 0, nil, &resource.ItemList{Items: []*resource.Item{{}}}, false, nil)
+	_, status, _ = formatResponse(nil, rf, nil, 0, nil, &resource.ItemList{Items: []*resource.Item{{}}}, false)
 	assert.Equal(t, 0, status)
 	assert.Equal(t, []string{"SendList"}, trace)
-
-	reset()
-	_, status, _ = formatResponse(nil, rf, nil, 0, nil, &resource.ItemList{Items: []*resource.Item{{}}}, false, v)
-	assert.True(t, v.serialized)
-	assert.Equal(t, 0, status)
-	assert.Equal(t, []string{"SendList"}, trace)
-
-	reset()
-	v.err = errors.New("test")
-	_, status, _ = formatResponse(nil, rf, nil, 0, nil, &resource.ItemList{Items: []*resource.Item{{}}}, false, v)
-	assert.True(t, v.serialized)
-	assert.Equal(t, 500, status)
-	assert.Equal(t, []string{"SendError"}, trace)
 }
 
 func TestDefaultResponseFormatterFormatItem(t *testing.T) {

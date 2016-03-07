@@ -41,7 +41,7 @@ func (t types) addConnections(o *graphql.Object, idx resource.Index, r *resource
 				Description: def.Description,
 				Type:        t.getObjectType(idx, sr),
 				Args:        getFArgs(def.Params),
-				Resolve:     getSubFieldResolver(name, sr, def.Handler),
+				Resolve:     getSubFieldResolver(name, sr, def),
 			})
 		}
 	}
@@ -57,7 +57,8 @@ func (t types) addConnections(o *graphql.Object, idx resource.Index, r *resource
 	}
 }
 
-func getSubFieldResolver(parentField string, r *resource.Resource, h schema.FieldHandler) graphql.FieldResolveFn {
+func getSubFieldResolver(parentField string, r *resource.Resource, f schema.Field) graphql.FieldResolveFn {
+	s, serialize := f.Validator.(schema.FieldSerializer)
 	return func(p graphql.ResolveParams) (data interface{}, err error) {
 		parent, ok := p.Source.(map[string]interface{})
 		if !ok {
@@ -70,9 +71,11 @@ func getSubFieldResolver(parentField string, r *resource.Resource, h schema.Fiel
 			return nil, err
 		}
 		data = item.Payload
-		if h != nil {
-			// Call field handler if any
-			data, err = h(p.Context, data, p.Args)
+		if f.Handler != nil {
+			data, err = f.Handler(p.Context, data, p.Args)
+		}
+		if err == nil && serialize {
+			data, err = s.Serialize(data)
 		}
 		return data, err
 	}
@@ -130,7 +133,7 @@ func getFields(idx resource.Index, s schema.Schema) graphql.Fields {
 			Description: def.Description,
 			Type:        typ,
 			Args:        getFArgs(def.Params),
-			Resolve:     getFResolver(name, def.Handler),
+			Resolve:     getFResolver(name, def),
 		}
 	}
 	return flds
@@ -151,8 +154,9 @@ func getFArgs(p schema.Params) graphql.FieldConfigArgument {
 }
 
 // getFResolver returns a GraphQL field resolver for REST layer field handler
-func getFResolver(fieldName string, h schema.FieldHandler) graphql.FieldResolveFn {
-	if h == nil {
+func getFResolver(fieldName string, f schema.Field) graphql.FieldResolveFn {
+	s, serialize := f.Validator.(schema.FieldSerializer)
+	if !serialize && f.Handler == nil {
 		return nil
 	}
 	return func(rp graphql.ResolveParams) (interface{}, error) {
@@ -160,7 +164,15 @@ func getFResolver(fieldName string, h schema.FieldHandler) graphql.FieldResolveF
 		if !ok {
 			return nil, nil
 		}
-		return h(rp.Context, data[fieldName], rp.Args)
+		var err error
+		val := data[fieldName]
+		if f.Handler != nil {
+			val, err = f.Handler(rp.Context, val, rp.Args)
+		}
+		if err == nil && serialize {
+			val, err = s.Serialize(val)
+		}
+		return val, err
 	}
 }
 

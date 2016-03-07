@@ -68,7 +68,7 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 	skipBody := r.Method == "HEAD"
 	route, err := FindRoute(h.index, r)
 	if err != nil {
-		h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody, nil)
+		h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody)
 		return
 	}
 	defer route.Release()
@@ -85,11 +85,7 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 		}
 		return ctx, status, headers, body
 	})
-	var v schema.Validator
-	if route.Resource() != nil {
-		v = route.Resource().Validator()
-	}
-	h.sendResponse(ctx, w, status, headers, res, skipBody, v)
+	h.sendResponse(ctx, w, status, headers, res, skipBody)
 }
 
 // routeHandler executes the appropriate method handler for the request if allowed by the route configuration
@@ -118,7 +114,7 @@ func routeHandler(ctx context.Context, r *http.Request, route *RouteMatch) (stat
 }
 
 // sendResponse format and send the API response
-func (h *Handler) sendResponse(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, res interface{}, skipBody bool, validator schema.Validator) {
-	ctx, status, body := formatResponse(ctx, h.ResponseFormatter, w, status, headers, res, skipBody, validator)
+func (h *Handler) sendResponse(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, res interface{}, skipBody bool) {
+	ctx, status, body := formatResponse(ctx, h.ResponseFormatter, w, status, headers, res, skipBody)
 	h.ResponseSender.Send(ctx, w, status, headers, body)
 }
