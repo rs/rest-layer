@@ -8,16 +8,6 @@ type Conf struct {
 	// no default page size is set resulting in no pagination if no `limit` parameter
 	// is provided.
 	PaginationDefaultLimit int
-	// Hystrix wraps each storage handlers into an hystrix command if true. One hystrix
-	// command is created per backend actions with the format <resource_name>.<Action>.
-	//
-	// Actions are Get, MultiGet, Find, Insert, Update, Delete, Clear.
-	//
-	// You must configure hystrix for each command you want to control and start the
-	// stream handler.
-	// See https://godoc.org/github.com/afex/hystrix-go/hystrix for more info and
-	// examples/hystrix/main.go for a usage example.
-	Hystrix bool
 }
 
 // Mode defines CRUDL modes to be used with Conf.AllowedModes.

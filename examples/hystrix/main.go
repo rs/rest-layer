@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/afex/hystrix-go/hystrix"
+	"github.com/rs/rest-layer-hystrix"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
@@ -32,9 +33,8 @@ var (
 func main() {
 	index := resource.NewIndex()
 
-	index.Bind("posts", post, mem.NewHandler(), resource.Conf{
+	index.Bind("posts", post, restrix.Wrap("posts", mem.NewHandler()), resource.Conf{
 		AllowedModes: resource.ReadWrite,
-		Hystrix:      true,
 	})
 
 	// Create API HTTP handler for the resource graph
@@ -53,11 +53,6 @@ func main() {
 
 	// Configure hystrix commands
 	hystrix.Configure(map[string]hystrix.CommandConfig{
-		"posts.Get": {
-			Timeout:               500,
-			MaxConcurrentRequests: 200,
-			ErrorPercentThreshold: 25,
-		},
 		"posts.MultiGet": {
 			Timeout:               500,
 			MaxConcurrentRequests: 200,

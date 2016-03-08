@@ -100,6 +100,7 @@ As REST Layer is a simple `net/http`, you can use standard middleware to extend 
 - [x] [X-Forwarded-For](https://github.com/sebest/xff)
 - [x] [Rate Limiting](https://github.com/didip/tollbooth)
 - [ ] Operations Log
+- [x] [Hystrix storage handler wrapper](https://github.com/rs/rest-layer-hystrix)
 
 ### Storage Handlers
 
@@ -1248,24 +1249,22 @@ GraphQL support is experimental. Only querying is supported for now, mutation wi
 
 ## Hystrix
 
-REST Layer supports Hystrix as a circuit breaker. You can enable Hystrix on a per resource basis by setting the `Hystrix` flag to `true` in the resource's configuration:
+REST Layer supports Hystrix as a circuit breaker. You can enable Hystrix on a per resource basis by wrapping the storage handler using [rest-layer-hystrix](https://github.com/rs/rest-layer-hystrix):
 
 ```go
-index.Bind("posts", post, mongo.NewHandler(), resource.Conf{
-	AllowedModes: resource.ReadWrite,
-	Hystrix:      true,
-})
+import "github.com/rs/rest-layer-hystrix"
+
+index.Bind("posts", post, restrix.Wrap("posts", mongo.NewHandler()), resource.DefaultConf)
 ```
 
-When enabled, one Hystrix command is created per resource action, with the name formatted as `<resource_name>.<Action>`. Possible actions are:
+When wrapped this way, one Hystrix command is created per storage handler action, with the name formatted as `<name>.<Action>`. Possible actions are:
 
-- `Get`: when a single item is retrieved.
-- `MultiGet`: when several items are retrieved by their ids.
 - `Find`: when a collection of items is requested.
 - `Insert`: when items are created.
 - `Update`: when items are modified.
 - `Delete`: when a single item is deleted by its id.
 - `Clear`: when a collection of items matching a filter are deleted.
+- `MultiGet`: when several items are retrieved by their ids (on storage handler supporting `MultiGetter` interface.
 
 Once enabled, you must configure Hystrix for each command and start the Hystrix metrics stream handler.
 

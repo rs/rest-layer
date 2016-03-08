@@ -64,11 +64,6 @@ func (v connection) Validate(value interface{}) (interface{}, error) {
 
 // new creates a new resource with provided spec, handler and config
 func new(name string, s schema.Schema, h Storer, c Conf) *Resource {
-	var sh storageHandler
-	sh = storageWrapper{h}
-	if c.Hystrix {
-		sh = newHystrixStorage(name, sh)
-	}
 	return &Resource{
 		name:   name,
 		path:   name,
@@ -77,7 +72,7 @@ func new(name string, s schema.Schema, h Storer, c Conf) *Resource {
 			Validator: s,
 			fallback:  schema.Schema{Fields: schema.Fields{}},
 		},
-		storage:   sh,
+		storage:   storageWrapper{h},
 		conf:      c,
 		resources: subResources{},
 		aliases:   map[string]url.Values{},
