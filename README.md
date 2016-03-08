@@ -91,7 +91,7 @@ REST Layer is composed of several packages:
 
 ### Extensions
 
-As REST Layer is a simple `net/http`, you can use standard middleware to extend its fonctionnalites:
+As REST Layer is a simple `net/http`, you can use standard middleware to extend its functionalities:
 
 - [x] [CORS](http://github.com/rs/cors)
 - [ ] Method Override
