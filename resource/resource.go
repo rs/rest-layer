@@ -193,6 +193,14 @@ func (r *Resource) GetAlias(name string) (url.Values, bool) {
 	return a, found
 }
 
+func (r *Resource) GetAliases() []string {
+	n := make([]string, 0, len(r.aliases))
+	for a := range r.aliases {
+		n = append(n, a)
+	}
+	return n
+}
+
 // Schema returns the resource's schema
 func (r *Resource) Schema() schema.Schema {
 	return r.schema

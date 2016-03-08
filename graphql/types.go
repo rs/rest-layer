@@ -87,7 +87,7 @@ func getSubResourceResolver(r *resource.Resource) graphql.FieldResolveFn {
 		if !ok {
 			return nil, nil
 		}
-		lookup, page, perPage, err := listParamResolver(r, p)
+		lookup, page, perPage, err := listParamResolver(r, p, nil)
 		if err != nil {
 			return nil, err
 		}

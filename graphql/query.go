@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/graphql-go/graphql"
 	"github.com/rs/rest-layer/resource"
@@ -24,7 +26,11 @@ func newRootQuery(idx resource.Index) *graphql.Object {
 			flds[r.Name()] = t.getGetQuery(idx, r)
 		}
 		if r.Conf().IsModeAllowed(resource.List) {
-			flds[r.Name()+"List"] = t.getListQuery(idx, r)
+			flds[r.Name()+"List"] = t.getListQuery(idx, r, nil)
+			for _, a := range r.GetAliases() {
+				params, _ := r.GetAlias(a)
+				flds[r.Name()+strings.Title(a)] = t.getListQuery(idx, r, params)
+			}
 		}
 	}
 	return graphql.NewObject(graphql.ObjectConfig{
@@ -71,7 +77,7 @@ var listArgs = graphql.FieldConfigArgument{
 	},
 }
 
-func listParamResolver(r *resource.Resource, p graphql.ResolveParams) (lookup *resource.Lookup, page int, perPage int, err error) {
+func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url.Values) (lookup *resource.Lookup, page int, perPage int, err error) {
 	page = 1
 	// Default value on non HEAD request for perPage is -1 (pagination disabled)
 	perPage = -1
@@ -106,16 +112,23 @@ func listParamResolver(r *resource.Resource, p graphql.ResolveParams) (lookup *r
 			return nil, 0, 0, fmt.Errorf("invalid `filter` parameter: %v", err)
 		}
 	}
+	if params != nil {
+		if filter := params.Get("filter"); filter != "" {
+			if err := lookup.AddFilter(filter, r.Validator()); err != nil {
+				return nil, 0, 0, fmt.Errorf("invalid `filter` parameter: %v", err)
+			}
+		}
+	}
 	return
 }
 
-func (t types) getListQuery(idx resource.Index, r *resource.Resource) *graphql.Field {
+func (t types) getListQuery(idx resource.Index, r *resource.Resource, params url.Values) *graphql.Field {
 	return &graphql.Field{
 		Description: fmt.Sprintf("Get a list of %s", r.Name()),
 		Type:        graphql.NewList(t.getObjectType(idx, r)),
 		Args:        listArgs,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			lookup, page, perPage, err := listParamResolver(r, p)
+			lookup, page, perPage, err := listParamResolver(r, p, params)
 			if err != nil {
 				return nil, err
 			}

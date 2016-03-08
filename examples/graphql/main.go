@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 
 	"golang.org/x/net/context"
@@ -33,9 +34,13 @@ var (
 					Regexp: "^[0-9a-z_-]{2,150}$",
 				},
 			},
-			"created":  schema.CreatedField,
-			"updated":  schema.UpdatedField,
-			"name":     {},
+			"created": schema.CreatedField,
+			"updated": schema.UpdatedField,
+			"name":    {},
+			"admin": {
+				Filterable: true,
+				Validator:  &schema.Bool{},
+			},
 			"ip":       {Validator: &schema.IP{StoreBinary: true}},
 			"password": schema.PasswordField,
 		},
@@ -116,9 +121,11 @@ var (
 func main() {
 	index := resource.NewIndex()
 
-	index.Bind("users", user, mem.NewHandler(), resource.Conf{
+	users := index.Bind("users", user, mem.NewHandler(), resource.Conf{
 		AllowedModes: resource.ReadWrite,
 	})
+
+	users.Alias("admin", url.Values{"filter": []string{`{"admin": true}`}})
 
 	posts := index.Bind("posts", post, mem.NewHandler(), resource.Conf{
 		AllowedModes: resource.ReadWrite,
@@ -259,7 +266,7 @@ func main() {
 
 	// Inject some fixtures
 	fixtures := [][]string{
-		[]string{"PUT", "/users/johndoe", `{"name": "John Doe", "ip": "1.2.3.4", "password": "secret"}`},
+		[]string{"PUT", "/users/johndoe", `{"name": "John Doe", "ip": "1.2.3.4", "password": "secret", "admin": true}`},
 		[]string{"PUT", "/users/fan1", `{"name": "Fan 1", "ip": "1.2.3.4", "password": "secret"}}`},
 		[]string{"PUT", "/users/fan2", `{"name": "Fan 2", "ip": "1.2.3.4", "password": "secret"}}`},
 		[]string{"PUT", "/users/fan3", `{"name": "Fan 3", "ip": "1.2.3.4", "password": "secret"}}`},
