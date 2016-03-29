@@ -145,6 +145,11 @@ func main() {
 	c := xhandler.Chain{}
 	c.UseC(xlog.NewHandler(xlog.Config{}))
 	c.UseC(xaccess.NewHandler())
+	c.UseC(xlog.RequestHandler("req"))
+	c.UseC(xlog.RemoteAddrHandler("ip"))
+	c.UseC(xlog.UserAgentHandler("ua"))
+	c.UseC(xlog.RefererHandler("ref"))
+	c.UseC(xlog.RequestIDHandler("req_id", "Request-Id"))
 
 	// Bind the API under /api/ path
 	http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
