@@ -189,7 +189,7 @@ func (s Schema) Prepare(ctx context.Context, payload map[string]interface{}, ori
 		}
 		// Call the OnInit or OnUpdate depending on the presence of the original doc and the
 		// state of the replace argument.
-		var hook *func(ctx context.Context, value interface{}) interface{}
+		var hook func(ctx context.Context, value interface{}) interface{}
 		if original == nil || replace {
 			hook = def.OnInit
 		} else {
@@ -202,13 +202,13 @@ func (s Schema) Prepare(ctx context.Context, payload map[string]interface{}, ori
 					// If the field has a tombstone, apply the handler on the base
 					// and remove the tombstone so it doesn't appear as a user
 					// generated change
-					base[field] = (*hook)(ctx, base[field])
+					base[field] = hook(ctx, base[field])
 					delete(changes, field)
 				} else {
-					changes[field] = (*hook)(ctx, value)
+					changes[field] = hook(ctx, value)
 				}
 			} else {
-				base[field] = (*hook)(ctx, base[field])
+				base[field] = hook(ctx, base[field])
 			}
 		}
 	}

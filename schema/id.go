@@ -23,7 +23,7 @@ var (
 		Description: "The item's id",
 		Required:    true,
 		ReadOnly:    true,
-		OnInit:      &NewID,
+		OnInit:      NewID,
 		Filterable:  true,
 		Sortable:    true,
 		Validator: &String{

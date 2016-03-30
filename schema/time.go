@@ -19,7 +19,7 @@ var (
 		Description: "The time at which the item has been inserted",
 		Required:    true,
 		ReadOnly:    true,
-		OnInit:      &Now,
+		OnInit:      Now,
 		Sortable:    true,
 		Validator:   &Time{},
 	}
@@ -30,8 +30,8 @@ var (
 		Description: "The time at which the item has been last updated",
 		Required:    true,
 		ReadOnly:    true,
-		OnInit:      &Now,
-		OnUpdate:    &Now,
+		OnInit:      Now,
+		OnUpdate:    Now,
 		Sortable:    true,
 		Validator:   &Time{},
 	}

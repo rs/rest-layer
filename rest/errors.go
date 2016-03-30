@@ -10,6 +10,8 @@ import (
 var (
 	// ErrNotFound represents a 404 HTTP error.
 	ErrNotFound = &Error{http.StatusNotFound, "Not Found", nil}
+	// ErrUnauthorized represents a 401 HTTP error.
+	ErrUnauthorized = &Error{http.StatusUnauthorized, "Unauthorized", nil}
 	// ErrPreconditionFailed happends when a conditional request condition is not met.
 	ErrPreconditionFailed = &Error{http.StatusPreconditionFailed, "Precondition Failed", nil}
 	// ErrConflict happens when another thread or node modified the data concurrently
@@ -23,7 +25,7 @@ var (
 	ErrClientClosedRequest = &Error{499, "Client Closed Request", nil}
 	// ErrNotImplemented happends when a requested feature is not implemented.
 	ErrNotImplemented = &Error{http.StatusNotImplemented, "Not Implemented", nil}
-	// ErrGatewayTimeout i{"private_key_id":"3b8ca790d8af1a5104fbc041b19fafa36e309368","client_email":"57670414364-bob1ar4t03jr4h2fef67a25oidg4ievn@developer.gserviceaccount.com","private_key":"-----BEGIN PRIVATE KEY-----\\nMIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAMdsw6Y+avO79ZNW\\nvoNRR\\\/YzWtIbr1I2iAdXY8dPMy6lvyGLKld0xP3GREpBWTfz4aNHPMpj75WKvimH\\nlxjy0PhQ4ScsP5S72GjFccb+\\\/uGOadCH+s3+tEvMyOQ0lxjcPzOUW7hxKTIAoabR\\n6Wp0\\\/G3zakj\\\/fINPKYldz3MdGV2NAgMBAAECgYASzirU7mXffgX2UuO8Nln22Xji\\n\\\/0FVG1dQeekqzkkhSPfxDdJ8VMKOu7eM2QS0xgatAva0jx\\\/0lhTAjcytyZfy56Ww\\ncG\\\/4sv6G8dNmTH9N8JdanrhwY7zXDaGoZkPGXR3tMiScqsJEAP\\\/wn6HD7KX5IodJ\\nAWbL9GyGiTCwr\\\/ZsgQJBAP4BDg+jlSTpKje2jo5wE5mGOk58VNBFJAiDHHoZzcj+\\nrTBbfqhcxQls9gYFvsSCTxKWpa2yn6rQyFxDVz8fdkkCQQDI\\\/et1Euu\\\/uk6ci\\\/30\\nDcrQDQsesLdPW1Jp8FzbnxG1H\\\/PppHrDX\\\/I3Kq5+k34F5b+\\\/gSQJY0Rwy5\\\/Lum0H\\n7x0lAkEAtLXHbTTyjRod4RlOfuQZ7aXjoacvKCWopy2weuYU1CTsznSpvdqSjEwr\\nFMnNmT0kSJNJODTXB84WXh3C2rPlkQJBAJWSuR2n1f8ZY5UGbRepB+wqOMM\\\/GTua\\nJ0ulT0U1LFVRERAnkiBBD5zUS4TwuBEld7vJHAtMb0tNjX5sHuWPoW0CQQCEWvTi\\nim8u\\\/S9zhz6gZEC0ppTQhUynbuX8SgdsMVqi6wazLcaEOQEux9VZhOijDmdYOPfs\\nRrTKGKIzFoQk1Hak\\n-----END PRIVATE KEY-----\\n","type":"service_account","client_id":"57670414364-bob1ar4t03jr4h2fef67a25oidg4ievn.apps.googleusercontent.com"}s returned when the specified timeout for the request has been
+	// ErrGatewayTimeout is returned when the specified timeout for the request has been
 	// reached before the server was able to process it.
 	ErrGatewayTimeout = &Error{http.StatusGatewayTimeout, "Deadline Exceeded", nil}
 	// ErrUnknown is thrown when the origine of the error can't be identified.
@@ -54,6 +56,8 @@ func NewError(err error) *Error {
 		return ErrGatewayTimeout
 	case resource.ErrNotFound:
 		return ErrNotFound
+	case resource.ErrUnauthorized:
+		return ErrUnauthorized
 	case resource.ErrConflict:
 		return ErrConflict
 	case resource.ErrNotImplemented:

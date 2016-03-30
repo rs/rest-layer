@@ -109,7 +109,7 @@ type storageWrapper struct {
 func (s storageWrapper) Get(ctx context.Context, id interface{}) (item *Item, err error) {
 	items, err := s.MultiGet(ctx, []interface{}{id})
 	if err == nil {
-		if len(items) == 1 && items[0].ID == id {
+		if len(items) == 1 && items[0] != nil && items[0].ID == id {
 			item = items[0]
 		} else {
 			err = ErrNotFound

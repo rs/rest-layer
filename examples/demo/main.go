@@ -28,7 +28,7 @@ var (
 				// This is a field hook called when a new user is created.
 				// The schema.NewID hook is a provided hook to generate a
 				// unique id when no value is provided.
-				OnInit: &schema.NewID,
+				OnInit: schema.NewID,
 				// The Filterable and Sortable allows usage of filter and sort
 				// on this field in requests.
 				Filterable: true,
@@ -42,7 +42,7 @@ var (
 				ReadOnly:   true,
 				Filterable: true,
 				Sortable:   true,
-				OnInit:     &schema.Now,
+				OnInit:     schema.Now,
 				Validator:  &schema.Time{},
 			},
 			"updated": {
@@ -50,10 +50,10 @@ var (
 				ReadOnly:   true,
 				Filterable: true,
 				Sortable:   true,
-				OnInit:     &schema.Now,
+				OnInit:     schema.Now,
 				// The OnUpdate hook is called when the item is edited. Here we use
 				// provided Now hook which just return the current time.
-				OnUpdate:  &schema.Now,
+				OnUpdate:  schema.Now,
 				Validator: &schema.Time{},
 			},
 			// Define a name field as required with a string validator

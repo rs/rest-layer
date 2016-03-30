@@ -22,6 +22,7 @@ type Resource struct {
 	conf        Conf
 	resources   subResources
 	aliases     map[string]url.Values
+	hooks       eventHandler
 }
 
 type subResources []*Resource
@@ -188,6 +189,7 @@ func (r *Resource) GetAlias(name string) (url.Values, bool) {
 	return a, found
 }
 
+// GetAliases returns all the alias names set on the resource
 func (r *Resource) GetAliases() []string {
 	n := make([]string, 0, len(r.aliases))
 	for a := range r.aliases {
@@ -211,6 +213,13 @@ func (r *Resource) Conf() Conf {
 	return r.conf
 }
 
+// Use attaches an event handler to the resource. This event
+// handler must implement on of the resource.*EventHandler interface
+// or this method returns an error.
+func (r *Resource) Use(e interface{}) error {
+	return r.hooks.use(e)
+}
+
 // Get get one item by its id. If item is not found, ErrNotFound error is returned
 func (r *Resource) Get(ctx context.Context, id interface{}) (item *Item, err error) {
 	defer func(t time.Time) {
@@ -219,7 +228,11 @@ func (r *Resource) Get(ctx context.Context, id interface{}) (item *Item, err err
 			"error":    err,
 		})
 	}(time.Now())
-	return r.storage.Get(ctx, id)
+	if err = r.hooks.onGet(ctx, id); err == nil {
+		item, err = r.storage.Get(ctx, id)
+	}
+	r.hooks.onGot(ctx, &item, &err)
+	return
 }
 
 // MultiGet get some items by their id and return them in the same order. If one or more item(s)
@@ -232,7 +245,23 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 			"error":    err,
 		})
 	}(time.Now())
-	return r.storage.MultiGet(ctx, ids)
+	for _, id := range ids {
+		err = r.hooks.onGet(ctx, id)
+		if err != nil {
+			return
+		}
+	}
+	if err == nil {
+		items, err = r.storage.MultiGet(ctx, ids)
+	}
+	for i, item := range items {
+		_item := item
+		r.hooks.onGot(ctx, &_item, &err)
+		if _item != item {
+			items[i] = _item // apply changes done by hooks if any
+		}
+	}
+	return
 }
 
 // Find implements Storer interface
@@ -248,7 +277,11 @@ func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage int) 
 			"error":    err,
 		})
 	}(time.Now())
-	return r.storage.Find(ctx, lookup, page, perPage)
+	if err = r.hooks.onFind(ctx, lookup, page, perPage); err == nil {
+		list, err = r.storage.Find(ctx, lookup, page, perPage)
+	}
+	r.hooks.onFound(ctx, lookup, &list, &err)
+	return
 }
 
 // Insert implements Storer interface
@@ -259,7 +292,11 @@ func (r *Resource) Insert(ctx context.Context, items []*Item) (err error) {
 			"error":    err,
 		})
 	}(time.Now())
-	return r.storage.Insert(ctx, items)
+	if err = r.hooks.onInsert(ctx, items); err == nil {
+		err = r.storage.Insert(ctx, items)
+	}
+	r.hooks.onInserted(ctx, items, &err)
+	return
 }
 
 // Update implements Storer interface
@@ -270,7 +307,11 @@ func (r *Resource) Update(ctx context.Context, item *Item, original *Item) (err 
 			"error":    err,
 		})
 	}(time.Now())
-	return r.storage.Update(ctx, item, original)
+	if err = r.hooks.onUpdate(ctx, item, original); err == nil {
+		err = r.storage.Update(ctx, item, original)
+	}
+	r.hooks.onUpdated(ctx, item, original, &err)
+	return
 }
 
 // Delete implements Storer interface
@@ -281,7 +322,11 @@ func (r *Resource) Delete(ctx context.Context, item *Item) (err error) {
 			"error":    err,
 		})
 	}(time.Now())
-	return r.storage.Delete(ctx, item)
+	if err = r.hooks.onDelete(ctx, item); err == nil {
+		err = r.storage.Delete(ctx, item)
+	}
+	r.hooks.onDeleted(ctx, item, &err)
+	return
 }
 
 // Clear implements Storer interface
@@ -293,5 +338,9 @@ func (r *Resource) Clear(ctx context.Context, lookup *Lookup) (deleted int, err 
 			"error":    err,
 		})
 	}(time.Now())
-	return r.storage.Clear(ctx, lookup)
+	if err = r.hooks.onClear(ctx, lookup); err == nil {
+		deleted, err = r.storage.Clear(ctx, lookup)
+	}
+	r.hooks.onCleared(ctx, lookup, &deleted, &err)
+	return
 }

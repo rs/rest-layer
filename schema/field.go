@@ -32,11 +32,11 @@ type Field struct {
 	// OnInit can be set to a function to generate the value of this field
 	// when item is created. The function takes the current value if any
 	// and returns the value to be stored.
-	OnInit *func(ctx context.Context, value interface{}) interface{}
+	OnInit func(ctx context.Context, value interface{}) interface{}
 	// OnUpdate can be set to a function to generate the value of this field
 	// when item is updated. The function takes the current value if any
 	// and returns the value to be stored.
-	OnUpdate *func(ctx context.Context, value interface{}) interface{}
+	OnUpdate func(ctx context.Context, value interface{}) interface{}
 	// Params defines a param handler for the field. The handler may change the field's
 	// value depending on the passed parameters.
 	Params Params

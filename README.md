@@ -29,8 +29,10 @@ REST Layer is composed of several packages:
 - [Usage](#usage)
 - [Resource Configuration](#resource-configuration)
 	- [Schema](#schema)
+    - [Field Definition](#field-definition)
 	- [Binding](#binding)
 	- [Modes](#modes)
+    - [Hooks](#hooks)
 	- [Sub Resources](#sub-resources)
 	- [Dependency](#dependency)
 - [Filtering](#filtering)
@@ -70,7 +72,7 @@ REST Layer is composed of several packages:
 - [x] Pagination
 - [x] Aliasing
 - [x] Custom business logic
-- [ ] Event hooks
+- [x] Event hooks
 - [x] Field hooks
 - [x] Extensible data validation and transformation
 - [x] Conditional requests (Last-Modified / Etag)
@@ -141,7 +143,7 @@ var (
 				// This is a field hook called when a new user is created.
 				// The schema.NewID hook is a provided hook to generate a
 				// unique id when no value is provided.
-				OnInit: &schema.NewID,
+				OnInit: schema.NewID,
 				// The Filterable and Sortable allows usage of filter and sort
 				// on this field in requests.
 				Filterable: true,
@@ -155,7 +157,7 @@ var (
 				ReadOnly:   true,
 				Filterable: true,
 				Sortable:   true,
-				OnInit:     &schema.Now,
+				OnInit:     schema.Now,
 				Validator:  &schema.Time{},
 			},
 			"updated": {
@@ -163,10 +165,10 @@ var (
 				ReadOnly:   true,
 				Filterable: true,
 				Sortable:   true,
-				OnInit:     &schema.Now,
+				OnInit:     schema.Now,
 				// The OnUpdate hook is called when the item is edited. Here we use
 				// provided Now hook which just return the current time.
-				OnUpdate:  &schema.Now,
+				OnUpdate:  schema.Now,
 				Validator: &schema.Time{},
 			},
 			// Define a name field as required with a string validator
@@ -522,9 +524,20 @@ For REST Layer to be able to expose resources, you have to first define what fie
 
 ### Schema
 
-Resource field configuration is performed throught the [schema](https://godoc.org/github.com/rs/rest-layer/schema) package. A schema is a map of field name pointing to field definition. The field definition contains the following properties:
+Resource field configuration is performed throught the [schema](https://godoc.org/github.com/rs/rest-layer/schema) package. A schema is a struct describing a resource. A schema is composed of metadata about the resource and a description of the allowed fields through a map of field name pointing to field definition.
 
-| Property     | Description
+Schema fields:
+
+| Field         | Description
+| ------------- | -------------
+| `Description` | The description of the resource. This is used for API documentation.
+| `Fields`      | A map of field name to field definition.
+
+### Field Definition
+
+The field definitions contains the following properties:
+
+| Field        | Description
 | ------------ | -------------
 | `Required`   | If `true`, the field must be provided when the resource is created and can't be set to `null`. The client may be able to omit a required field if a `Default` or a hook sets its content.
 | `ReadOnly`   | If `true`, the field can not be set by the client, only a `Default` or a hook can alter its value. You may specify a value for a read-only field in your mutation request if the value is equal to the old value, REST Layer won't complain about it. This let your client to `PUT` the same document it has `GET` without having to take care of removing the read-only fields.
@@ -650,7 +663,6 @@ The `resource.Conf` type has the following customizable properties:
 | `AllowedModes`           | A list of `resource.Mode` allowed for the resource.
 | `PaginationDefaultLimit` | If set, pagination is enabled by default with a number of item per page defined here.
 
-
 ### Modes
 
 REST Layer handles mapping of HTTP methods to your resource URLs automatically. With REST, there is two kind of resource URL pathes: collection and item URLs. Collection URLs (`/<resource>`) are pointing to the collection of items while item URL (`/<resource>/<item_id>`) points to a specific item in that collection. HTTP methods are used to perform [CRUDL](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete) operations on those resource.
@@ -678,6 +690,41 @@ The following table shows how REST layer map CRUDL operations to HTTP methods an
 | `Replace` | PUT         | Item       | Replace the item by a new on.
 | `Delete`  | DELETE      | Item       | Delete the item by its ID.
 | `Clear`   | DELETE      | Collection | Delete all items from the collection matching the context and/or filters.
+
+### Hooks
+
+Hooks are piece of code you can attach before or after an operation is performed on a resource. A hook is a Go type implementing one of the event handler interface below, and attached to a resource via the [Resource.Use](https://godoc.org/github.com/rs/rest-layer/resource#Resource.Use) method.
+
+| Hook Interface         | Description
+| ---------------------- | -------------
+| [FindEventHandler]     | Defines a function called when the resource is listed with or without a query.
+| [FoundEventHandler]    | Defines a function called with the result of a find on resource.
+| [GetEventHandler]      | Defines a function called when a get is performed resource. Note: when multi-get is performed either explicitely or as a result of an optimization for a find, this hook is called for each item id individually.
+| [GotEventHandler]      | Defines a function called with the result of a get on a resource.
+| [InsertEventHandler]   | Defines a function called before an item is inserted.
+| [InsertedEventHandler] | Defines a function called after an item has been inserted.
+| [UpdateEventHandler]   | Defines a function called before an item is updated.
+| [UpdatedEventHandler]  | Defines a function called after an item has been updated.
+| [DeleteEventHandler]   | Defines a function called before an item is deleted.
+| [DeletedEventHandler]  | Defines a function called after an item has been deleted.
+| [ClearEventHandler]    | Defines a function called before a resource is cleared.
+| [ClearedEventHandler]  | Defines a function called after a resource has been cleared.
+
+[FindEventHandler]:     https://godoc.org/github.com/rs/rest-layer/resource#FindEventHandler
+[FoundEventHandler]:    https://godoc.org/github.com/rs/rest-layer/resource#FoundEventHandler
+[GetEventHandler]:      https://godoc.org/github.com/rs/rest-layer/resource#GetEventHandler
+[GotEventHandler]:      https://godoc.org/github.com/rs/rest-layer/resource#GotEventHandler
+[InsertEventHandler]:   https://godoc.org/github.com/rs/rest-layer/resource#InsertEventHandler
+[InsertedEventHandler]: https://godoc.org/github.com/rs/rest-layer/resource#InsertedEventHandler
+[UpdateEventHandler]:   https://godoc.org/github.com/rs/rest-layer/resource#UpdateEventHandler
+[UpdatedEventHandler]:  https://godoc.org/github.com/rs/rest-layer/resource#UpdatedEventHandler
+[DeleteEventHandler]:   https://godoc.org/github.com/rs/rest-layer/resource#DeleteEventHandler
+[DeletedEventHandler]:  https://godoc.org/github.com/rs/rest-layer/resource#DeletedEventHandler
+[ClearEventHandler]:    https://godoc.org/github.com/rs/rest-layer/resource#ClearEventHandler
+[ClearedEventHandler]:  https://godoc.org/github.com/rs/rest-layer/resource#ClearedEventHandler
+
+All hooks functions get a `context.Context` as first argument. If a network call must be performed from the hook, the context's deadline must be respected. If a hook return an error, the whole request is aborted with that error.
+
 
 ### Sub Resources
 
