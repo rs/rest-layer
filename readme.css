@@ -13,16 +13,13 @@ body {
  * Layout
  */
 
-@media only screen and (max-device-width: 736px) {
-  .readme {
-    margin: 3em;
-  }
+.readme {
+  margin: 3em;
 }
  
-@media only screen and (min-device-width: 736px) {
+@media only screen and (min-device-width: 736px) and (min-width: 1000px) {
   .readme {
-    min-width: 650px;
-    max-width: 750px;
+    width: 650px;
   }
 
   .readme #documentation {
@@ -36,7 +33,7 @@ body {
     margin: 0;
     padding-top: 2rem;
     padding-left: 2rem;
-    width: 18rem;
+    width: 17rem;
     height: 100%;
     overflow: auto;
     background-color: #2d2d2d;
@@ -61,6 +58,18 @@ body {
   .readme {
     margin-left: 20rem;
     padding: 2rem;
+  }
+}
+
+@media only screen and (min-width: 1000px) {
+  .readme {
+    width: 650px;
+  }
+}
+
+@media only screen and (min-width: 1100px) {
+  .readme {
+    width: 750px;
   }
 }
 
