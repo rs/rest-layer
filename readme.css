@@ -32,8 +32,12 @@ body {
   background-color: #2d2d2d;
 }
 
-.readme #documentation + ul .active {
+.readme #documentation + ul li.active {
     background-color: #6c2022;
+}
+
+.readme #documentation + ul li.active ul {
+    background-color: #2d2d2d;
 }
 
 .readme #documentation + ul a,
