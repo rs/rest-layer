@@ -936,7 +936,7 @@ $ http -b :8080/api/videos fields=='id,
         "thumb_small_url": "http://cdn.com/path/to/image-80w60h.jpg",
         "thumb_large_url": "http://cdn.com/path/to/image-800w600h.jpg"
     }
- ]
+]
 ```
 
 The example above show the same field represented twice but with some useful value transformations.
