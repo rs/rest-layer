@@ -43,7 +43,7 @@ REST Layer is composed of several packages:
 	- [Embedding](#embedding)
 - [Pagination](#pagination)
 - [Conditional Requests](#conditional-requests)
-- [Data Integrity and Concurrency Control](#data-integrity-and-concurrency-control)
+- [Data Integrity & Concurrency Control](#data-integrity-and-concurrency-control)
 - [Data Validation](#data-validation)
 	- [Nullable Values](#nullable-values)
 	- [Extensible Data Validation](#extensible-data-validation)
