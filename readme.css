@@ -130,38 +130,10 @@ body {
   margin-top: 0;
 }
 
-.readme h1 code,
-.readme h2 code,
-.readme h3 code,
-.readme h4 code,
-.readme h5 code,
-.readme h6 code {
-  background: transparent;
-  margin: 0;
-  padding: 0;
-}
-
-.readme h1 a,
-.readme h2 a,
-.readme h3 a,
-.readme h4 a,
-.readme h5 a,
-.readme h6 a {
-  background: transparent;
-}
-
-.readme h1 img,
-.readme h2 img,
-.readme h3 img,
-.readme h4 img,
-.readme h5 img,
-.readme h6 img {
-  display: none;
-}
-
 /**
  * Paragraphs
  */
+
 .readme p,
 .readme > ul,
 .readme > ol {
@@ -172,29 +144,19 @@ body {
 /**
  * Links
  */
+
 .readme a {
-  color: #66C4FF;
   text-decoration: none;
-  text-shadow: 1px 0 #fff, -1px 0 #fff;
-  background: linear-gradient(to bottom, transparent 0%, #66C4FF 1%) repeat-x;
-  padding-bottom: 0px;
-  margin-bottom: -0px;
-  background-size: 1px 1px;
-  background-position: left bottom;
 }
 
-.readme a::selection {
-  background: #DEE7FF;
-  text-shadow: 1px 0 rgba(0,0,0,0);
-}
-.readme a::-moz-selection {
-  background: #DEE7FF;
-  text-shadow: 1px 0 rgba(0,0,0,0);
+.readme a img {
+  border: 0 none;
 }
 
 /**
  * Horizontal Rules
  */
+
 .readme hr {
   width: 8px; height: 8px;
   background: transparent;
@@ -222,19 +184,9 @@ body {
 }
 
 /**
- * Images
- */
-.readme img {
-  max-width: 100%;
-  display: block;
-}
-.readme a img {
-  /*border-bottom: 1px solid #f00;*/
-}
-
-/**
  * Lists
  */
+
 .readme li {
   margin-bottom: 0.2em;
   position: relative;
@@ -316,30 +268,3 @@ body {
   border-top: 1px solid #ddd
 }
 
-/*.readme ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.readme ::-webkit-scrollbar-thumb {
-  background: #5B6173;
-  transition: background 0.2s;
-  -webkit-transition: background 0.2s;
-}
-
-.readme ::-webkit-scrollbar-thumb:active {
-  background: #A9B0C2;
-}*/
-
-/**
- * iframes
- */
-.readme iframe {
-  width: 100%;
-  height: 300px;
-  border: 0;
-}
-
-.readme h1 + iframe {
-  margin-top: 2rem;
-}
