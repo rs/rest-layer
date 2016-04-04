@@ -39,8 +39,8 @@ REST Layer is composed of several packages:
 - [Sorting](#sorting)
 - [Field Selection](#field-selection)
 	- [Field Aliasing](#field-aliasing)
-	- [Embedding](#embedding)
 	- [Field Parameters](#field-parameters)
+	- [Embedding](#embedding)
 - [Pagination](#pagination)
 - [Conditional Requests](#conditional-requests)
 - [Data Integrity and Concurrency Control](#data-integrity-and-concurrency-control)
@@ -697,9 +697,9 @@ Hooks are piece of code you can attach before or after an operation is performed
 
 | Hook Interface         | Description
 | ---------------------- | -------------
-| [FindEventHandler]     | Defines a function called when the resource is listed with or without a query.
+| [FindEventHandler]     | Defines a function called when the resource is listed with or without a query. Note that hook is called for both resource and item fetch as well a prior to updates and deletes.
 | [FoundEventHandler]    | Defines a function called with the result of a find on resource.
-| [GetEventHandler]      | Defines a function called when a get is performed resource. Note: when multi-get is performed either explicitely or as a result of an optimization for a find, this hook is called for each item id individually.
+| [GetEventHandler]      | Defines a function called when a get is performed on an item of the resource. Note: when multi-get is performed this hook is called for each items id individually. 
 | [GotEventHandler]      | Defines a function called with the result of a get on a resource.
 | [InsertEventHandler]   | Defines a function called before an item is inserted.
 | [InsertedEventHandler] | Defines a function called after an item has been inserted.
@@ -1316,3 +1316,7 @@ When wrapped this way, one Hystrix command is created per storage handler action
 Once enabled, you must configure Hystrix for each command and start the Hystrix metrics stream handler.
 
 See [Hystrix godoc](https://godoc.org/github.com/afex/hystrix-go/hystrix) for more info and `examples/hystrix/main.go` for a complete usage example with REST layer.
+
+## Licenses
+
+All source code is licensed under the [MIT License](https://raw.github.com/rs/rest-layer/master/LICENSE).
