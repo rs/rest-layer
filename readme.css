@@ -1,0 +1,326 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.readme {
+  color: #5B6173;
+  font-weight: 100;
+  min-width: 650px;
+  max-width: 750px;
+}
+
+
+/**
+ * TOC
+ */
+ 
+.readme #documentation {
+    display: none;
+}
+
+.readme #documentation + ul {
+  position: fixed;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding-top: 2rem;
+  padding-left: 2rem;
+  width: 18rem;
+  height: 100%;
+  overflow: auto;
+  background-color: #2d2d2d;
+}
+
+.readme #documentation + ul .active {
+    background-color: #6c2022;
+}
+
+.readme #documentation + ul a,
+.readme #documentation + ul a:visited {
+  color: white;
+  text-shadow: none;
+  text-decoration: none;
+  background: none;
+}
+
+.readme {
+  margin-left: 20rem;
+  padding: 2rem;
+}
+
+/**
+ * Typography
+ */
+.readme,
+.readme pre,
+.readme code {
+  font-family: 'Fantasque Sans Mono', 'Ubuntu Mono', 'Inconsolata', monospace;
+}
+
+.readme ::selection {
+  background: #DEE7FF;
+}
+.readme ::-moz-selection {
+  background: #DEE7FF;
+}
+
+.readme > :first-child {
+  margin-top: 0;
+}
+
+/**
+ * Headers
+ */
+.readme h1,
+.readme h2,
+.readme h3,
+.readme h4,
+.readme h5,
+.readme h6 {
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 100;
+  line-height: 1.2em;
+  color: #34363B;
+  position: relative;
+}
+
+.readme > h1:first-child,
+.readme > hr + h1:not(:first-child) {
+  font-size: 2.5rem;
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.readme > h1:not(:first-child),
+.readme > h2 {
+  font-size: 2rem;
+  margin-top: 3rem;
+  border-bottom: 1px dotted #DEE7FF;
+  padding-bottom: 0.4em;
+}
+
+.readme h3 {
+  font-weight: 400;
+  margin-top: 2em;
+  color: #4A4F5E;
+}
+
+.readme h3 + h3,
+.readme h4 + h4 {
+  margin-top: -0.5em;
+}
+
+.readme h2 + h3 {
+  margin-top: 0;
+}
+
+.readme h1 code,
+.readme h2 code,
+.readme h3 code,
+.readme h4 code,
+.readme h5 code,
+.readme h6 code {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+.readme h1 a,
+.readme h2 a,
+.readme h3 a,
+.readme h4 a,
+.readme h5 a,
+.readme h6 a {
+  background: transparent;
+}
+
+.readme h1 img,
+.readme h2 img,
+.readme h3 img,
+.readme h4 img,
+.readme h5 img,
+.readme h6 img {
+  display: none;
+}
+
+/**
+ * Paragraphs
+ */
+.readme p,
+.readme > ul,
+.readme > ol {
+  font-size: 0.9rem;
+  line-height: 1.6em;
+}
+
+/**
+ * Links
+ */
+.readme a {
+  color: #66C4FF;
+  text-decoration: none;
+  text-shadow: 1px 0 #fff, -1px 0 #fff;
+  background: linear-gradient(to bottom, transparent 0%, #66C4FF 1%) repeat-x;
+  padding-bottom: 0px;
+  margin-bottom: -0px;
+  background-size: 1px 1px;
+  background-position: left bottom;
+}
+
+.readme a::selection {
+  background: #DEE7FF;
+  text-shadow: 1px 0 rgba(0,0,0,0);
+}
+.readme a::-moz-selection {
+  background: #DEE7FF;
+  text-shadow: 1px 0 rgba(0,0,0,0);
+}
+
+/**
+ * Horizontal Rules
+ */
+.readme hr {
+  width: 8px; height: 8px;
+  background: transparent;
+  border: 1px solid #A9B0C2;
+  border-radius: 17px;
+  margin: 4rem auto;
+  position: relative;
+}
+
+.readme hr:before,
+.readme hr:after {
+  position: absolute;
+  top: 1px;
+  left: -24px;
+  width: 4px; height: 4px;
+  background: transparent;
+  content: '';
+  border-radius: 9px;
+  border: 1px solid #A9B0C2;
+}
+
+.readme hr:after {
+  left: auto;
+  right: -24px;
+}
+
+/**
+ * Images
+ */
+.readme img {
+  max-width: 100%;
+  display: block;
+}
+.readme a img {
+  /*border-bottom: 1px solid #f00;*/
+}
+
+/**
+ * Lists
+ */
+.readme li {
+  margin-bottom: 0.2em;
+  position: relative;
+}
+.readme li > :first-child {
+  margin-top: 0;
+}
+
+.readme ul {
+  list-style-type: none;
+}
+
+.readme ul > li:before {
+  content: '*';
+  color: #A9B0C2;
+  position: absolute;
+  left: -1rem;
+}
+
+.readme ul,
+.readme ol {
+  margin: 1rem;
+  padding-left: 0;
+}
+
+.readme ul ul,
+.readme ul ol,
+.readme ol ol,
+.readme ol ul {
+  padding-left: 1rem;
+  margin: 0;
+}
+
+/*
+ * Code
+ */
+
+.readme p code,
+.readme table code {
+  color: #c7254e;
+  background: #f9f2f4;
+  padding: 0.2em 0.4em;
+  border-radius: 5px;
+}
+
+/*
+ * Table
+ */
+ 
+.readme table {
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+.readme table > tbody > tr > td,
+.readme table > tbody > tr > th,
+.readme table > tfoot > tr > td,
+.readme table > tfoot > tr > th,
+.readme table > thead > tr > td,
+.readme table > thead > tr > th {
+  padding: 8px;
+  line-height: 1.42857143;
+  vertical-align: top;
+}
+ 
+.readme table > thead > tr > th {
+  vertical-align: bottom;
+  border-bottom: 2px solid #ddd
+}
+
+.readme table > tbody > tr > td {
+  padding: 8px;
+  line-height: 1.42857143;
+  vertical-align: top;
+  border-top: 1px solid #ddd
+}
+
+/*.readme ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.readme ::-webkit-scrollbar-thumb {
+  background: #5B6173;
+  transition: background 0.2s;
+  -webkit-transition: background 0.2s;
+}
+
+.readme ::-webkit-scrollbar-thumb:active {
+  background: #A9B0C2;
+}*/
+
+/**
+ * iframes
+ */
+.readme iframe {
+  width: 100%;
+  height: 300px;
+  border: 0;
+}
+
+.readme h1 + iframe {
+  margin-top: 2rem;
+}
