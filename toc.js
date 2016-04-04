@@ -1,4 +1,15 @@
 $(function() {
+    // Add numbering
+    function numberize(prefix) {
+        var ch = 1;
+        return function() {
+            $(this).prepend('<span class="secnum">' + prefix + ch + '</span>&nbsp;');
+            $("ul > li", this).each(numberize(ch + "."));
+            ch++;
+        }
+    }
+    $(".readme #documentation + ul > li").each(numberize(""));
+
     // Cache selectors
     var lastId,
         topMenu = $(".readme #documentation + ul"),

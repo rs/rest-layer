@@ -10,7 +10,15 @@ body {
 .readme {
   margin: 3em;
 }
- 
+
+.readme #documentation + ul {
+  padding-left: 1rem;
+}
+
+.readme #documentation + ul li:before {
+  content: '' !important;
+}
+
 @media only screen and (min-device-width: 736px) and (min-width: 1000px) {
   .readme {
     width: 650px;
@@ -32,17 +40,9 @@ body {
     overflow: auto;
     background-color: #2d2d2d;
   }
-
-  .readme #documentation + ul {
-    padding-left: 1rem;
-  }
-
-  .readme #documentation + ul li:before {
-    content: '' !important;
-  }
   
   .readme #documentation + ul li {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 
   .readme #documentation + ul li.active {
@@ -51,6 +51,11 @@ body {
 
   .readme #documentation + ul li.active ul {
     background-color: #2d2d2d;
+  }
+  
+  .readme #documentation + ul .secnum {
+    color: #777;
+    font-size: 0.85rem;
   }
 
   .readme #documentation + ul a,
