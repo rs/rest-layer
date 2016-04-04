@@ -257,6 +257,10 @@ body {
  * Code
  */
 
+.readme code {
+  font-size: 0.9rem;
+}
+
 .readme p code,
 .readme table code {
   color: #c7254e;
