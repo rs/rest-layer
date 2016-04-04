@@ -3,12 +3,6 @@ body {
     padding: 0;
 }
 
-.readme {
-  color: #5B6173;
-  font-weight: 100;
-}
-
-
 /**
  * Layout
  */
@@ -37,6 +31,18 @@ body {
     height: 100%;
     overflow: auto;
     background-color: #2d2d2d;
+  }
+
+  .readme #documentation + ul {
+    padding-left: 1rem;
+  }
+
+  .readme #documentation + ul li:before {
+    content: '' !important;
+  }
+  
+  .readme #documentation + ul li {
+    font-size: 0.95rem;
   }
 
   .readme #documentation + ul li.active {
@@ -77,9 +83,14 @@ body {
  * Typography
  */
 .readme,
+.readme p {
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 300;
+}
+
 .readme pre,
 .readme code {
-  font-family: 'Fantasque Sans Mono', 'Ubuntu Mono', 'Inconsolata', monospace;
+  font-family: 'Roboto Mono', monospace;
 }
 
 .readme ::selection {
@@ -146,7 +157,6 @@ body {
 .readme p,
 .readme > ul,
 .readme > ol {
-  font-size: 0.9rem;
   line-height: 1.6em;
 }
 
@@ -155,7 +165,13 @@ body {
  */
 
 .readme a {
+  color: #4078c0;
   text-decoration: none;
+}
+
+.readme a:hover,
+.readme a:active {
+  text-decoration: underline;
 }
 
 .readme a img {
