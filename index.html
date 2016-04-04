@@ -4,7 +4,7 @@
 <title>REST Layer - REST APIs made easy</title>
 <link rel="stylesheet" href="readme.css"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,100,300">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.2.0/styles/github.min.css">  
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.2.0/styles/github.min.css">
 </head>
 <body>
 <a href="https://github.com/rs/rest-layer"><img style="position:fixed;z-index:1000;top:0;right:0;border:0;width:149px;height:149px;" src="http://aral.github.com/fork-me-on-github-retina-ribbons/right-red@2x.png" alt="Fork me on GitHub"></a>
@@ -68,60 +68,60 @@
 </ul>
 <h2 id="features">Features</h2>
 <ul>
-<li>[x] Automatic handling of REST resource operations</li>
-<li>[ ] Full test coverage</li>
-<li>[x] Plays well with other <code>net/http</code> middleware</li>
-<li>[x] Pluggable resources storage</li>
-<li>[x] Pluggable response sender</li>
-<li>[x] GraphQL query support</li>
-<li>[ ] GraphQL mutation support</li>
-<li>[ ] Swagger Documentation</li>
-<li>[ ] Testing framework</li>
-<li>[x] Sub resources</li>
-<li>[ ] Cascading deletes on sub resources</li>
-<li>[x] Filtering</li>
-<li>[x] Sorting</li>
-<li>[x] Pagination</li>
-<li>[x] Aliasing</li>
-<li>[x] Custom business logic</li>
-<li>[x] Event hooks</li>
-<li>[x] Field hooks</li>
-<li>[x] Extensible data validation and transformation</li>
-<li>[x] Conditional requests (Last-Modified / Etag)</li>
-<li>[x] Data integrity and concurrency control (If-Match)</li>
-<li>[x] Timeout and request cancellation thru <a href="https://godoc.org/golang.org/x/net/context">net/context</a></li>
-<li>[x] Logging</li>
-<li>[x] Multi-GET</li>
-<li>[ ] Bulk inserts</li>
-<li>[x] Default and nullable values</li>
-<li>[ ] Per resource cache control</li>
-<li>[ ] Customizable authentication / authorization</li>
-<li>[x] Projections</li>
-<li>[x] Embedded resource serialization</li>
-<li>[x] Sub-request concurrency control</li>
-<li>[x] Custom ID field</li>
-<li>[ ] Data versioning</li>
-<li>[x] Per resource circuit breaker using <a href="https://godoc.org/github.com/afex/hystrix-go/hystrix">Hystrix</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Automatic handling of REST resource operations</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Full test coverage</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Plays well with other <code>net/http</code> middleware</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Pluggable resources storage</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Pluggable response sender</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;GraphQL query support</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;GraphQL mutation support</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Swagger Documentation</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Testing framework</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Sub resources</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Cascading deletes on sub resources</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Filtering</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Sorting</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Pagination</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Aliasing</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Custom business logic</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Event hooks</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Field hooks</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Extensible data validation and transformation</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Conditional requests (Last-Modified / Etag)</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Data integrity and concurrency control (If-Match)</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Timeout and request cancellation thru <a href="https://godoc.org/golang.org/x/net/context">net/context</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Logging</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Multi-GET</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Bulk inserts</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Default and nullable values</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Per resource cache control</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Customizable authentication / authorization</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Projections</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Embedded resource serialization</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Sub-request concurrency control</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Custom ID field</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Data versioning</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Per resource circuit breaker using <a href="https://godoc.org/github.com/afex/hystrix-go/hystrix">Hystrix</a></li>
 </ul>
 <h3 id="extensions">Extensions</h3>
 <p>As REST Layer is a simple <code>net/http</code>, you can use standard middleware to extend its functionalities:</p>
 <ul>
-<li>[x] <a href="http://github.com/rs/cors">CORS</a></li>
-<li>[ ] Method Override</li>
-<li>[ ] Gzip, Deflate</li>
-<li>[ ] JSONP</li>
-<li>[x] <a href="https://github.com/sebest/xff">X-Forwarded-For</a></li>
-<li>[x] <a href="https://github.com/didip/tollbooth">Rate Limiting</a></li>
-<li>[ ] Operations Log</li>
-<li>[x] <a href="https://github.com/rs/rest-layer-hystrix">Hystrix storage handler wrapper</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;<a href="http://github.com/rs/cors">CORS</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Method Override</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Gzip, Deflate</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;JSONP</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;<a href="https://github.com/sebest/xff">X-Forwarded-For</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;<a href="https://github.com/didip/tollbooth">Rate Limiting</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Operations Log</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;<a href="https://github.com/rs/rest-layer-hystrix">Hystrix storage handler wrapper</a></li>
 </ul>
 <h3 id="storage-handlers">Storage Handlers</h3>
 <ul>
-<li>[x] <a href="http://github.com/rs/rest-layer-mem">Memory</a> (test only)</li>
-<li>[x] <a href="http://github.com/rs/rest-layer-mongo">MongoDB</a></li>
-<li>[x] <a href="http://github.com/rs/rest-layer-es">ElasticSearch</a></li>
-<li>[ ] Redis</li>
-<li>[ ] Google BigTable</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;<a href="http://github.com/rs/rest-layer-mem">Memory</a> (test only)</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;<a href="http://github.com/rs/rest-layer-mongo">MongoDB</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;<a href="http://github.com/rs/rest-layer-es">ElasticSearch</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Redis</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Google BigTable</li>
 </ul>
 <h2 id="usage">Usage</h2>
 <pre><code class="lang-go">package main
@@ -1260,88 +1260,7 @@ c.UseC(xaccess.NewHandler())
     Clear(ctx context.Context, lookup *resource.Lookup) (int, error)
 }
 </code></pre>
-<p>Mutation methods like <code>Update</code> and <code>Delete</code> must ensure they are atomically mutating the same item as specified in argument by checking their <code>ETag</code> (the stored <code>ETag</code> must match the <code>ETag</code> of the provided item). In case the handler can&#39;t guarantee that, the storage must be left untouched, and a <a href="https://godoc.org/github.com/rs/rest-layer/resource#pkg-variables">resource.ErrConflict</a> must be returned.</p>
-<p>If the operation is not immediate, the method must listen for cancellation on the passed <code>ctx</code>. If the operation is stopped due to context cancellation, the function must return the result of the <a href="https://godoc.org/golang.org/x/net/context#Context">ctx.Err()</a> method. See <a href="https://blog.golang.org/context">this blog post</a> for more information about how <code>net/context</code> works.</p>
-<p>If the backend storage is able to efficiently fetch multiple document by their id, it can implement the optional <a href="https://godoc.org/github.com/rs/rest-layer/resource#MultiGetter">resource.MultiGetter</a> interface. REST Layer will automatically use it whenever possible.</p>
-<p>See <a href="https://godoc.org/github.com/rs/rest-layer/resource#Storer">resource.Storer</a> documentation for more information on resource storage handler implementation details.</p>
-<h2 id="custom-response-formatter-sender">Custom Response Formatter / Sender</h2>
-<p>REST Layer let you extend or replace the default response formatter and sender. To write a new response format, you need to implement the <a href="https://godoc.org/github.com/rs/rest-layer/rest#ResponseFormatter">rest.ResponseFormatter</a> interface:</p>
-<pre><code class="lang-go">// ResponseFormatter defines an interface responsible for formatting a the different types of response objects
-type ResponseFormatter interface {
-    // FormatItem formats a single item in a format ready to be serialized by the ResponseSender
-    FormatItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{})
-    // FormatList formats a list of items in a format ready to be serialized by the ResponseSender
-    FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{})
-    // FormatError formats a REST formated error or a simple error in a format ready to be serialized by the ResponseSender
-    FormatError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{})
-}
-</code></pre>
-<p>You can also customize the response sender, responsible for the serialization of the formatted payload:</p>
-<pre><code class="lang-go">// ResponseSender defines an interface responsible for serializing and sending the response
-// to the http.ResponseWriter.
-type ResponseSender interface {
-    // Send serialize the body, sets the given headers and write everything to the provided response writer
-    Send(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, body interface{})
-}
-</code></pre>
-<p>Then set your response formatter and sender on the REST Layer HTTP handler like this:</p>
-<pre><code class="lang-go">api, _ := rest.NewHandler(index)
-api.ResponseFormatter = &amp;myResponseFormatter{}
-api.ResponseSender = &amp;myResponseSender{}
-</code></pre>
-<p>You may also extend the <a href="https://godoc.org/github.com/rs/rest-layer/rest#DefaultResponseFormatter">DefaultResponseFormatter</a> and/or <a href="https://godoc.org/github.com/rs/rest-layer/rest#DefaultResponseSender">DefaultResponseSender</a> if you just want to wrap or slightly modify the default behavior:</p>
-<pre><code class="lang-go">type myResponseFormatter struct {
-    rest.DefaultResponseFormatter
-}
-
-// Add a wrapper around the list with pagination info
-func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
-    ctx, data := r.DefaultResponseSender.FormatList(ctx, headers, l, skipBody)
-    return ctx, map[string]interface{}{
-        &quot;meta&quot;: map[string]int{
-            &quot;total&quot;: l.Total,
-            &quot;page&quot;:  l.Page,
-        },
-        &quot;list&quot;: data,
-    }
-}
-</code></pre>
-<h2 id="graphql">GraphQL</h2>
-<p>In parallel of the REST API handler, REST Layer is also able to handle GraphQL queries (mutation will come later). GraphQL is a query language created by Facebook which provides a common interface fetch and manipulate data. REST Layer&#39;s GraphQL handler is able to read a <a href="https://godoc.org/github.com/rs/rest-layer/resource#Index">resource.Index</a> and create a corresponding GraphQL schema.</p>
-<p>GraphQL doesn&#39;t expose resources directly, but queries. REST Layer take all the resources defined at the root of the <code>resource.Index</code> and create two GraphQL queries for each one. On query is just the name of the endpoint, so <code>/users</code> would result in <code>users</code> and another is the name of the endpoint suffixed with <code>List</code>, as <code>usersList</code>. The item queries takes an <code>id</code> parameter and the list queries take <code>page</code>, <code>limit</code>, <code>filter</code> and <code>sort</code> parameters. All sub-resources are accessible using GraphQL sub-selection syntax.</p>
-<p>If you resource defines aliases, some additional GraphQL queris are exposes with their name constructed as the name of the resource suffixed with the name of the alias with a capital. So for <code>users</code> with an alias <code>admin</code>, the query would be <code>usersAdmin</code>.</p>
-<p>You can bind the GraphQL endpoint wherever you want as follow:</p>
-<pre><code class="lang-go">index := resource.NewIndex()
-// Bind some resources
-
-h, err := graphql.NewHandler(index)
-if err != nil {
-    log.Fatal(err)
-}
-http.Handle(&quot;/graphql&quot;, h)
-http.ListenAndServe(&quot;:8080&quot;, nil)
-</code></pre>
-<p>GraphQL support is experimental. Only querying is supported for now, mutation will come later. Sub-queries are executed sequentially and may generate quite a lot of query on the storage backend on complex queries. You may prefer the REST endpoint with <a href="#field-selection">field selection</a> which benefits from a lot of optimization for now.</p>
-<h2 id="hystrix">Hystrix</h2>
-<p>REST Layer supports Hystrix as a circuit breaker. You can enable Hystrix on a per resource basis by wrapping the storage handler using <a href="https://github.com/rs/rest-layer-hystrix">rest-layer-hystrix</a>:</p>
-<pre><code class="lang-go">import &quot;github.com/rs/rest-layer-hystrix&quot;
-
-index.Bind(&quot;posts&quot;, post, restrix.Wrap(&quot;posts&quot;, mongo.NewHandler()), resource.DefaultConf)
-</code></pre>
-<p>When wrapped this way, one Hystrix command is created per storage handler action, with the name formatted as <code>&lt;name&gt;.&lt;Action&gt;</code>. Possible actions are:</p>
-<ul>
-<li><code>Find</code>: when a collection of items is requested.</li>
-<li><code>Insert</code>: when items are created.</li>
-<li><code>Update</code>: when items are modified.</li>
-<li><code>Delete</code>: when a single item is deleted by its id.</li>
-<li><code>Clear</code>: when a collection of items matching a filter are deleted.</li>
-<li><code>MultiGet</code>: when several items are retrieved by their ids (on storage handler supporting <code>MultiGetter</code> interface.</li>
-</ul>
-<p>Once enabled, you must configure Hystrix for each command and start the Hystrix metrics stream handler.</p>
-<p>See <a href="https://godoc.org/github.com/afex/hystrix-go/hystrix">Hystrix godoc</a> for more info and <code>examples/hystrix/main.go</code> for a complete usage example with REST layer.</p>
-<h2 id="licenses">Licenses</h2>
-<p>All source code is licensed under the <a href="https://raw.github.com/rs/rest-layer/master/LICENSE">MIT License</a>.</p>
-
+<p>Mutation methods like <code>Update</code> and <code>Delete</code> must ensure they are atomically mutating the same item as specified in argument by checking their <code>ETag</code> (the stored <code>ETag</code> must match the <code>ETag</code> of the provided item). In case the handler can&#39;t guarantee that, the storage must be left untouched, and a <a href="https://godoc.org/gi
 <!-- /Content -->
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>  

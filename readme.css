@@ -208,11 +208,15 @@ body {
   list-style-type: none;
 }
 
-.readme ul > li:before {
+.readme ul > li:not(.no-bullet):before {
   content: '*';
   color: #A9B0C2;
   position: absolute;
   left: -1rem;
+}
+
+.readme ul > li.no-bullet {
+  margin-left: -1rem;
 }
 
 .readme ul,
