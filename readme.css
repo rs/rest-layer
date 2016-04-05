@@ -258,6 +258,10 @@ body {
  * Code
  */
 
+.readme pre code {
+  max-height: 800px;
+}
+
 .readme code {
   font-size: 0.9rem;
 }
