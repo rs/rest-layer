@@ -271,12 +271,12 @@ func main() {
 
 	// Inject some fixtures
 	fixtures := [][]string{
-		[]string{"PUT", "/users/johndoe", `{"name": "John Doe", "ip": "1.2.3.4", "password": "secret", "admin": true}`},
-		[]string{"PUT", "/users/fan1", `{"name": "Fan 1", "ip": "1.2.3.4", "password": "secret"}}`},
-		[]string{"PUT", "/users/fan2", `{"name": "Fan 2", "ip": "1.2.3.4", "password": "secret"}}`},
-		[]string{"PUT", "/users/fan3", `{"name": "Fan 3", "ip": "1.2.3.4", "password": "secret"}}`},
-		[]string{"PUT", "/users/fan4", `{"name": "Fan 4", "ip": "1.2.3.4", "password": "secret"}}`},
-		[]string{"PUT", "/posts/ar5qrgukj5l7a6eq2ps0",
+		{"PUT", "/users/johndoe", `{"name": "John Doe", "ip": "1.2.3.4", "password": "secret", "admin": true}`},
+		{"PUT", "/users/fan1", `{"name": "Fan 1", "ip": "1.2.3.4", "password": "secret"}}`},
+		{"PUT", "/users/fan2", `{"name": "Fan 2", "ip": "1.2.3.4", "password": "secret"}}`},
+		{"PUT", "/users/fan3", `{"name": "Fan 3", "ip": "1.2.3.4", "password": "secret"}}`},
+		{"PUT", "/users/fan4", `{"name": "Fan 4", "ip": "1.2.3.4", "password": "secret"}}`},
+		{"PUT", "/posts/ar5qrgukj5l7a6eq2ps0",
 			`{
 				"user": "johndoe",
 				"thumbnail_url": "http://dom.com/image.png",
@@ -285,9 +285,9 @@ func main() {
 					"body": "This is my first post"
 				}
 			}`},
-		[]string{"POST", "/posts/ar5qrgukj5l7a6eq2ps0/followers", `{"user": "fan1"}`},
-		[]string{"POST", "/posts/ar5qrgukj5l7a6eq2ps0/followers", `{"user": "fan2"}`},
-		[]string{"POST", "/posts/ar5qrgukj5l7a6eq2ps0/followers", `{"user": "fan3"}`},
+		{"POST", "/posts/ar5qrgukj5l7a6eq2ps0/followers", `{"user": "fan1"}`},
+		{"POST", "/posts/ar5qrgukj5l7a6eq2ps0/followers", `{"user": "fan2"}`},
+		{"POST", "/posts/ar5qrgukj5l7a6eq2ps0/followers", `{"user": "fan3"}`},
 	}
 	for _, fixture := range fixtures {
 		req, err := http.NewRequest(fixture[0], fixture[1], strings.NewReader(fixture[2]))

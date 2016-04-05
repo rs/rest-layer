@@ -93,9 +93,9 @@ func main() {
 
 	// Inject some fixtures
 	fixtures := [][]string{
-		[]string{"POST", "/posts", `{"title": "First Post", "body": "This is my first post"}`},
-		[]string{"POST", "/posts", `{"title": "Second Post", "body": "This is my second post"}`},
-		[]string{"POST", "/posts", `{"title": "Third Post", "body": "This is my third post"}`},
+		{"POST", "/posts", `{"title": "First Post", "body": "This is my first post"}`},
+		{"POST", "/posts", `{"title": "Second Post", "body": "This is my second post"}`},
+		{"POST", "/posts", `{"title": "Third Post", "body": "This is my third post"}`},
 	}
 	for _, fixture := range fixtures {
 		req, err := http.NewRequest(fixture[0], fixture[1], strings.NewReader(fixture[2]))

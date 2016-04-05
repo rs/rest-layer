@@ -244,12 +244,12 @@ func main() {
 	// Init the db with some users (user registration is not handled by this example)
 	secret, _ := schema.Password{}.Validate("secret")
 	users.Insert(context.Background(), []*resource.Item{
-		&resource.Item{ID: "admin", Updated: time.Now(), ETag: "abcd", Payload: map[string]interface{}{
+		{ID: "admin", Updated: time.Now(), ETag: "abcd", Payload: map[string]interface{}{
 			"id":       "admin",
 			"name":     "Dilbert",
 			"password": secret,
 		}},
-		&resource.Item{ID: "john", Updated: time.Now(), ETag: "efgh", Payload: map[string]interface{}{
+		{ID: "john", Updated: time.Now(), ETag: "efgh", Payload: map[string]interface{}{
 			"id":       "john",
 			"name":     "John Doe",
 			"password": secret,

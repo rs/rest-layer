@@ -18,7 +18,7 @@ func TestParseSelectorExpression(t *testing.T) {
 	}
 	f, err = parseSelector("  foo  \n  { \n bar \t , \n baz \t } \n")
 	if assert.NoError(t, err) {
-		assert.Equal(t, []Field{{Name: "foo", Fields: []Field{{Name: "bar"}, Field{Name: "baz"}}}}, f)
+		assert.Equal(t, []Field{{Name: "foo", Fields: []Field{{Name: "bar"}, {Name: "baz"}}}}, f)
 	}
 	f, err = parseSelector("rab:foo{bar{baz}}")
 	if assert.NoError(t, err) {
