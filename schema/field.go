@@ -52,7 +52,7 @@ type Field struct {
 	// When this property is set to `true`, you may want to ensure the backend
 	// database has this field indexed.
 	Filterable bool
-	// Sortable defines that the field can be used with the `sort` paramter.
+	// Sortable defines that the field can be used with the `sort` parameter.
 	// When this property is set to `true`, you may want to ensure the backend
 	// database has this field indexed.
 	Sortable bool
@@ -73,7 +73,7 @@ type FieldValidator interface {
 // internal storable form. A FieldValidator which implement this interface will have its
 // Serialize method called before marshaling.
 type FieldSerializer interface {
-	// Serialize is called when the data is comming from it internal storable form and
+	// Serialize is called when the data is coming from it internal storable form and
 	// needs to be prepared for representation (i.e.: just before JSON marshaling)
 	Serialize(value interface{}) (interface{}, error)
 }

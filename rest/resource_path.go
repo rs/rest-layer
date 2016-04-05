@@ -16,7 +16,7 @@ type ResourcePath []*ResourcePathComponent
 type ResourcePathComponent struct {
 	// Name is the endpoint name used to bind the resource
 	Name string
-	// Field is the resource's field used to filter targetted resource
+	// Field is the resource's field used to filter targeted resource
 	Field string
 	// Value holds the resource's id value
 	Value interface{}
@@ -39,7 +39,7 @@ var resourcePathComponentPool = sync.Pool{
 // This will also require that all subsequent resources in the path have this resource's
 // "value" set on their "field" field.
 //
-// Finaly, all created resources at this path will also have this field and value set by default.
+// Finally, all created resources at this path will also have this field and value set by default.
 func (p *ResourcePath) Prepend(rsrc *resource.Resource, field string, value interface{}) {
 	rp := resourcePathComponentPool.Get().(*ResourcePathComponent)
 	rp.Field = field

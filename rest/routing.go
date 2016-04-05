@@ -16,7 +16,7 @@ import (
 type RouteMatch struct {
 	// Method is the HTTP method used on the resource.
 	Method string
-	// ResourcePath is the list of intermediate resources followed by the targetted resource.
+	// ResourcePath is the list of intermediate resources followed by the targeted resource.
 	// Each intermediate resource mutch match all the previous resource components of this path
 	// and newly created resources will have their corresponding fields filled with resource
 	// path information (resource.field => resource.value).

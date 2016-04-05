@@ -61,7 +61,7 @@ type GotEventHandler interface {
 // GotEventHandlerFunc converts a function into a FoundEventHandler.
 type GotEventHandlerFunc func(ctx context.Context, item **Item, err *error)
 
-// OnFound implements GotEventHandler
+// OnGot implements GotEventHandler
 func (e GotEventHandlerFunc) OnGot(ctx context.Context, item **Item, err *error) {
 	e(ctx, item, err)
 }
@@ -136,7 +136,7 @@ type DeleteEventHandler interface {
 // DeleteEventHandlerFunc converts a function into a GetEventHandler.
 type DeleteEventHandlerFunc func(ctx context.Context, item *Item) error
 
-// OnUpdate implements DeleteEventHandler
+// OnDelete implements DeleteEventHandler
 func (e DeleteEventHandlerFunc) OnDelete(ctx context.Context, item *Item) error {
 	return e(ctx, item)
 }

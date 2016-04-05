@@ -5,7 +5,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-// Storer defines the interface of an handler able to store and retreive resources
+// Storer defines the interface of an handler able to store and retrieve resources
 type Storer interface {
 	// Find searches for items in the backend store matching the lookup argument. The
 	// pagination argument must be respected. If no items are found, an empty list
@@ -68,7 +68,7 @@ type Storer interface {
 	// If you need to log something, use xlog.FromContext(ctx) to get a logger. See
 	// https://github.com/rs/xlog for more info.
 	Delete(ctx context.Context, item *Item) error
-	// Clear removes all items maching the lookup. When possible, the number of items
+	// Clear removes all items matching the lookup. When possible, the number of items
 	// removed is returned, otherwise -1 is return as the first value.
 	//
 	// The whole lookup query must be treated. If a query operation is not implemented
@@ -87,7 +87,7 @@ type Storer interface {
 // able to perform optimized multi gets. REST Layer will automatically use MultiGet over Find
 // whenever it's possible when a storage handler implements this interface.
 type MultiGetter interface {
-	// MultiGet retreives items by their ids and return them an a list. If one or more
+	// MultiGet retrieves items by their ids and return them an a list. If one or more
 	// item(s) cannot be found, the method must not return a resource.ErrNotFound but
 	// must just omit the item in the result.
 	//

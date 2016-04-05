@@ -10,7 +10,7 @@ import (
 // Query defines an expression against a schema to perform a match on schema's data.
 type Query []Expression
 
-// Expression is a query or query component that can be matched agains a payoad.
+// Expression is a query or query component that can be matched against a payoad.
 type Expression interface {
 	Match(payload map[string]interface{}) bool
 }

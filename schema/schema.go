@@ -108,7 +108,7 @@ func (s Schema) GetField(name string) *Field {
 // default values are not assigned, and only fields which are different than in the original are
 // left in the change map. The OnUpdate hook is executed on each field.
 //
-// If the replace argument is set to true with the original document set, the behavior is slighly
+// If the replace argument is set to true with the original document set, the behavior is slightly
 // different as any field not present in the payload but present in the original are set to nil
 // in the change map (instead of just behing absent). This instruct the validator that the field
 // has been edited, so ReadOnly flag can throw an error and the field will be removed from the
@@ -241,7 +241,7 @@ func (s Schema) validate(changes map[string]interface{}, base map[string]interfa
 		if def.Required {
 			if value, found := changes[field]; !found || value == nil {
 				if found {
-					// If explicitely set to null, raise the required error
+					// If explicitly set to null, raise the required error
 					addFieldError(errs, field, "required")
 				} else if value, found = base[field]; !found || value == nil {
 					// If field was omitted and isn't set by a Default of a hook, raise

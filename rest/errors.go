@@ -12,18 +12,18 @@ var (
 	ErrNotFound = &Error{http.StatusNotFound, "Not Found", nil}
 	// ErrUnauthorized represents a 401 HTTP error.
 	ErrUnauthorized = &Error{http.StatusUnauthorized, "Unauthorized", nil}
-	// ErrPreconditionFailed happends when a conditional request condition is not met.
+	// ErrPreconditionFailed happens when a conditional request condition is not met.
 	ErrPreconditionFailed = &Error{http.StatusPreconditionFailed, "Precondition Failed", nil}
 	// ErrConflict happens when another thread or node modified the data concurrently
 	// with our own thread in such a way we can't securely apply the requested changes.
 	ErrConflict = &Error{http.StatusConflict, "Conflict", nil}
-	// ErrInvalidMethod happends when the used HTTP method is not supported for this
+	// ErrInvalidMethod happens when the used HTTP method is not supported for this
 	// resource.
 	ErrInvalidMethod = &Error{http.StatusMethodNotAllowed, "Invalid Method", nil}
 	// ErrClientClosedRequest is returned when the client closed the connection before
 	// the server was able to finish processing the request.
 	ErrClientClosedRequest = &Error{499, "Client Closed Request", nil}
-	// ErrNotImplemented happends when a requested feature is not implemented.
+	// ErrNotImplemented happens when a requested feature is not implemented.
 	ErrNotImplemented = &Error{http.StatusNotImplemented, "Not Implemented", nil}
 	// ErrGatewayTimeout is returned when the specified timeout for the request has been
 	// reached before the server was able to process it.
