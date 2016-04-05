@@ -186,7 +186,8 @@ var (
 	post = schema.Schema{
 		Description: `Represents a blog post`,
 		Fields: schema.Fields{
-			// schema.*Field are shortcuts for common fields (identical to users' same fields)
+			// schema.*Field are shortcuts for common fields
+			// (identical to users' same fields)
 			"id":      schema.IDField,
 			"created": schema.CreatedField,
 			"updated": schema.UpdatedField,
@@ -236,7 +237,8 @@ func main() {
 	// Add a resource on /users[/:user_id]
 	users := index.Bind("users", user, mem.NewHandler(), resource.Conf{
 		// We allow all REST methods
-		// (rest.ReadWrite is a shortcut for []resource.Mode{resource.Create, resource.Read, resource.Update, resource.Delete, resource,List})
+		// (rest.ReadWrite is a shortcut for []resource.Mode{resource.Create,
+	    //  resource.Read, resource.Update, resource.Delete, resource,List})
 		AllowedModes: resource.ReadWrite,
 	})
 
@@ -244,7 +246,8 @@ func main() {
 	// and reference the user on each post using the "user" field of the posts resource.
 	posts := users.Bind("posts", "user", post, mem.NewHandler(), resource.Conf{
 		// Posts can only be read, created and deleted, not updated
-		AllowedModes: []resource.Mode{resource.Read, resource.List, resource.Create, resource.Delete},
+		AllowedModes: []resource.Mode{resource.Read, resource.List,
+			 resource.Create, resource.Delete},
 	})
 
 	// Add a friendly alias to public posts
