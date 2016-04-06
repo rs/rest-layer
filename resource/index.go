@@ -41,7 +41,7 @@ func NewIndex() Index {
 func (r *index) Bind(name string, s schema.Schema, h Storer, c Conf) *Resource {
 	assertNotBound(name, r.resources, nil)
 	sr := new(name, s, h, c)
-	r.resources = append(r.resources, sr)
+	r.resources.add(sr)
 	return sr
 }
 
@@ -67,11 +67,19 @@ func (r *index) GetResource(path string, parent *Resource) (*Resource, bool) {
 		resources = parent.resources
 	}
 	var sr *Resource
-	for _, comp := range strings.Split(path, ".") {
-		if sr = resources.get(comp); sr != nil {
+	if strings.IndexByte(path, '.') == -1 {
+		if sr = resources.get(path); sr != nil {
 			resources = sr.resources
 		} else {
 			return nil, false
+		}
+	} else {
+		for _, comp := range strings.Split(path, ".") {
+			if sr = resources.get(comp); sr != nil {
+				resources = sr.resources
+			} else {
+				return nil, false
+			}
 		}
 	}
 	return sr, true

@@ -34,6 +34,8 @@ const (
 
 var routePool = sync.Pool{}
 
+var errResourceNotFound = &Error{http.StatusNotFound, "Resource Not Found", nil}
+
 func contextWithRoute(ctx context.Context, route *RouteMatch) context.Context {
 	return context.WithValue(ctx, routeKey, route)
 }
@@ -58,51 +60,56 @@ func IndexFromContext(ctx context.Context) (resource.Index, bool) {
 func FindRoute(index resource.Index, req *http.Request) (*RouteMatch, *Error) {
 	route, ok := routePool.Get().(*RouteMatch)
 	if !ok {
-		route = &RouteMatch{}
+		route = &RouteMatch{
+			ResourcePath: make(ResourcePath, 0, 2),
+		}
 	}
 	route.Method = req.Method
-	route.ResourcePath = ResourcePath{}
-	route.Params = req.URL.Query()
+	if req.URL.RawQuery != "" {
+		route.Params = req.URL.Query()
+	}
 	err := findRoute(req.URL.Path, index, route)
+	if err != nil {
+		route.Release()
+		route = nil
+	}
 	return route, err
 }
 
 // findRoute recursively route a (sub)resource request
 func findRoute(path string, index resource.Index, route *RouteMatch) *Error {
-	// Split the path into path components
-	c := strings.Split(strings.Trim(path, "/"), "/")
-
-	// Shift the resource name from the path components
-	name, c := c[0], c[1:]
+	// Extract the first component of the path
+	var name string
+	name, path = nextPathComponent(path)
 
 	resourcePath := name
 	if prefix := route.ResourcePath.Path(); prefix != "" {
-		resourcePath = strings.Join([]string{prefix, name}, ".")
+		resourcePath = prefix + "." + name
 	}
 
-	// First component must match a resource
 	if rsrc, found := index.GetResource(resourcePath, nil); found {
-		if len(c) >= 1 {
+		// First component must match a resource
+		if len(path) >= 1 {
 			// If there are some components left, the path targets an item or an alias
 
 			// Shift the item id from the path components
 			var id string
-			id, c = c[0], c[1:]
+			id, path = nextPathComponent(path)
 
 			// Handle sub-resources (/resource1/id1/resource2/id2)
-			if len(c) >= 1 {
-				subResourcePath := strings.Join([]string{resourcePath, c[0]}, ".")
+			if len(path) >= 1 {
+				subPathComp, _ := nextPathComponent(path)
+				subResourcePath := resourcePath + "." + subPathComp
 				if subResource, found := index.GetResource(subResourcePath, nil); found {
 					// Append the intermediate resource path
 					route.ResourcePath.append(rsrc, subResource.ParentField(), id, name)
 					// Recurse to match the sub-path
-					path = strings.Join(c, "/")
 					if err := findRoute(path, index, route); err != nil {
 						return err
 					}
 				} else {
 					route.ResourcePath.clear()
-					return &Error{404, "Resource Not Found", nil}
+					return errResourceNotFound
 				}
 				return nil
 			}
@@ -126,7 +133,27 @@ func findRoute(path string, index resource.Index, route *RouteMatch) *Error {
 		return nil
 	}
 	route.ResourcePath.clear()
-	return &Error{404, "Resource Not Found", nil}
+	return errResourceNotFound
+}
+
+// nextPathComponent returns the next path component and the remaining path
+//
+// Input: /comp1/comp2/comp3
+// Output: comp1, comp2/comp3
+func nextPathComponent(path string) (string, string) {
+	// Remove leading slash if any
+	for len(path) > 0 && path[0] == '/' {
+		path = path[1:]
+	}
+
+	comp := path
+	if i := strings.IndexByte(path, '/'); i != -1 {
+		comp = path[:i]
+		path = path[i+1:]
+	} else {
+		path = path[0:0]
+	}
+	return comp, path
 }
 
 // Resource returns the last resource path's resource

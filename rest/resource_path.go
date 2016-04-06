@@ -59,14 +59,15 @@ func (p *ResourcePath) append(rsrc *resource.Resource, field string, value inter
 }
 
 func (p *ResourcePath) clear() {
-	for _, rp := range *p {
+	for i, rp := range *p {
 		rp.Name = ""
 		rp.Field = ""
 		rp.Value = nil
 		rp.Resource = nil
 		resourcePathComponentPool.Put(rp)
+		(*p)[i] = nil
 	}
-	*p = nil
+	*p = (*p)[:0]
 }
 
 // ParentsExist checks if the each intermediate parents in the path exist and

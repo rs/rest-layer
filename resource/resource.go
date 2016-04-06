@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"sort"
 	"time"
 
 	"github.com/rs/rest-layer/schema"
@@ -27,14 +28,30 @@ type Resource struct {
 
 type subResources []*Resource
 
+// get gets a sub resource by its name
 func (sr subResources) get(name string) *Resource {
-	// TODO pre-sort and use sort package to search
-	for _, r := range sr {
-		if r.name == name {
-			return r
+	i := sort.Search(len(sr), func(i int) bool {
+		return sr[i].name >= name
+	})
+	if i >= len(sr) {
+		return nil
+	}
+	r := sr[i]
+	if r.name != name {
+		return nil
+	}
+	return r
+}
+
+// add adds the resource to the subResources in a pre-sorted way
+func (sr *subResources) add(rsrc *Resource) {
+	for i, r := range *sr {
+		if rsrc.name < r.name {
+			*sr = append((*sr)[:i], append(subResources{rsrc}, (*sr)[i:]...)...)
+			return
 		}
 	}
-	return nil
+	*sr = append(*sr, rsrc)
 }
 
 // validatorFallback wraps a validator and fallback on given schema if the GetField
@@ -134,7 +151,7 @@ func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *
 	sr := new(name, s, h, c)
 	sr.parentField = field
 	sr.path = r.path + "." + name
-	r.resources = append(r.resources, sr)
+	r.resources.add(sr)
 	r.validator.fallback.Fields[name] = schema.Field{
 		ReadOnly: true,
 		Validator: connection{
