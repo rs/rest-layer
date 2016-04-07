@@ -33,7 +33,6 @@ body {
     top: 0;
     left: 0;
     margin: 0;
-    padding-top: 2rem;
     padding-left: 2rem;
     width: 17rem;
     height: 100%;
@@ -41,6 +40,10 @@ body {
     background-color: #2d2d2d;
   }
   
+  .readme #documentation + ul > :first-child {
+    margin-top: 2rem;
+  }
+
   .readme #documentation + ul li {
     font-size: 0.9rem;
   }
