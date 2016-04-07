@@ -4,24 +4,24 @@ REST APIs made easy.
 
 [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer) [![Go Report Card](https://goreportcard.com/badge/github.com/rs/rest-layer)](https://goreportcard.com/report/github.com/rs/rest-layer)
 
-REST Layer is an API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable [backend storages](#storage-handlers) with no boiler plate code so can focus on your business logic.
+REST Layer is an API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable [backend storages](#storage-handlers) with no boiler plate code so you can focus on your business logic.
 
-Implemented as a `net/http` middleware, it plays well with other middleware like [CORS](http://github.com/rs/cors) and is [net/context](https://godoc.org/golang.org/x/net/context) aware thanks to [xhandler](https://github.com/rs/xhandler).
+Implemented as a `net/http` handler, it plays well with standard middleware like [CORS](http://github.com/rs/cors). It is also [net/context](https://godoc.org/golang.org/x/net/context) aware thanks to [xhandler](https://github.com/rs/xhandler). This allows deadline management to be supported down to the storage and permit an easy extensibility by passing custom data between layers of the framework.
 
-REST Layer is an opinionated framework. Unlike many API frameworks, you don't directly control the routing and you don't have to write handlers. You just define resources and sub-resources with a [schema](#resource-configuration), the framework automatically figures out what routes to generate behind the scene. You don't have to take care of the HTTP headers and response, JSON encoding, etc. either. REST layer handles HTTP [conditional requests](#conditional-requests), caching, [integrity checking](#data-integrity-and-concurrency-control) for you.
+REST Layer is an opinionated framework. Unlike many API frameworks, you don't directly control the routing and you don't have to write handlers. You just define resources and sub-resources with a [schema](#resource-configuration), the framework automatically figures out what routes need to be generated behind the scene. You don't have to take care of the HTTP headers and response, JSON encoding, etc. either. REST layer handles HTTP [conditional requests](#conditional-requests), caching, [integrity checking](#data-integrity-and-concurrency-control) for you.
 
-A powerful and extensible [validation engine](#resource-configuration) make sure that data comes pre-validated to your [custom storage handlers](#data-storage-handler). Generic resource handlers for [MongoDB](http://github.com/rs/rest-layer-mongo), [ElastiSearch](http://github.com/rs/rest-layer-es) and other databases are also available so you have few to no code to write to make the whole system work.
+A powerful and extensible [validation engine](#resource-configuration) make sure that data comes pre-validated to your [custom storage handlers](#data-storage-handler). Generic resource handlers for [MongoDB](http://github.com/rs/rest-layer-mongo), [ElastiSearch](http://github.com/rs/rest-layer-es) and other databases are also available so you have few to no code to write to get up and running.
 
 Moreover, REST Layer let you create a graph API by linking resources between them. Thanks to its advanced [field selection](#field-selection) syntax or [GraphQL](#graphql) support, you can gather resources and their dependencies in a single request, saving you from costly network roundtrips.
 
-REST Layer is composed of several packages:
+The REST Layer framework is composed of several sub-packages:
 
 | Package                                                         | Coverage                                                                                                                                       | Description
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------
-| [rest](https://godoc.org/github.com/rs/rest-layer/rest)         | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/rest?version=1.6)](http://gocover.io/github.com/rs/rest-layer/rest?version=1.6) | Holds the `net/http` handler responsible for the implementation of the RESTful API.
-| [graphql](https://godoc.org/github.com/rs/rest-layer/graphql)   | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/graphql)](http://gocover.io/github.com/rs/rest-layer/graphql)                   | Holds a `net/http` handler to expose the API using the GraphQL protocol.
-| [schema](https://godoc.org/github.com/rs/rest-layer/schema)     | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/schema)](http://gocover.io/github.com/rs/rest-layer/schema)                     | Provides a validation framework for the API resources.
-| [resource](https://godoc.org/github.com/rs/rest-layer/resource) | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/resource)](http://gocover.io/github.com/rs/rest-layer/resource)                 | Defines resources, manages the resource graph and manages the interface with resource storage handler.
+| [rest](https://godoc.org/github.com/rs/rest-layer/rest)         | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/rest?version=1.6)](http://gocover.io/github.com/rs/rest-layer/rest?version=1.6) | A `net/http` handler to expose a RESTful API.
+| [graphql](https://godoc.org/github.com/rs/rest-layer/graphql)   | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/graphql)](http://gocover.io/github.com/rs/rest-layer/graphql)              | A `net/http` handler to expose your API using the GraphQL protocol.
+| [schema](https://godoc.org/github.com/rs/rest-layer/schema)     | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/schema)](http://gocover.io/github.com/rs/rest-layer/schema)               | A validation framework for the API resources.
+| [resource](https://godoc.org/github.com/rs/rest-layer/resource) | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/resource)](http://gocover.io/github.com/rs/rest-layer/resource)             | Defines resources, manages the resource graph and manages the interface with resource storage handler.
 
 # Documentation
 
@@ -95,7 +95,7 @@ REST Layer is composed of several packages:
 
 ### Extensions
 
-As REST Layer is a simple `net/http`, you can use standard middleware to extend its functionalities:
+As REST Layer is a simple `net/http` handler. You can use standard middleware to extend its functionalities:
 
 - [x] [CORS](http://github.com/rs/cors)
 - [ ] Method Override
@@ -291,7 +291,7 @@ func main() {
 }
 ```
 
-Just run this code (or use the provided `cmd/demo/`):
+Just run this code (or use the provided [examples/demo](https://github.com/rs/rest-layer/blob/master/examples/demo/main.go)):
 
 	> go run examples/demo/main.go
 	2015/07/27 20:54:55 Serving API on http://localhost:8080
@@ -531,6 +531,23 @@ For REST Layer to be able to expose resources, you have to first define what fie
 
 Resource field configuration is performed throught the [schema](https://godoc.org/github.com/rs/rest-layer/schema) package. A schema is a struct describing a resource. A schema is composed of metadata about the resource and a description of the allowed fields through a map of field name pointing to field definition.
 
+Sample resource schema:
+
+```go
+foo = schema.Schema{
+	Description: "A foo object"
+    Fields: schema.Fields{
+        "field_name": {
+            Required: true,
+            Filterable: true,
+            Validator: &schema.String{
+                MaxLen: 150,
+            },
+        },
+    },
+}
+```
+
 Schema fields:
 
 | Field         | Description
@@ -551,7 +568,7 @@ The field definitions contains the following properties:
 | `OnInit`     | A function to be executed when the resource is created. The function gets the current value of the field (after `Default` has been set if any) and returns the new value to be set.
 | `OnUpdate`   | A function to be executed when the resource is updated. The function gets the current (updated) value of the field and returns the new value to be set.
 | `Params`     | Params defines the list of parameters allowed for this field. See [Field Parameters](#field-parameters) section for some examples.
-| `Handler`    | Handler defines function able change the field's value depending on the passed parameters. See [Field Parameters](#field-parameters) section for some examples.
+| `Handler`    | Handler defines a function able to change the field's value depending on the passed parameters. See [Field Parameters](#field-parameters) section for some examples.
 | `Validator`  | A `schema.FieldValidator` to validate the content of the field.
 | `Dependency` | A query using `filter` format created with ``schema.Q(`{"field": "value"}`)``. If the query doesn't match the document, the field generates a dependency error.
 | `Filterable` | If `true`, the field can be used with the `filter` parameter. You may want to ensure the backend database has this field indexed when enabled. Some storage handlers may not support all the operators of the filter parameter, see their documentation for more information.
@@ -696,6 +713,8 @@ The following table shows how REST layer map CRUDL operations to HTTP methods an
 | `Delete`  | DELETE      | Item       | Delete the item by its ID.
 | `Clear`   | DELETE      | Collection | Delete all items from the collection matching the context and/or filters.
 
+Note on GraphQL support and modes: current implementation of GraphQL doesn't suport mutation. Thus only resources with `Read` and `List` modes will be exposed with GraphQL. Support for other modes will be added in the future.
+
 ### Hooks
 
 Hooks are piece of code you can attach before or after an operation is performed on a resource. A hook is a Go type implementing one of the event handler interface below, and attached to a resource via the [Resource.Use](https://godoc.org/github.com/rs/rest-layer/resource#Resource.Use) method.
@@ -730,10 +749,11 @@ Hooks are piece of code you can attach before or after an operation is performed
 
 All hooks functions get a `context.Context` as first argument. If a network call must be performed from the hook, the context's deadline must be respected. If a hook return an error, the whole request is aborted with that error.
 
+You can also use the context to pass data to your hooks from a middleware executed before REST Layer. This can be used to manage authentication for instance. See [examples/auth](https://github.com/rs/rest-layer/blob/master/examples/auth/main.go) to see an example. 
 
 ### Sub Resources
 
-Sub resources can be used to express a one-to-may parent-child relationship between two resources. A sub-resource is automatically filtered by it's parent.
+Sub resources can be used to express a one-to-may parent-child relationship between two resources. A sub-resource is automatically filtered by it's parent on the field specified as second argument of the `Bind` method.
 
 To create a sub-resource, you bind you resource on the object returned by the binding of the parent resource. For instance, here we bind a `comments` resource to a `posts` resource:
 
@@ -856,13 +876,13 @@ You can invert the operator by passing `false`.
 
 ## Sorting
 
-Sorting is of resource items is defined throught the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix it's with a minus (`-`) character.
+Sorting is of resource items is defined throught the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix its name with a minus (`-`) character.
 
 To use a resource field with the `sort` parameter, the field must be defined on the resource and the `Sortable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
 
 Here we sort the result by ascending quantity and descending date:
 
-	sort=quantity,-created
+	/posts?sort=quantity,-created
 
 ## Field Selection
 
@@ -925,7 +945,7 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,b:body}
 
 ### Field Parameters
 
-Field parameters are used to apply a transformation on the value of a field using some custom logic.
+Field parameters are used to apply a transformation on the value of a field using custom logic.
 
 For instance, if you are using an on demand dynamic image resizer, you may want to expose the capability of this service, without requiring from the client to learn another URL based API. Wouldn't it be better if we could just ask the API to return the `thumbnail_url` dynamically transformed with the desired dimensions?
 
@@ -971,7 +991,7 @@ schema.Schema{
 }
 ```
 
-Only parameters with listed in validators will be accepted. You `Handler` function is called with the current value of the field and parameters sent by the user if any. Your function can apply wanted transformations on the value and return it. If an error is returned, a `422` error will be triggered with you error message associated to the field.
+Only parameters listed in the `Params` field will be accepted. You `Handler` function is called with the current value of the field and parameters sent by the user if any. Your function can apply wanted transformations on the value and return it. If an error is returned, a `422` error will be triggered with your error message associated to the field.
 
 ### Embedding
 
@@ -1007,7 +1027,7 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts \
 
 In the above example, the `user` field is a reference on the `users` resource. REST Layer did fetch the user referenced by the post and embedded the requested sub-fields (`id` and `name`). Same for `comments`: `comments` is set as a sub-resource of the `posts` resource. With this syntax, it's easy to get the last 10 comments on the post in the same REST request. For each of those comment, we asked to embed the `user` field referenced resource with `id` and `name` fields again.
 
-Notice the `sort` and `limit` parameters passed to the `comments` field. Those are field parameter automatically exposed connections to let you control the embedded list order, filter and pagination. You can use `sort`, `filter`, `page` and `limit` parameters with those field with the same syntax as their top level query-string parameter counterpart.
+Notice the `sort` and `limit` parameters passed to the `comments` field. Those are field parameter automatically exposed by connections to let you control the embedded list order, filter and pagination. You can use `sort`, `filter`, `page` and `limit` parameters with those field with the same syntax as their top level query-string parameter counterpart.
 
 Such request can quickly generate a lot of queries on the storage handler. To ensure a fast response time, REST layer tries to coalesce those storage requests and to execute them concurrently whenever possible.
 
@@ -1015,7 +1035,7 @@ Such request can quickly generate a lot of queries on the storage handler. To en
 
 Pagination is supported on collection URLs using `page` and `limit` query-string parameters. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated until you provide the `limit` query-string parameter.
 
-If your collections are large enough, failing to define a reasonable `PaginationDefaultLimit` parameter may render your API unusable.
+If your collections are large enough, failing to define a reasonable `PaginationDefaultLimit` parameter may quickly render your API unusable.
 
 ## Conditional Requests
 
@@ -1026,7 +1046,7 @@ Each stored resource provides information on the last time it was updated (`Last
 HTTP/1.1 304 Not Modified
 ```
 
-or the If-None-Match header:
+or the `If-None-Match` header:
 
 ```http
 $ http :8080/users/ar6ej4mkj5lfl688d8lg If-None-Match:'"1234567890123456789012345678901234567890"'
@@ -1063,7 +1083,7 @@ Concurrency control header `If-Match` can be used with all mutation methods on i
 
 ## Data Validation
 
-Data validation is provided out-of-the-box. Your configuration includes a schema definition for every resource managed by the API. Data sent to the API to be inserted/updated will be validated against the schema, and a resource will only be updated if validation passes.
+Data validation is provided out-of-the-box. Your configuration includes a schema definition for every resource managed by the API. Data sent to the API to be inserted/updated will be validated against the schema, and a resource will only be updated if validation passes. See [Field Definition](#field-definition) section to know more about how to configure your validators.
 
 ```http
 > http  :8080/api/users name:=1 foo=bar
@@ -1094,9 +1114,11 @@ In the example above, the document did not validate so the request has been reje
 To allow `null` value in addition the field type, you can use [schema.AnyOf](https://godoc.org/github.com/rs/rest-layer/schema#AnyOf) validator:
 
 ```go
-"nullable_field": schema.AnyOf{
-	schema.String{},
-	schema.Null{},
+"nullable_field": {
+	Validator: schema.AnyOf{
+		schema.String{},
+		schema.Null{},
+	},
 }
 ```
 
