@@ -13,12 +13,12 @@
 <h1 id="rest-layer">REST Layer</h1>
 <p>REST APIs made easy.</p>
 <p><a href="https://godoc.org/github.com/rs/rest-layer"><img src="http://img.shields.io/badge/godoc-reference-blue.svg?style=flat" alt="godoc"></a> <a href="https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE"><img src="http://img.shields.io/badge/license-MIT-red.svg?style=flat" alt="license"></a> <a href="https://travis-ci.org/rs/rest-layer"><img src="https://img.shields.io/travis/rs/rest-layer.svg?style=flat" alt="build"></a> <a href="https://goreportcard.com/report/github.com/rs/rest-layer"><img src="https://goreportcard.com/badge/github.com/rs/rest-layer" alt="Go Report Card"></a></p>
-<p>REST Layer is an API framework heavily inspired by the excellent <a href="http://python-eve.org">Python Eve</a>. It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable <a href="#storage-handlers">backend storages</a> with no boiler plate code so can focus on your business logic.</p>
-<p>Implemented as a <code>net/http</code> middleware, it plays well with other middleware like <a href="http://github.com/rs/cors">CORS</a> and is <a href="https://godoc.org/golang.org/x/net/context">net/context</a> aware thanks to <a href="https://github.com/rs/xhandler">xhandler</a>.</p>
-<p>REST Layer is an opinionated framework. Unlike many API frameworks, you don&#39;t directly control the routing and you don&#39;t have to write handlers. You just define resources and sub-resources with a <a href="#resource-configuration">schema</a>, the framework automatically figures out what routes to generate behind the scene. You don&#39;t have to take care of the HTTP headers and response, JSON encoding, etc. either. REST layer handles HTTP <a href="#conditional-requests">conditional requests</a>, caching, <a href="#data-integrity-and-concurrency-control">integrity checking</a> for you.</p>
-<p>A powerful and extensible <a href="#resource-configuration">validation engine</a> make sure that data comes pre-validated to your <a href="#data-storage-handler">custom storage handlers</a>. Generic resource handlers for <a href="http://github.com/rs/rest-layer-mongo">MongoDB</a>, <a href="http://github.com/rs/rest-layer-es">ElastiSearch</a> and other databases are also available so you have few to no code to write to make the whole system work.</p>
+<p>REST Layer is an API framework heavily inspired by the excellent <a href="http://python-eve.org">Python Eve</a>. It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable <a href="#storage-handlers">backend storages</a> with no boiler plate code so you can focus on your business logic.</p>
+<p>Implemented as a <code>net/http</code> handler, it plays well with standard middleware like <a href="http://github.com/rs/cors">CORS</a>. It is also <a href="https://godoc.org/golang.org/x/net/context">net/context</a> aware thanks to <a href="https://github.com/rs/xhandler">xhandler</a>. This allows deadline management to be supported down to the storage and permit an easy extensibility by passing custom data between layers of the framework.</p>
+<p>REST Layer is an opinionated framework. Unlike many API frameworks, you don&#39;t directly control the routing and you don&#39;t have to write handlers. You just define resources and sub-resources with a <a href="#resource-configuration">schema</a>, the framework automatically figures out what routes need to be generated behind the scene. You don&#39;t have to take care of the HTTP headers and response, JSON encoding, etc. either. REST layer handles HTTP <a href="#conditional-requests">conditional requests</a>, caching, <a href="#data-integrity-and-concurrency-control">integrity checking</a> for you.</p>
+<p>A powerful and extensible <a href="#resource-configuration">validation engine</a> make sure that data comes pre-validated to your <a href="#data-storage-handler">custom storage handlers</a>. Generic resource handlers for <a href="http://github.com/rs/rest-layer-mongo">MongoDB</a>, <a href="http://github.com/rs/rest-layer-es">ElastiSearch</a> and other databases are also available so you have few to no code to write to get up and running.</p>
 <p>Moreover, REST Layer let you create a graph API by linking resources between them. Thanks to its advanced <a href="#field-selection">field selection</a> syntax or <a href="#graphql">GraphQL</a> support, you can gather resources and their dependencies in a single request, saving you from costly network roundtrips.</p>
-<p>REST Layer is composed of several packages:</p>
+<p>The REST Layer framework is composed of several sub-packages:</p>
 <table>
 <thead>
 <tr>
@@ -31,17 +31,17 @@
 <tr>
 <td><a href="https://godoc.org/github.com/rs/rest-layer/rest">rest</a></td>
 <td><a href="http://gocover.io/github.com/rs/rest-layer/rest?version=1.6"><img src="http://gocover.io/_badge/github.com/rs/rest-layer/rest?version=1.6" alt="Coverage"></a></td>
-<td>Holds the <code>net/http</code> handler responsible for the implementation of the RESTful API.</td>
+<td>A <code>net/http</code> handler to expose a RESTful API.</td>
 </tr>
 <tr>
 <td><a href="https://godoc.org/github.com/rs/rest-layer/graphql">graphql</a></td>
 <td><a href="http://gocover.io/github.com/rs/rest-layer/graphql"><img src="http://gocover.io/_badge/github.com/rs/rest-layer/graphql" alt="Coverage"></a></td>
-<td>Holds a <code>net/http</code> handler to expose the API using the GraphQL protocol.</td>
+<td>A <code>net/http</code> handler to expose your API using the GraphQL protocol.</td>
 </tr>
 <tr>
 <td><a href="https://godoc.org/github.com/rs/rest-layer/schema">schema</a></td>
 <td><a href="http://gocover.io/github.com/rs/rest-layer/schema"><img src="http://gocover.io/_badge/github.com/rs/rest-layer/schema" alt="Coverage"></a></td>
-<td>Provides a validation framework for the API resources.</td>
+<td>A validation framework for the API resources.</td>
 </tr>
 <tr>
 <td><a href="https://godoc.org/github.com/rs/rest-layer/resource">resource</a></td>
@@ -129,7 +129,7 @@
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Per resource circuit breaker using <a href="https://godoc.org/github.com/afex/hystrix-go/hystrix">Hystrix</a></li>
 </ul>
 <h3 id="extensions">Extensions</h3>
-<p>As REST Layer is a simple <code>net/http</code>, you can use standard middleware to extend its functionalities:</p>
+<p>As REST Layer is a simple <code>net/http</code> handler. You can use standard middleware to extend its functionalities:</p>
 <ul>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;<a href="http://github.com/rs/cors">CORS</a></li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Method Override</li>
@@ -322,7 +322,7 @@ func main() {
     }
 }
 </code></pre>
-<p>Just run this code (or use the provided <code>cmd/demo/</code>):</p>
+<p>Just run this code (or use the provided <a href="https://github.com/rs/rest-layer/blob/master/examples/demo/main.go">examples/demo</a>):</p>
 <pre><code>&gt; go run examples/demo/main.go
 2015/07/27 20:54:55 Serving API on http://localhost:8080
 </code></pre><p>Using <a href="http://httpie.org/">HTTPie</a>, you can now play with your API.</p>
@@ -520,6 +520,20 @@ Vary: Origin
 <p>For REST Layer to be able to expose resources, you have to first define what fields the resource contains and where to bind it in the REST API URL namespace.</p>
 <h3 id="schema">Schema</h3>
 <p>Resource field configuration is performed throught the <a href="https://godoc.org/github.com/rs/rest-layer/schema">schema</a> package. A schema is a struct describing a resource. A schema is composed of metadata about the resource and a description of the allowed fields through a map of field name pointing to field definition.</p>
+<p>Sample resource schema:</p>
+<pre><code class="lang-go">foo = schema.Schema{
+    Description: &quot;A foo object&quot;
+    Fields: schema.Fields{
+        &quot;field_name&quot;: {
+            Required: true,
+            Filterable: true,
+            Validator: &amp;schema.String{
+                MaxLen: 150,
+            },
+        },
+    },
+}
+</code></pre>
 <p>Schema fields:</p>
 <table>
 <thead>
@@ -579,7 +593,7 @@ Vary: Origin
 </tr>
 <tr>
 <td><code>Handler</code></td>
-<td>Handler defines function able change the field&#39;s value depending on the passed parameters. See <a href="#field-parameters">Field Parameters</a> section for some examples.</td>
+<td>Handler defines a function able to change the field&#39;s value depending on the passed parameters. See <a href="#field-parameters">Field Parameters</a> section for some examples.</td>
 </tr>
 <tr>
 <td><code>Validator</code></td>
@@ -846,6 +860,7 @@ posts := index.Bind(&quot;posts&quot;, post, mem.NewHandler(), resource.DefaultC
 </tr>
 </tbody>
 </table>
+<p>Note on GraphQL support and modes: current implementation of GraphQL doesn&#39;t suport mutation. Thus only resources with <code>Read</code> and <code>List</code> modes will be exposed with GraphQL. Support for other modes will be added in the future.</p>
 <h3 id="hooks">Hooks</h3>
 <p>Hooks are piece of code you can attach before or after an operation is performed on a resource. A hook is a Go type implementing one of the event handler interface below, and attached to a resource via the <a href="https://godoc.org/github.com/rs/rest-layer/resource#Resource.Use">Resource.Use</a> method.</p>
 <table>
@@ -907,8 +922,9 @@ posts := index.Bind(&quot;posts&quot;, post, mem.NewHandler(), resource.DefaultC
 </tbody>
 </table>
 <p>All hooks functions get a <code>context.Context</code> as first argument. If a network call must be performed from the hook, the context&#39;s deadline must be respected. If a hook return an error, the whole request is aborted with that error.</p>
+<p>You can also use the context to pass data to your hooks from a middleware executed before REST Layer. This can be used to manage authentication for instance. See <a href="https://github.com/rs/rest-layer/blob/master/examples/auth/main.go">examples/auth</a> to see an example. </p>
 <h3 id="sub-resources">Sub Resources</h3>
-<p>Sub resources can be used to express a one-to-may parent-child relationship between two resources. A sub-resource is automatically filtered by it&#39;s parent.</p>
+<p>Sub resources can be used to express a one-to-may parent-child relationship between two resources. A sub-resource is automatically filtered by it&#39;s parent on the field specified as second argument of the <code>Bind</code> method.</p>
 <p>To create a sub-resource, you bind you resource on the object returned by the binding of the parent resource. For instance, here we bind a <code>comments</code> resource to a <code>posts</code> resource:</p>
 <pre><code class="lang-go">posts := index.Bind(&quot;posts&quot;, post, mem.NewHandler(), resource.DefaultConf)
 // Bind comment as sub-resource of the posts resource
@@ -1029,10 +1045,10 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
 </table>
 <p><em>Some storage handlers may not support all operators. Refer to the storage handler&#39;s documentation for more info.</em></p>
 <h2 id="sorting">Sorting</h2>
-<p>Sorting is of resource items is defined throught the <code>sort</code> query-string parameter. The <code>sort</code> value is a list of resource&#39;s fields separated by comas (<code>,</code>). To invert a field&#39;s sort, you can prefix it&#39;s with a minus (<code>-</code>) character.</p>
+<p>Sorting is of resource items is defined throught the <code>sort</code> query-string parameter. The <code>sort</code> value is a list of resource&#39;s fields separated by comas (<code>,</code>). To invert a field&#39;s sort, you can prefix its name with a minus (<code>-</code>) character.</p>
 <p>To use a resource field with the <code>sort</code> parameter, the field must be defined on the resource and the <code>Sortable</code> field property must be set to <code>true</code>. You may want to ensure the backend database has this field indexed when enabled.</p>
 <p>Here we sort the result by ascending quantity and descending date:</p>
-<pre><code>sort=quantity,-created
+<pre><code>/posts?sort=quantity,-created
 </code></pre><h2 id="field-selection">Field Selection</h2>
 <p>REST APIs tend to grow over time. Resources get more and more fields to fulfill the needs for new features. But each time fields are added, all existing API clients automatically gets the additional cost. This tend to lead to huge wast of bandwidth and added latency due to the transfer of unnecessary data.</p>
 <p>To workaround this issue, REST Layer provides a powerful fields selection (also named projection) system. If you provide the <code>fields</code> parameter with a list of fields for the resource you are interested in separated by comas, only those fields will be returned in the document:</p>
@@ -1077,7 +1093,7 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
 ]
 </code></pre>
 <h3 id="field-parameters">Field Parameters</h3>
-<p>Field parameters are used to apply a transformation on the value of a field using some custom logic.</p>
+<p>Field parameters are used to apply a transformation on the value of a field using custom logic.</p>
 <p>For instance, if you are using an on demand dynamic image resizer, you may want to expose the capability of this service, without requiring from the client to learn another URL based API. Wouldn&#39;t it be better if we could just ask the API to return the <code>thumbnail_url</code> dynamically transformed with the desired dimensions?</p>
 <p>By combining field aliasing and field parameters, we can expose this resizer API as follow:</p>
 <pre><code class="lang-http">$ http -b :8080/api/videos fields==&#39;id,
@@ -1114,7 +1130,7 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
     },
 }
 </code></pre>
-<p>Only parameters with listed in validators will be accepted. You <code>Handler</code> function is called with the current value of the field and parameters sent by the user if any. Your function can apply wanted transformations on the value and return it. If an error is returned, a <code>422</code> error will be triggered with you error message associated to the field.</p>
+<p>Only parameters listed in the <code>Params</code> field will be accepted. You <code>Handler</code> function is called with the current value of the field and parameters sent by the user if any. Your function can apply wanted transformations on the value and return it. If an error is returned, a <code>422</code> error will be triggered with your error message associated to the field.</p>
 <h3 id="embedding">Embedding</h3>
 <p>With sub-fields notation you can also request referenced resources or connections (sub-resources). REST Layer will recognize them automatically and fetch the associated resources in order embed their data in the response. This can save a lot of unnecessary sequential roundtrips:</p>
 <pre><code class="lang-http">$ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts \
@@ -1144,17 +1160,17 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
 ]
 </code></pre>
 <p>In the above example, the <code>user</code> field is a reference on the <code>users</code> resource. REST Layer did fetch the user referenced by the post and embedded the requested sub-fields (<code>id</code> and <code>name</code>). Same for <code>comments</code>: <code>comments</code> is set as a sub-resource of the <code>posts</code> resource. With this syntax, it&#39;s easy to get the last 10 comments on the post in the same REST request. For each of those comment, we asked to embed the <code>user</code> field referenced resource with <code>id</code> and <code>name</code> fields again.</p>
-<p>Notice the <code>sort</code> and <code>limit</code> parameters passed to the <code>comments</code> field. Those are field parameter automatically exposed connections to let you control the embedded list order, filter and pagination. You can use <code>sort</code>, <code>filter</code>, <code>page</code> and <code>limit</code> parameters with those field with the same syntax as their top level query-string parameter counterpart.</p>
+<p>Notice the <code>sort</code> and <code>limit</code> parameters passed to the <code>comments</code> field. Those are field parameter automatically exposed by connections to let you control the embedded list order, filter and pagination. You can use <code>sort</code>, <code>filter</code>, <code>page</code> and <code>limit</code> parameters with those field with the same syntax as their top level query-string parameter counterpart.</p>
 <p>Such request can quickly generate a lot of queries on the storage handler. To ensure a fast response time, REST layer tries to coalesce those storage requests and to execute them concurrently whenever possible.</p>
 <h2 id="pagination">Pagination</h2>
 <p>Pagination is supported on collection URLs using <code>page</code> and <code>limit</code> query-string parameters. If you don&#39;t define a default pagination limit using <code>PaginationDefaultLimit</code> resource configuration parameter, the resource won&#39;t be paginated until you provide the <code>limit</code> query-string parameter.</p>
-<p>If your collections are large enough, failing to define a reasonable <code>PaginationDefaultLimit</code> parameter may render your API unusable.</p>
+<p>If your collections are large enough, failing to define a reasonable <code>PaginationDefaultLimit</code> parameter may quickly render your API unusable.</p>
 <h2 id="conditional-requests">Conditional Requests</h2>
 <p>Each stored resource provides information on the last time it was updated (<code>Last-Modified</code>), along with a hash value computed on the representation itself (<code>ETag</code>). These headers allow clients to perform conditional requests by using the <code>If-Modified-Since</code> header:</p>
 <pre><code class="lang-http">&gt; http :8080/users/ar6ej4mkj5lfl688d8lg If-Modified-Since:&#39;Wed, 05 Dec 2012 09:53:07 GMT&#39;
 HTTP/1.1 304 Not Modified
 </code></pre>
-<p>or the If-None-Match header:</p>
+<p>or the <code>If-None-Match</code> header:</p>
 <pre><code class="lang-http">$ http :8080/users/ar6ej4mkj5lfl688d8lg If-None-Match:&#39;&quot;1234567890123456789012345678901234567890&quot;&#39;
 HTTP/1.1 304 Not Modified
 </code></pre>
@@ -1176,7 +1192,7 @@ Last-Modified: Mon, 27 Jul 2015 19:36:19 GMT
 <p>This time the update operation has been accepted and we&#39;ve got a new <code>ETag</code> for the updated resource.</p>
 <p>Concurrency control header <code>If-Match</code> can be used with all mutation methods on item URLs: <code>PATCH</code> (update), <code>PUT</code> (replace) and <code>DELETE</code> (delete).</p>
 <h2 id="data-validation">Data Validation</h2>
-<p>Data validation is provided out-of-the-box. Your configuration includes a schema definition for every resource managed by the API. Data sent to the API to be inserted/updated will be validated against the schema, and a resource will only be updated if validation passes.</p>
+<p>Data validation is provided out-of-the-box. Your configuration includes a schema definition for every resource managed by the API. Data sent to the API to be inserted/updated will be validated against the schema, and a resource will only be updated if validation passes. See <a href="#field-definition">Field Definition</a> section to know more about how to configure your validators.</p>
 <pre><code class="lang-http">&gt; http  :8080/api/users name:=1 foo=bar
 HTTP/1.1 422 status code 422
 Content-Length: 110
@@ -1200,9 +1216,11 @@ Vary: Origin
 <p>In the example above, the document did not validate so the request has been rejected with description of the errors for each fields.</p>
 <h3 id="nullable-values">Nullable Values</h3>
 <p>To allow <code>null</code> value in addition the field type, you can use <a href="https://godoc.org/github.com/rs/rest-layer/schema#AnyOf">schema.AnyOf</a> validator:</p>
-<pre><code class="lang-go">&quot;nullable_field&quot;: schema.AnyOf{
-    schema.String{},
-    schema.Null{},
+<pre><code class="lang-go">&quot;nullable_field&quot;: {
+    Validator: schema.AnyOf{
+        schema.String{},
+        schema.Null{},
+    },
 }
 </code></pre>
 <h3 id="extensible-data-validation">Extensible Data Validation</h3>
