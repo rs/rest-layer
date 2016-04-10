@@ -1,14 +1,11 @@
 package rest
 
 import (
-	"bytes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
@@ -121,21 +118,4 @@ func TestHandlerServeHTTPGetNotFoundItem(t *testing.T) {
 	assert.Equal(t, 404, w.Code)
 	b, _ := ioutil.ReadAll(w.Body)
 	assert.Equal(t, "{\"code\":404,\"message\":\"Not Found\"}", string(b))
-}
-
-func TestHandlerServeHTTPPutItem(t *testing.T) {
-	i := resource.NewIndex()
-	s := mem.NewHandler()
-	i.Bind("foo", schema.Schema{Fields: schema.Fields{"id": {}, "name": {}}}, s, resource.DefaultConf)
-	h, _ := NewHandler(i)
-	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("PUT", "/foo/1", bytes.NewBufferString(`{"name": "test"}`))
-	h.ServeHTTP(w, r)
-	assert.Equal(t, 201, w.Code)
-	b, _ := ioutil.ReadAll(w.Body)
-	assert.Equal(t, "{\"id\":\"1\",\"name\":\"test\"}", string(b))
-	lkp := resource.NewLookupWithQuery(schema.Query{schema.Equal{Field: "id", Value: "1"}})
-	l, err := s.Find(context.TODO(), lkp, 1, 1)
-	assert.NoError(t, err)
-	assert.Len(t, l.Items, 1)
 }

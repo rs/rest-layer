@@ -51,9 +51,12 @@ func validateSelector(s []Field, v schema.Validator) error {
 				if !found {
 					return fmt.Errorf("%s: unsupported param name: %s", f.Name, name)
 				}
-				value, err := param.Validator.Validate(value)
-				if err != nil {
-					return fmt.Errorf("%s: invalid param `%s' value: %v", f.Name, name, err)
+				if param.Validator != nil {
+					var err error
+					value, err = param.Validator.Validate(value)
+					if err != nil {
+						return fmt.Errorf("%s: invalid param `%s' value: %v", f.Name, name, err)
+					}
 				}
 				f.Params[name] = value
 			}
@@ -80,7 +83,7 @@ func applySelector(ctx context.Context, s []Field, v schema.Validator, p map[str
 		}
 		def := v.GetField(f.Name)
 		// Skip hidden fields
-		if def.Hidden {
+		if def != nil && def.Hidden {
 			continue
 		}
 		if val, found := p[f.Name]; found {
@@ -141,6 +144,9 @@ func applySelector(ctx context.Context, s []Field, v schema.Validator, p map[str
 
 // resolveFieldHandler handles selector handler / params
 func resolveFieldHandler(ctx context.Context, f Field, def *schema.Field, val interface{}) (interface{}, error) {
+	if def == nil {
+		return val, nil
+	}
 	var err error
 	if def.Handler != nil && len(f.Params) > 0 {
 		val, err = def.Handler(ctx, val, f.Params)

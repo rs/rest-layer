@@ -57,6 +57,6 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 	}
 	// See https://www.subbu.org/blog/2008/10/location-vs-content-location
 	headers = http.Header{}
-	headers.Set("Content-Location", fmt.Sprintf("/%s/%s", r.URL.Path, item.ID))
+	headers.Set("Content-Location", fmt.Sprintf("%s/%s", r.URL.Path, item.ID))
 	return 201, headers, item
 }

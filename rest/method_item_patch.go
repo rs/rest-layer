@@ -54,6 +54,9 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	if e := checkReferences(ctx, doc, rsrc.Validator()); e != nil {
 		return e.Code, nil, e
 	}
+	if id, found := doc["id"]; found && id != original.ID {
+		return 422, nil, &Error{422, "Cannot change document ID", nil}
+	}
 	item, err := resource.NewItem(doc)
 	if err != nil {
 		e = NewError(err)

@@ -124,6 +124,9 @@ func setAllowHeader(headers http.Header, isItem bool, conf resource.Conf) {
 // comparison of etag allows clients not stricly respecting RFC to send the etag with
 // or without quotes when the etag comes from, for instance, the API JSON response.
 func compareEtag(etag, baseEtag string) bool {
+	if etag == "" {
+		return false
+	}
 	if etag == baseEtag {
 		return true
 	}
@@ -162,7 +165,8 @@ func checkIntegrityRequest(r *http.Request, original *resource.Item) *Error {
 		if ifUnmod != "" {
 			if ifUnmodTime, err := time.Parse(time.RFC1123, ifUnmod); err != nil {
 				return &Error{400, "Invalid If-Unmodified-Since header", nil}
-			} else if original.Updated.After(ifUnmodTime) {
+			} else if original.Updated.Truncate(time.Second).After(ifUnmodTime) {
+				// Item's update time is truncated to the second because RFC1123 doesn't support more
 				return ErrPreconditionFailed
 			}
 		}

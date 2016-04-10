@@ -29,7 +29,9 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	} else if len(l.Items) == 1 {
 		original = l.Items[0]
 	}
-	// Check if method is allowed based
+	// Check if method is allowed based on the type of PUT:
+	// - PUT on non existing item = create
+	// - PUT on existing item = replace
 	mode := resource.Create
 	if original != nil {
 		// If original is found, the mode is replace rather than create
