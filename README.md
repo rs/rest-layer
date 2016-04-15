@@ -17,7 +17,7 @@ Moreover, REST Layer let you create a graph API by linking resources between the
 
 The REST Layer framework is composed of several sub-packages:
 
-![](doc/schema.svg)
+![](doc/schema.png)
 
 | Package                                                         | Coverage                                                                                                                                       | Description
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------
