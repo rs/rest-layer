@@ -309,3 +309,11 @@ body {
   border-top: 1px solid #ddd
 }
 
+
+/*
+ * Images
+ */
+
+.readme p img {
+  max-width: 100%;
+}
