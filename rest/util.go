@@ -193,8 +193,10 @@ func checkReferences(ctx context.Context, payload map[string]interface{}, s sche
 					return &Error{500, fmt.Sprintf("Invalid resource reference for field `%s': %s", name, ref.Path), nil}
 				}
 				_, err := rsrc.Get(ctx, value)
-				if err == ErrNotFound {
+				if err == resource.ErrNotFound {
 					return &Error{404, fmt.Sprintf("Resource reference not found for field `%s'", name), nil}
+				} else if err != nil {
+					return &Error{500, fmt.Sprintf("Error fetching resource reference for field `%s': %v", name, err), nil}
 				}
 			}
 		}

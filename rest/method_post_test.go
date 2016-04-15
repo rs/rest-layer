@@ -40,13 +40,11 @@ func TestHandlerPostList(t *testing.T) {
 func TestHandlerPostListBadPayload(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("POST", "/test/1", bytes.NewBufferString("{invalid json"))
+	r, _ := http.NewRequest("POST", "/test", bytes.NewBufferString("{invalid json"))
 	rm := &RouteMatch{
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",
-				Field:    "id",
-				Value:    "2",
 				Resource: test,
 			},
 		},
@@ -61,16 +59,14 @@ func TestHandlerPostListBadPayload(t *testing.T) {
 	}
 }
 
-func TestHandlerPostListInvalidLookupFields(t *testing.T) {
+func TestHandlerPostListInvalIDLookupFields(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("POST", "/test/2", bytes.NewBufferString("{}"))
+	r, _ := http.NewRequest("POST", "/test", bytes.NewBufferString("{}"))
 	rm := &RouteMatch{
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",
-				Field:    "id",
-				Value:    "2",
 				Resource: test,
 			},
 		},
@@ -105,8 +101,6 @@ func TestHandlerPostListDup(t *testing.T) {
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",
-				Field:    "id",
-				Value:    "2",
 				Resource: test,
 			},
 		},
@@ -127,8 +121,6 @@ func TestHandlerPostListNew(t *testing.T) {
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",
-				Field:    "id",
-				Value:    "4",
 				Resource: test,
 			},
 		},
@@ -147,13 +139,11 @@ func TestHandlerPostListInvalidField(t *testing.T) {
 	index := resource.NewIndex()
 	s := mem.NewHandler()
 	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("POST", "/test/2", bytes.NewBufferString(`{"id": "2", "foo": "baz"}`))
+	r, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(`{"id": "2", "foo": "baz"}`))
 	rm := &RouteMatch{
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",
-				Field:    "id",
-				Value:    "1",
 				Resource: test,
 			},
 		},
@@ -170,18 +160,40 @@ func TestHandlerPostListInvalidField(t *testing.T) {
 	}
 }
 
+func TestHandlerPostListMissingID(t *testing.T) {
+	index := resource.NewIndex()
+	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, nil, resource.Conf{
+		AllowedModes: []resource.Mode{resource.Replace},
+	})
+	r, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(`{}`))
+	rm := &RouteMatch{
+		ResourcePath: []*ResourcePathComponent{
+			&ResourcePathComponent{
+				Name:     "test",
+				Resource: test,
+			},
+		},
+	}
+	status, headers, body := listPost(context.TODO(), r, rm)
+	assert.Equal(t, 520, status)
+	assert.Nil(t, headers)
+	if assert.IsType(t, body, &Error{}) {
+		err := body.(*Error)
+		assert.Equal(t, 520, err.Code)
+		assert.Equal(t, "Missing ID field", err.Message)
+	}
+}
+
 func TestHandlerPostListNoStorage(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, nil, resource.Conf{
 		AllowedModes: []resource.Mode{resource.Replace},
 	})
-	r, _ := http.NewRequest("POST", "/test/1", bytes.NewBufferString(`{}`))
+	r, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(`{"id": "1"}`))
 	rm := &RouteMatch{
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",
-				Field:    "id",
-				Value:    "1",
 				Resource: test,
 			},
 		},
@@ -193,5 +205,205 @@ func TestHandlerPostListNoStorage(t *testing.T) {
 		err := body.(*Error)
 		assert.Equal(t, http.StatusNotImplemented, err.Code)
 		assert.Equal(t, "No Storage Defined", err.Message)
+	}
+}
+
+func TestHandlerPostListWithReferenceNoRouter(t *testing.T) {
+	s := mem.NewHandler()
+	index := resource.NewIndex()
+	index.Bind("foo", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
+	bar := index.Bind("bar", schema.Schema{Fields: schema.Fields{
+		"id":  {},
+		"foo": {Validator: &schema.Reference{Path: "foo"}},
+	}}, s, resource.DefaultConf)
+	r, _ := http.NewRequest("POST", "/bar", bytes.NewBufferString(`{"id": "1", "foo": "nonexisting"}`))
+	rm := &RouteMatch{
+		ResourcePath: []*ResourcePathComponent{
+			&ResourcePathComponent{
+				Name:     "bar",
+				Resource: bar,
+			},
+		},
+	}
+	status, _, body := listPost(context.TODO(), r, rm)
+	assert.Equal(t, http.StatusInternalServerError, status)
+	if assert.IsType(t, &Error{}, body) {
+		err := body.(*Error)
+		assert.Equal(t, http.StatusInternalServerError, err.Code)
+		assert.Equal(t, "Router not available in context", err.Message)
+	}
+}
+
+func TestHandlerPostListWithInvalidReference(t *testing.T) {
+	s := mem.NewHandler()
+	index := resource.NewIndex()
+	bar := index.Bind("bar", schema.Schema{Fields: schema.Fields{
+		"id":  {},
+		"foo": {Validator: &schema.Reference{Path: "invalid"}},
+	}}, s, resource.DefaultConf)
+	r, _ := http.NewRequest("POST", "/bar", bytes.NewBufferString(`{"id": "1", "foo": "1"}`))
+	rm := &RouteMatch{
+		ResourcePath: []*ResourcePathComponent{
+			&ResourcePathComponent{
+				Name:     "bar",
+				Resource: bar,
+			},
+		},
+	}
+	ctx := contextWithIndex(context.Background(), index)
+	status, _, body := listPost(ctx, r, rm)
+	assert.Equal(t, http.StatusInternalServerError, status)
+	if assert.IsType(t, &Error{}, body) {
+		err := body.(*Error)
+		assert.Equal(t, http.StatusInternalServerError, err.Code)
+		assert.Equal(t, "Invalid resource reference for field `foo': invalid", err.Message)
+	}
+}
+
+func TestHandlerPostListWithReferenceOtherError(t *testing.T) {
+	s := mem.NewHandler()
+	index := resource.NewIndex()
+	index.Bind("foo", schema.Schema{Fields: schema.Fields{"id": {}}}, nil, resource.DefaultConf)
+	bar := index.Bind("bar", schema.Schema{Fields: schema.Fields{
+		"id":  {},
+		"foo": {Validator: &schema.Reference{Path: "foo"}},
+	}}, s, resource.DefaultConf)
+	r, _ := http.NewRequest("POST", "/bar", bytes.NewBufferString(`{"id": "1", "foo": "1"}`))
+	rm := &RouteMatch{
+		ResourcePath: []*ResourcePathComponent{
+			&ResourcePathComponent{
+				Name:     "bar",
+				Resource: bar,
+			},
+		},
+	}
+	ctx := contextWithIndex(context.Background(), index)
+	status, _, body := listPost(ctx, r, rm)
+	assert.Equal(t, http.StatusInternalServerError, status)
+	if assert.IsType(t, &Error{}, body) {
+		err := body.(*Error)
+		assert.Equal(t, http.StatusInternalServerError, err.Code)
+		assert.Equal(t, "Error fetching resource reference for field `foo': No Storage Defined", err.Message)
+	}
+}
+
+func TestHandlerPostListWithReferenceNotFound(t *testing.T) {
+	s := mem.NewHandler()
+	index := resource.NewIndex()
+	index.Bind("foo", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
+	bar := index.Bind("bar", schema.Schema{Fields: schema.Fields{
+		"id":  {},
+		"foo": {Validator: &schema.Reference{Path: "foo"}},
+	}}, s, resource.DefaultConf)
+	r, _ := http.NewRequest("POST", "/bar", bytes.NewBufferString(`{"id": "1", "foo": "nonexisting"}`))
+	rm := &RouteMatch{
+		ResourcePath: []*ResourcePathComponent{
+			&ResourcePathComponent{
+				Name:     "bar",
+				Resource: bar,
+			},
+		},
+	}
+	ctx := contextWithIndex(context.Background(), index)
+	status, _, body := listPost(ctx, r, rm)
+	assert.Equal(t, http.StatusNotFound, status)
+	if assert.IsType(t, &Error{}, body) {
+		err := body.(*Error)
+		assert.Equal(t, http.StatusNotFound, err.Code)
+		assert.Equal(t, "Resource reference not found for field `foo'", err.Message)
+	}
+}
+
+func TestHandlerPostListWithReference(t *testing.T) {
+	s := mem.NewHandler()
+	s.Insert(context.Background(), []*resource.Item{{ID: "ref", Payload: map[string]interface{}{"id": "ref"}}})
+	index := resource.NewIndex()
+	index.Bind("foo", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
+	bar := index.Bind("bar", schema.Schema{Fields: schema.Fields{
+		"id":  {},
+		"foo": {Validator: &schema.Reference{Path: "foo"}},
+	}}, s, resource.DefaultConf)
+	r, _ := http.NewRequest("POST", "/bar", bytes.NewBufferString(`{"id": "1", "foo": "ref"}`))
+	rm := &RouteMatch{
+		ResourcePath: []*ResourcePathComponent{
+			&ResourcePathComponent{
+				Name:     "bar",
+				Resource: bar,
+			},
+		},
+	}
+	ctx := contextWithIndex(context.Background(), index)
+	status, _, body := listPost(ctx, r, rm)
+	assert.Equal(t, http.StatusCreated, status)
+	if assert.IsType(t, &resource.Item{}, body) {
+		item := body.(*resource.Item)
+		assert.Equal(t, "1", item.ID)
+	}
+}
+
+func TestHandlerPostListWithSubSchemaReference(t *testing.T) {
+	s := mem.NewHandler()
+	s.Insert(context.Background(), []*resource.Item{{ID: "ref", Payload: map[string]interface{}{"id": "ref"}}})
+	index := resource.NewIndex()
+	index.Bind("foo", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
+	bar := index.Bind("bar", schema.Schema{Fields: schema.Fields{
+		"id": {},
+		"sub": {
+			Schema: &schema.Schema{
+				Fields: schema.Fields{
+					"foo": {Validator: &schema.Reference{Path: "foo"}},
+				},
+			},
+		},
+	}}, s, resource.DefaultConf)
+	r, _ := http.NewRequest("POST", "/bar", bytes.NewBufferString(`{"id": "1", "sub": {"foo": "ref"}}`))
+	rm := &RouteMatch{
+		ResourcePath: []*ResourcePathComponent{
+			&ResourcePathComponent{
+				Name:     "bar",
+				Resource: bar,
+			},
+		},
+	}
+	ctx := contextWithIndex(context.Background(), index)
+	status, _, body := listPost(ctx, r, rm)
+	assert.Equal(t, http.StatusCreated, status)
+	if assert.IsType(t, &resource.Item{}, body) {
+		item := body.(*resource.Item)
+		assert.Equal(t, "1", item.ID)
+	}
+}
+
+func TestHandlerPostListWithSubSchemaReferenceNotFound(t *testing.T) {
+	s := mem.NewHandler()
+	s.Insert(context.Background(), []*resource.Item{{ID: "ref", Payload: map[string]interface{}{"id": "ref"}}})
+	index := resource.NewIndex()
+	index.Bind("foo", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
+	bar := index.Bind("bar", schema.Schema{Fields: schema.Fields{
+		"id": {},
+		"sub": {
+			Schema: &schema.Schema{
+				Fields: schema.Fields{
+					"foo": {Validator: &schema.Reference{Path: "foo"}},
+				},
+			},
+		},
+	}}, s, resource.DefaultConf)
+	r, _ := http.NewRequest("POST", "/bar", bytes.NewBufferString(`{"id": "1", "sub": {"foo": "notfound"}}`))
+	rm := &RouteMatch{
+		ResourcePath: []*ResourcePathComponent{
+			&ResourcePathComponent{
+				Name:     "bar",
+				Resource: bar,
+			},
+		},
+	}
+	ctx := contextWithIndex(context.Background(), index)
+	status, _, body := listPost(ctx, r, rm)
+	assert.Equal(t, http.StatusNotFound, status)
+	if assert.IsType(t, &Error{}, body) {
+		err := body.(*Error)
+		assert.Equal(t, http.StatusNotFound, err.Code)
+		assert.Equal(t, "Resource reference not found for field `foo'", err.Message)
 	}
 }

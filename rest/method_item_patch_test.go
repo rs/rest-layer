@@ -318,6 +318,7 @@ func TestHandlerPatchItemReplaceInvalidModifiedSinceDate(t *testing.T) {
 		assert.Equal(t, "Invalid If-Unmodified-Since header", err.Message)
 	}
 }
+
 func TestHandlerPatchItemNoStorage(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, nil, resource.Conf{
@@ -341,5 +342,41 @@ func TestHandlerPatchItemNoStorage(t *testing.T) {
 		err := body.(*Error)
 		assert.Equal(t, http.StatusNotImplemented, err.Code)
 		assert.Equal(t, "No Storage Defined", err.Message)
+	}
+}
+
+func TestHandlerPatchItemChangePathValue(t *testing.T) {
+	index := resource.NewIndex()
+	s := mem.NewHandler()
+	s.Insert(context.TODO(), []*resource.Item{
+		{ID: "1", Payload: map[string]interface{}{"id": "1", "foo": "2"}},
+		{ID: "2", Payload: map[string]interface{}{"id": "2"}},
+	})
+	parent := index.Bind("foo", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
+	test := parent.Bind("test", "foo", schema.Schema{Fields: schema.Fields{"id": {}, "foo": {}}}, s, resource.DefaultConf)
+	r, _ := http.NewRequest("PATCH", "/foo/2/test/1", bytes.NewBufferString(`{"id": "1", "foo": "3"}`))
+	rm := &RouteMatch{
+		ResourcePath: []*ResourcePathComponent{
+			&ResourcePathComponent{
+				Name:     "foo",
+				Field:    "foo",
+				Value:    "2",
+				Resource: parent,
+			},
+			&ResourcePathComponent{
+				Name:     "test",
+				Field:    "id",
+				Value:    "1",
+				Resource: test,
+			},
+		},
+	}
+	status, headers, body := itemPatch(context.TODO(), r, rm)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Nil(t, headers)
+	if assert.IsType(t, body, &resource.Item{}) {
+		i := body.(*resource.Item)
+		assert.Equal(t, "1", i.ID)
+		assert.Equal(t, map[string]interface{}{"id": "1", "foo": "3"}, i.Payload)
 	}
 }

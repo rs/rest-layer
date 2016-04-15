@@ -4,7 +4,7 @@ import "errors"
 
 var (
 	// ErrNotFound is returned when the requested resource can't be found
-	ErrNotFound = errors.New("Resource Not Found")
+	ErrNotFound = errors.New("Not Found")
 	// ErrUnauthorized is returned when the requested resource can be accessed by the
 	// requestor for security reason
 	ErrUnauthorized = errors.New("Unauthorized")

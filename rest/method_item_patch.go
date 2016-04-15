@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema"
 	"golang.org/x/net/context"
 )
 
@@ -41,10 +40,6 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	// (i.e.: contains id and parent resource refs if any)
 	for k, v := range route.ResourcePath.Values() {
 		base[k] = v
-		// Also, ensure there's no tombstone set on the field
-		if changes[k] == schema.Tombstone {
-			delete(changes, k)
-		}
 	}
 	doc, errs := rsrc.Validator().Validate(changes, base)
 	if len(errs) > 0 {

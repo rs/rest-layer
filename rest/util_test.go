@@ -6,7 +6,12 @@ import (
 	"net/http"
 	"testing"
 
+	"golang.org/x/net/context"
+
+	"time"
+
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -195,5 +200,60 @@ func TestRequestDecodePayloadInvalidJSON(t *testing.T) {
 	assert.Equal(t, &Error{400, "Malformed body: unexpected EOF", nil}, err)
 }
 
-func TestRequestCheckIntegrityRequest(t *testing.T) {
+func TestRequestCheckIntegrityRequestBadDate(t *testing.T) {
+	r, _ := http.NewRequest("GET", "/", nil)
+	r.Header.Set("If-Unmodified-Since", "invalid date")
+	err := checkIntegrityRequest(r, &resource.Item{})
+	assert.Equal(t, &Error{400, "Invalid If-Unmodified-Since header", nil}, err)
+}
+
+func TestRequestCheckIntegrityRequestNoItem(t *testing.T) {
+	r, _ := http.NewRequest("GET", "/", nil)
+	r.Header.Set("If-Match", "something")
+	err := checkIntegrityRequest(r, nil)
+	assert.Equal(t, ErrNotFound, err)
+}
+
+func TestRequestCheckIntegrityEtagMissmatch(t *testing.T) {
+	r, _ := http.NewRequest("GET", "/", nil)
+	r.Header.Set("If-Match", "foo")
+	err := checkIntegrityRequest(r, &resource.Item{ETag: "bar"})
+	assert.Equal(t, ErrPreconditionFailed, err)
+}
+
+func TestRequestCheckIntegrityEtagMatch(t *testing.T) {
+	r, _ := http.NewRequest("GET", "/", nil)
+	r.Header.Set("If-Match", "foo")
+	err := checkIntegrityRequest(r, &resource.Item{ETag: "foo"})
+	assert.Nil(t, err)
+}
+
+func TestRequestCheckIntegrityModifiedDateMissmatch(t *testing.T) {
+	r, _ := http.NewRequest("GET", "/", nil)
+	r.Header.Set("If-Unmodified-Since", time.Now().Add(-24*time.Hour).Format(time.RFC1123))
+	err := checkIntegrityRequest(r, &resource.Item{Updated: time.Now()})
+	assert.Equal(t, ErrPreconditionFailed, err)
+}
+
+func TestRequestCheckIntegrityModifiedDateMatch(t *testing.T) {
+	r, _ := http.NewRequest("GET", "/", nil)
+	now := time.Now()
+	r.Header.Set("If-Unmodified-Since", now.Format(time.RFC1123))
+	err := checkIntegrityRequest(r, &resource.Item{Updated: now})
+	assert.Nil(t, err)
+}
+
+func TestGetResourceResolver(t *testing.T) {
+	index := resource.NewIndex()
+	index.Bind("foo", schema.Schema{}, nil, resource.DefaultConf)
+	ctx := context.Background()
+	_, err := getReferenceResolver(ctx, nil)("bar")
+	assert.EqualError(t, err, "router not available in context")
+	ctx = contextWithIndex(ctx, index)
+	_, err = getReferenceResolver(ctx, nil)("bar")
+	assert.EqualError(t, err, "invalid resource reference: bar")
+	r, err := getReferenceResolver(ctx, nil)("foo")
+	if assert.NoError(t, err) {
+		assert.Equal(t, "foo", r.Name())
+	}
 }
