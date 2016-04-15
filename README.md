@@ -17,6 +17,8 @@ Moreover, REST Layer let you create a graph API by linking resources between the
 
 The REST Layer framework is composed of several sub-packages:
 
+![](doc/schema.svg)
+
 | Package                                                         | Coverage                                                                                                                                       | Description
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------
 | [rest](https://godoc.org/github.com/rs/rest-layer/rest)         | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/rest?version=1.6)](http://gocover.io/github.com/rs/rest-layer/rest?version=1.6) | A `net/http` handler to expose a RESTful API.
