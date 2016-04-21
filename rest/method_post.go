@@ -45,7 +45,7 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 		return e.Code, nil, e
 	}
 	// Apply selector so response gets the same format as read requests
-	item.Payload, err = lookup.ApplySelector(ctx, rsrc, item.Payload, getReferenceResolver(ctx, rsrc))
+	item.Payload, err = lookup.ApplySelector(ctx, rsrc.Validator(), item.Payload, getReferenceResolver(ctx, rsrc))
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

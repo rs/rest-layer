@@ -201,7 +201,7 @@ func (r RouteMatch) Lookup() (*resource.Lookup, *Error) {
 		}
 	}
 	if fields := r.Params.Get("fields"); fields != "" {
-		if err := l.SetSelector(fields, r.Resource()); err != nil {
+		if err := l.SetSelector(fields, r.Resource().Validator()); err != nil {
 			return nil, &Error{422, fmt.Sprintf("Invalid `fields` paramter: %s", err), nil}
 		}
 	}

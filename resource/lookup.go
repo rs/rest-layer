@@ -78,7 +78,7 @@ func (l *Lookup) SetSorts(sorts []string) {
 }
 
 // SetSort parses and validate a sort parameter and set it as lookup's Sort
-func (l *Lookup) SetSort(sort string, validator schema.Validator) error {
+func (l *Lookup) SetSort(sort string, v schema.Validator) error {
 	sorts := []string{}
 	for _, f := range strings.Split(sort, ",") {
 		f = strings.Trim(f, " ")
@@ -92,7 +92,7 @@ func (l *Lookup) SetSort(sort string, validator schema.Validator) error {
 			i = 1
 		}
 		// Make sure the field exists
-		field := validator.GetField(f[i:])
+		field := v.GetField(f[i:])
 		if field == nil {
 			return fmt.Errorf("invalid sort field: %s", f[i:])
 		}
@@ -109,8 +109,8 @@ func (l *Lookup) SetSort(sort string, validator schema.Validator) error {
 //
 // The filter query is validated against the provided validator to ensure all queried
 // fields exists and are of the right type.
-func (l *Lookup) AddFilter(filter string, validator schema.Validator) error {
-	f, err := schema.ParseQuery(filter, validator)
+func (l *Lookup) AddFilter(filter string, v schema.Validator) error {
+	f, err := schema.ParseQuery(filter, v)
 	if err != nil {
 		return err
 	}
@@ -130,13 +130,13 @@ func (l *Lookup) AddQuery(query schema.Query) {
 }
 
 // SetSelector parses a selector expression, validates it and assign it to the current Lookup.
-func (l *Lookup) SetSelector(s string, r *Resource) error {
+func (l *Lookup) SetSelector(s string, v schema.Validator) error {
 	pos := 0
 	selector, err := parseSelectorExpression([]byte(s), &pos, len(s), false)
 	if err != nil {
 		return err
 	}
-	if err = validateSelector(selector, r.Validator()); err != nil {
+	if err = validateSelector(selector, v); err != nil {
 		return err
 	}
 	l.selector = selector
@@ -147,8 +147,8 @@ func (l *Lookup) SetSelector(s string, r *Resource) error {
 type ReferenceResolver func(path string) (*Resource, error)
 
 // ApplySelector applies fields filtering / rename to the payload fields
-func (l *Lookup) ApplySelector(ctx context.Context, r *Resource, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
-	payload, err := applySelector(ctx, l.selector, r.Validator(), p, resolver)
+func (l *Lookup) ApplySelector(ctx context.Context, v schema.Validator, p map[string]interface{}, resolver ReferenceResolver) (map[string]interface{}, error) {
+	payload, err := applySelector(ctx, l.selector, v, p, resolver)
 	if err == nil {
 		// The resulting payload may contain some asyncSelector, we must execute them
 		// concurrently until there's no more

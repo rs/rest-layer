@@ -262,21 +262,42 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 			"error":    err,
 		})
 	}(time.Now())
-	for _, id := range ids {
-		err = r.hooks.onGet(ctx, id)
-		if err != nil {
-			return
+	errs := make([]error, len(ids))
+	for i, id := range ids {
+		errs[i] = r.hooks.onGet(ctx, id)
+		if err == nil && errs[i] != nil {
+			// first pre-hook error is the global error
+			err = errs[i]
 		}
 	}
+	// Perform the storage request if none of the pre-hook returned an err
 	if err == nil {
 		items, err = r.storage.MultiGet(ctx, ids)
 	}
-	for i, item := range items {
-		_item := item
-		r.hooks.onGot(ctx, &_item, &err)
-		if _item != item {
+	var errOverwrite error
+	for i := range ids {
+		var _item *Item
+		if len(items) > i {
+			_item = items[i]
+		}
+		// Give the pre-hook error for this id or global otherwise
+		_err := errs[i]
+		if _err == nil {
+			_err = err
+		}
+		r.hooks.onGot(ctx, &_item, &_err)
+		if errOverwrite == nil && _err != errs[i] {
+			errOverwrite = _err // apply change done on the first error
+		}
+		if _err == nil && len(items) > i && _item != items[i] {
 			items[i] = _item // apply changes done by hooks if any
 		}
+	}
+	if errOverwrite != nil {
+		err = errOverwrite
+	}
+	if err != nil {
+		items = nil
 	}
 	return
 }

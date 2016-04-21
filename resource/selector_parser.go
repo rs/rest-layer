@@ -55,6 +55,7 @@ With this example, the resulted document would be:
 
 */
 func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field, error) {
+	expectField := false
 	selector := []Field{}
 	var field *Field
 	for *pos < ln {
@@ -64,6 +65,7 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 				return nil, fmt.Errorf("looking for field name at char %d", *pos)
 			}
 			field = &Field{Name: name, Alias: alias}
+			expectField = false
 			continue
 		}
 		c := exp[*pos]
@@ -76,7 +78,7 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 			}
 			field.Fields = flds
 		case '}':
-			if opened {
+			if opened && !expectField {
 				selector = append(selector, *field)
 				return selector, nil
 			}
@@ -91,12 +93,16 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 		case ',':
 			selector = append(selector, *field)
 			field = nil
+			expectField = true
 		case ' ', '\n', '\r', '\t':
 			// ignore witespaces
 		default:
 			return nil, fmt.Errorf("invalid char `%c` at %d", c, *pos)
 		}
 		*pos++
+	}
+	if expectField {
+		return nil, fmt.Errorf("looking for field name at char %d", *pos)
 	}
 	if opened {
 		return nil, fmt.Errorf("looking for `}' at char %d", *pos)

@@ -100,4 +100,9 @@ func TestParseSelectorExpressionInvalid(t *testing.T) {
 	assert.EqualError(t, err, "looking for `,' or ')' at char 9")
 	_, err = parseSelector("foo(bar:@toto)")
 	assert.EqualError(t, err, "looking for value at char 8")
+	_, err = parseSelector("foo,")
+	assert.EqualError(t, err, "looking for field name at char 4")
+	_, err = parseSelector("foo{bar,}")
+	assert.EqualError(t, err, "looking for field name at char 8")
+
 }

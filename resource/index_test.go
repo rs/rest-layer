@@ -87,3 +87,15 @@ func TestIndexGetResource(t *testing.T) {
 	assert.False(t, found)
 	assert.Nil(t, res)
 }
+
+func TestIndexGetResources(t *testing.T) {
+	i := NewIndex()
+	i.Bind("b", schema.Schema{}, nil, DefaultConf)
+	i.Bind("a", schema.Schema{}, nil, DefaultConf)
+	i.Bind("c", schema.Schema{}, nil, DefaultConf)
+	if assert.Len(t, i.GetResources(), 3) {
+		assert.Equal(t, "a", i.GetResources()[0].Name())
+		assert.Equal(t, "b", i.GetResources()[1].Name())
+		assert.Equal(t, "c", i.GetResources()[2].Name())
+	}
+}
