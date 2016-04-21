@@ -1184,13 +1184,20 @@ When a request is stopped because the client closed the connection (context canc
 
 ## Logging
 
-Logging is performed using [xlog](https://github.com/rs/xlog). If `xlog` is not initialized, you won't get any logging out of REST Layer. With `xlog`, you can configure your logging outputs very precisely:
+You can customize REST Layer logger by changing the `resource.Logger` function to call any logging framework you want.
+
+We recommend using [xlog](https://github.com/rs/xlog). To configure REST Layer with `xlog`, proceed as follow:
 
 ```go
+resource.LoggerLevel = resource.LogLevelDebug
+resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
+	xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
+}
+
 // Install xlog logger
 c.UseC(xlog.NewHandler(xlog.Config{
 	// Log info level and higher
-	Level: xlog.LevelInfo,
+	Level: xlog.Level(resource.LoggerLevel),
 	// Set some global env fields
 	Fields: xlog.F{
 		"role": "my-service",

@@ -280,6 +280,9 @@ func main() {
 	c.UseC(xlog.UserAgentHandler("ua"))
 	c.UseC(xlog.RefererHandler("ref"))
 	c.UseC(xlog.RequestIDHandler("req_id", "Request-Id"))
+	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
+		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
+	}
 
 	// Setup auth middleware
 	c.UseC(NewBasicAuthHandler(users))

@@ -2,7 +2,6 @@ package resource
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 
@@ -107,10 +106,10 @@ func compileResourceGraph(resources subResources) error {
 func assertNotBound(name string, resources subResources, aliases map[string]url.Values) {
 	for _, r := range resources {
 		if r.name == name {
-			log.Panicf("Cannot bind `%s': already bound as resource'", name)
+			logPanicf(nil, "Cannot bind `%s': already bound as resource'", name)
 		}
 	}
 	if _, found := aliases[name]; found {
-		log.Panicf("Cannot bind `%s': already bound as alias'", name)
+		logPanicf(nil, "Cannot bind `%s': already bound as alias'", name)
 	}
 }

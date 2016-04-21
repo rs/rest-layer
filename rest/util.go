@@ -225,3 +225,9 @@ func getReferenceResolver(ctx context.Context, r *resource.Resource) resource.Re
 		return rsrc, nil
 	}
 }
+
+func logErrorf(ctx context.Context, format string, a ...interface{}) {
+	if resource.Logger != nil {
+		resource.Logger(ctx, resource.LogLevelError, fmt.Sprintf(format, a...), nil)
+	}
+}

@@ -2,13 +2,11 @@ package resource
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"sort"
 	"time"
 
 	"github.com/rs/rest-layer/schema"
-	"github.com/rs/xlog"
 	"golang.org/x/net/context"
 )
 
@@ -146,7 +144,7 @@ func (r *Resource) Compile() error {
 func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *Resource {
 	assertNotBound(name, r.resources, r.aliases)
 	if f := s.GetField(field); f == nil {
-		log.Panicf("Cannot bind `%s' as sub-resource: field `%s' does not exist in the sub-resource'", name, field)
+		logPanicf(nil, "Cannot bind `%s' as sub-resource: field `%s' does not exist in the sub-resource'", name, field)
 	}
 	sr := new(name, s, h, c)
 	sr.parentField = field
@@ -239,12 +237,14 @@ func (r *Resource) Use(e interface{}) error {
 
 // Get get one item by its id. If item is not found, ErrNotFound error is returned
 func (r *Resource) Get(ctx context.Context, id interface{}) (item *Item, err error) {
-	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.Get(%v)", r.path, id, xlog.F{
-			"duration": time.Since(t),
-			"error":    err,
-		})
-	}(time.Now())
+	if LoggerLevel <= LogLevelDebug && Logger != nil {
+		defer func(t time.Time) {
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Get(%v)", r.path, id), map[string]interface{}{
+				"duration": time.Since(t),
+				"error":    err,
+			})
+		}(time.Now())
+	}
 	if err = r.hooks.onGet(ctx, id); err == nil {
 		item, err = r.storage.Get(ctx, id)
 	}
@@ -255,13 +255,15 @@ func (r *Resource) Get(ctx context.Context, id interface{}) (item *Item, err err
 // MultiGet get some items by their id and return them in the same order. If one or more item(s)
 // is not found, their slot in the response is set to nil.
 func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*Item, err error) {
-	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.MultiGet(%v)", r.path, ids, xlog.F{
-			"duration": time.Since(t),
-			"found":    len(items),
-			"error":    err,
-		})
-	}(time.Now())
+	if LoggerLevel <= LogLevelDebug && Logger != nil {
+		defer func(t time.Time) {
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.MultiGet(%v)", r.path, ids), map[string]interface{}{
+				"duration": time.Since(t),
+				"found":    len(items),
+				"error":    err,
+			})
+		}(time.Now())
+	}
 	errs := make([]error, len(ids))
 	for i, id := range ids {
 		errs[i] = r.hooks.onGet(ctx, id)
@@ -304,17 +306,19 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 
 // Find implements Storer interface
 func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage int) (list *ItemList, err error) {
-	defer func(t time.Time) {
-		found := -1
-		if list != nil {
-			found = len(list.Items)
-		}
-		xlog.FromContext(ctx).Debugf("%s.Find(..., %d, %d)", r.path, page, perPage, xlog.F{
-			"duration": time.Since(t),
-			"found":    found,
-			"error":    err,
-		})
-	}(time.Now())
+	if LoggerLevel <= LogLevelDebug && Logger != nil {
+		defer func(t time.Time) {
+			found := -1
+			if list != nil {
+				found = len(list.Items)
+			}
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Find(..., %d, %d)", r.path, page, perPage), map[string]interface{}{
+				"duration": time.Since(t),
+				"found":    found,
+				"error":    err,
+			})
+		}(time.Now())
+	}
 	if err = r.hooks.onFind(ctx, lookup, page, perPage); err == nil {
 		list, err = r.storage.Find(ctx, lookup, page, perPage)
 	}
@@ -324,12 +328,14 @@ func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage int) 
 
 // Insert implements Storer interface
 func (r *Resource) Insert(ctx context.Context, items []*Item) (err error) {
-	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.Insert(items[%d])", r.path, len(items), xlog.F{
-			"duration": time.Since(t),
-			"error":    err,
-		})
-	}(time.Now())
+	if LoggerLevel <= LogLevelDebug && Logger != nil {
+		defer func(t time.Time) {
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Insert(items[%d])", r.path, len(items)), map[string]interface{}{
+				"duration": time.Since(t),
+				"error":    err,
+			})
+		}(time.Now())
+	}
 	if err = r.hooks.onInsert(ctx, items); err == nil {
 		err = r.storage.Insert(ctx, items)
 	}
@@ -339,12 +345,14 @@ func (r *Resource) Insert(ctx context.Context, items []*Item) (err error) {
 
 // Update implements Storer interface
 func (r *Resource) Update(ctx context.Context, item *Item, original *Item) (err error) {
-	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.Update(%v, %v)", r.path, item.ID, original.ID, xlog.F{
-			"duration": time.Since(t),
-			"error":    err,
-		})
-	}(time.Now())
+	if LoggerLevel <= LogLevelDebug && Logger != nil {
+		defer func(t time.Time) {
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Update(%v, %v)", r.path, item.ID, original.ID), map[string]interface{}{
+				"duration": time.Since(t),
+				"error":    err,
+			})
+		}(time.Now())
+	}
 	if err = r.hooks.onUpdate(ctx, item, original); err == nil {
 		err = r.storage.Update(ctx, item, original)
 	}
@@ -354,12 +362,14 @@ func (r *Resource) Update(ctx context.Context, item *Item, original *Item) (err 
 
 // Delete implements Storer interface
 func (r *Resource) Delete(ctx context.Context, item *Item) (err error) {
-	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.Delete(%v)", r.path, item.ID, xlog.F{
-			"duration": time.Since(t),
-			"error":    err,
-		})
-	}(time.Now())
+	if LoggerLevel <= LogLevelDebug && Logger != nil {
+		defer func(t time.Time) {
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Delete(%v)", r.path, item.ID), map[string]interface{}{
+				"duration": time.Since(t),
+				"error":    err,
+			})
+		}(time.Now())
+	}
 	if err = r.hooks.onDelete(ctx, item); err == nil {
 		err = r.storage.Delete(ctx, item)
 	}
@@ -369,13 +379,15 @@ func (r *Resource) Delete(ctx context.Context, item *Item) (err error) {
 
 // Clear implements Storer interface
 func (r *Resource) Clear(ctx context.Context, lookup *Lookup) (deleted int, err error) {
-	defer func(t time.Time) {
-		xlog.FromContext(ctx).Debugf("%s.Clear(%v)", r.path, lookup, xlog.F{
-			"duration": time.Since(t),
-			"deleted":  deleted,
-			"error":    err,
-		})
-	}(time.Now())
+	if LoggerLevel <= LogLevelDebug && Logger != nil {
+		defer func(t time.Time) {
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Clear(%v)", r.path, lookup), map[string]interface{}{
+				"duration": time.Since(t),
+				"deleted":  deleted,
+				"error":    err,
+			})
+		}(time.Now())
+	}
 	if err = r.hooks.onClear(ctx, lookup); err == nil {
 		deleted, err = r.storage.Clear(ctx, lookup)
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
-	"github.com/rs/xlog"
 	"golang.org/x/net/context"
 )
 
@@ -87,8 +86,10 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 		RequestString: query,
 		Schema:        h.schema,
 	})
-	if len(result.Errors) > 0 {
-		xlog.FromContext(ctx).Errorf("wrong result, unexpected errors: %v", result.Errors)
+	if resource.Logger != nil {
+		if len(result.Errors) > 0 {
+			resource.Logger(ctx, resource.LogLevelError, fmt.Sprintf("wrong result, unexpected errors: %v", result.Errors), nil)
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)

@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/rs/cors"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
@@ -150,6 +152,10 @@ func Example() {
 
 	// Install a logger (see https://github.com/rs/xlog)
 	c.UseC(xlog.NewHandler(xlog.Config{}))
+	resource.LoggerLevel = resource.LogLevelDebug
+	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
+		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
+	}
 
 	// Log API access
 	c.UseC(xaccess.NewHandler())

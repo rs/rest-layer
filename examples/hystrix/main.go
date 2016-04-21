@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/afex/hystrix-go/hystrix"
 	"github.com/rs/rest-layer-hystrix"
 	"github.com/rs/rest-layer-mem"
@@ -47,6 +49,10 @@ func main() {
 	c := xhandler.Chain{}
 	c.UseC(xlog.NewHandler(xlog.Config{}))
 	c.UseC(xaccess.NewHandler())
+	resource.LoggerLevel = resource.LogLevelDebug
+	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
+		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
+	}
 
 	// Bind the API under the root path
 	http.Handle("/", c.Handler(api))

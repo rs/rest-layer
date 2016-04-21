@@ -150,6 +150,10 @@ func main() {
 	c.UseC(xlog.UserAgentHandler("ua"))
 	c.UseC(xlog.RefererHandler("ref"))
 	c.UseC(xlog.RequestIDHandler("req_id", "Request-Id"))
+	resource.LoggerLevel = resource.LogLevelDebug
+	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
+		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
+	}
 
 	// Bind the API under /api/ path
 	http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
