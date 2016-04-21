@@ -1268,11 +1268,17 @@ http.Handle(&quot;/api/&quot;, http.StripPrefix(&quot;/api/&quot;, c.Handler(api
 </code></pre>
 <p>When a request is stopped because the client closed the connection (context cancelled), the response HTTP status is set to <code>499 Client Closed Request</code> (for logging purpose). When a timeout is set and the request has reached this timeout, the response HTTP status is set to <code>509 Gateway Timeout</code>.</p>
 <h2 id="logging">Logging</h2>
-<p>Logging is performed using <a href="https://github.com/rs/xlog">xlog</a>. If <code>xlog</code> is not initialized, you won&#39;t get any logging out of REST Layer. With <code>xlog</code>, you can configure your logging outputs very precisely:</p>
-<pre><code class="lang-go">// Install xlog logger
+<p>You can customize REST Layer logger by changing the <code>resource.Logger</code> function to call any logging framework you want.</p>
+<p>We recommend using <a href="https://github.com/rs/xlog">xlog</a>. To configure REST Layer with <code>xlog</code>, proceed as follow:</p>
+<pre><code class="lang-go">resource.LoggerLevel = resource.LogLevelDebug
+resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
+    xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
+}
+
+// Install xlog logger
 c.UseC(xlog.NewHandler(xlog.Config{
     // Log info level and higher
-    Level: xlog.LevelInfo,
+    Level: xlog.Level(resource.LoggerLevel),
     // Set some global env fields
     Fields: xlog.F{
         &quot;role&quot;: &quot;my-service&quot;,
