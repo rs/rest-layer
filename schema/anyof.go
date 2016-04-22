@@ -25,5 +25,6 @@ func (v AnyOf) Validate(value interface{}) (interface{}, error) {
 			return value, nil
 		}
 	}
+	// TODO: combine errors
 	return nil, errors.New("invalid")
 }

@@ -57,7 +57,7 @@ type Time struct {
 // Validate validates and normalize time based value
 func (v Time) Validate(value interface{}) (interface{}, error) {
 	if s, ok := value.(string); ok {
-		for _, layout := range []string{} {
+		for _, layout := range formats {
 			if t, err := time.Parse(layout, s); err == nil {
 				value = t
 				break

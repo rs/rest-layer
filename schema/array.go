@@ -31,7 +31,7 @@ func (v Array) Validate(value interface{}) (interface{}, error) {
 		if v.ValuesValidator != nil {
 			val, err := v.ValuesValidator.Validate(val)
 			if err != nil {
-				return nil, fmt.Errorf("invalid value at #%d: %s", i, err)
+				return nil, fmt.Errorf("invalid value at #%d: %s", i+1, err)
 			}
 			arr[i] = val
 		}

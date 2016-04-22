@@ -29,7 +29,7 @@ func (v IP) Validate(value interface{}) (interface{}, error) {
 		}
 		return []byte(ip), nil
 	}
-	return value, nil
+	return ip.String(), nil
 }
 
 // Serialize implements FieldSerializer
