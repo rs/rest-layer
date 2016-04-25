@@ -1,10 +1,13 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
@@ -15,9 +18,9 @@ import (
 	"golang.org/x/net/context"
 )
 
-// NOTE: this exemple demonstrates how to implement basic authentication/authorization with REST Layer.
-// By no mean, we recommend to use basic authentication with your API. You can read more about auth
-// best practices with REST Layer at http://rest-layer.io#authentication-and-authorization.
+// NOTE: this example show how to integrate REST Layer with JWT. No authentication is performed
+// in this example. It is assumed that you are using a third party authentication system that
+// generates JWT tokens with a user_id claim.
 
 type key int
 
@@ -34,36 +37,47 @@ func UserFromContext(ctx context.Context) (*resource.Item, bool) {
 	return user, ok
 }
 
-// NewBasicAuthHandler handles basic HTTP auth against the provided user resource
-func NewBasicAuthHandler(users *resource.Resource) func(next xhandler.HandlerC) xhandler.HandlerC {
+// NewJWTHandler parse and validates JWT token if present and store it in the net/context
+func NewJWTHandler(users *resource.Resource, jwtKeyFunc jwt.Keyfunc) func(next xhandler.HandlerC) xhandler.HandlerC {
 	return func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			if u, p, ok := r.BasicAuth(); ok {
-				// Lookup the user by its id
-				user, err := users.Get(ctx, u)
-				if user != nil && err == resource.ErrUnauthorized {
-					// Ignore unauthorized errors set by ourselves
-					err = nil
-				}
-				if err != nil {
-					// If user resource storage handler returned an error, respond with an error
-					if err == resource.ErrNotFound {
-						http.Error(w, "Invalid credential", http.StatusForbidden)
-					} else {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-					}
-					return
-				}
-				if schema.VerifyPassword(user.Payload["password"], []byte(p)) {
-					// Store the auth user into the context for later use
-					ctx = NewContextWithUser(ctx, user)
-					next.ServeHTTPC(ctx, w, r)
-					return
-				}
+			token, err := jwt.ParseFromRequest(r, jwtKeyFunc)
+			if err == jwt.ErrNoTokenInRequest {
+				// If no token is found, let REST Layer hooks decide if the resource is public or not
+				next.ServeHTTPC(ctx, w, r)
+				return
 			}
-			// Stop the middleware chain and return a 401 HTTP error
-			w.Header().Set("WWW-Authenticate", `Basic realm="API"`)
-			http.Error(w, "Please provide proper credentials", http.StatusUnauthorized)
+			if err != nil || !token.Valid {
+				// Here you may want to return JSON error
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+			userID, ok := token.Claims["user_id"].(string)
+			if !ok || userID == "" {
+				// The provided token is malformed, user_id claim is missing
+				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+				return
+			}
+			// Lookup the user by its id
+			user, err := users.Get(ctx, userID)
+			if user != nil && err == resource.ErrUnauthorized {
+				// Ignore unauthorized errors set by ourselves (see AuthResourceHook)
+				err = nil
+			}
+			if err != nil {
+				// If user resource storage handler returned an error, respond with an error
+				if err == resource.ErrNotFound {
+					http.Error(w, "Invalid credential", http.StatusForbidden)
+				} else {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+				return
+			}
+			// Store it into the context
+			ctx = NewContextWithUser(ctx, user)
+			// If xlog is setup, store the user as logger field
+			xlog.FromContext(ctx).SetField("user_id", user.ID)
+			next.ServeHTTPC(ctx, w, r)
 		})
 	}
 }
@@ -209,11 +223,14 @@ var (
 				},
 				OnInit: func(ctx context.Context, value interface{}) interface{} {
 					// If not set, set the user to currently logged user if any
+					fmt.Printf("value: %#v\n", value)
 					if value == nil {
 						if user, found := UserFromContext(ctx); found {
+							println("coucou")
 							value = user.ID
 						}
 					}
+					fmt.Printf("value: %#v\n", value)
 					return value
 				},
 			},
@@ -230,7 +247,13 @@ var (
 	}
 )
 
+var (
+	jwtSecret = flag.String("jwt-secret", "secret", "The JWT secret passphrase")
+)
+
 func main() {
+	flag.Parse()
+
 	// Create a REST API resource index
 	index := resource.NewIndex()
 
@@ -243,8 +266,8 @@ func main() {
 	secret, _ := schema.Password{}.Validate("secret")
 	users.Insert(context.Background(), []*resource.Item{
 		{ID: "admin", Updated: time.Now(), ETag: "abcd", Payload: map[string]interface{}{
-			"id":       "admin",
-			"name":     "Dilbert",
+			"id":       "jack",
+			"name":     "Jack Sparrow",
 			"password": secret,
 		}},
 		{ID: "john", Updated: time.Now(), ETag: "efgh", Payload: map[string]interface{}{
@@ -284,13 +307,43 @@ func main() {
 	}
 
 	// Setup auth middleware
-	c.UseC(NewBasicAuthHandler(users))
+	jwtSecretBytes := []byte(*jwtSecret)
+	c.UseC(NewJWTHandler(users, func(t *jwt.Token) (interface{}, error) {
+		if t.Method != jwt.SigningMethodHS256 {
+			return nil, jwt.ErrInvalidKey
+		}
+		return jwtSecretBytes, nil
+	}))
 
 	// Bind the API under /
 	http.Handle("/", c.Handler(api))
 
+	// Demo tokens
+	jackToken := jwt.New(jwt.SigningMethodHS256)
+	jackToken.Claims["user_id"] = "jack"
+	jackTokenString, err := jackToken.SignedString(jwtSecretBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	johnToken := jwt.New(jwt.SigningMethodHS256)
+	johnToken.Claims["user_id"] = "john"
+	johnTokenString, err := johnToken.SignedString(jwtSecretBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Serve it
 	log.Print("Serving API on http://localhost:8080")
+	log.Printf("Your token secret is %q, change it with the `-jwt-secret' flag", *jwtSecret)
+	log.Print("Play with tokens:\n",
+		"\n",
+		"- http :8080/posts access_token==", johnTokenString, " title=\"John's post\"\n",
+		"- http :8080/posts access_token==", johnTokenString, "\n",
+		"- http :8080/posts\n",
+		"\n",
+		"- http :8080/posts access_token==", jackTokenString, " title=\"Jack's post\"\n",
+		"- http :8080/posts access_token==", jackTokenString, "\n",
+	)
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}

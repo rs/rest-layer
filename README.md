@@ -47,6 +47,7 @@ The REST Layer framework is composed of several sub-packages:
 	- [Field Parameters](#field-parameters)
 	- [Embedding](#embedding)
 - [Pagination](#pagination)
+- [Authentication & Authorization](#authentication-and-authorization)
 - [Conditional Requests](#conditional-requests)
 - [Data Integrity & Concurrency Control](#data-integrity-and-concurrency-control)
 - [Data Validation](#data-validation)
@@ -1040,6 +1041,14 @@ Pagination is supported on collection URLs using `page` and `limit` query-string
 
 If your collections are large enough, failing to define a reasonable `PaginationDefaultLimit` parameter may quickly render your API unusable.
 
+## Authentication and Authorization
+
+REST Layer doesn't provide any kind of support for authentication. Identifying the user is out of the scope of a REST API, it should be performed by an oAuth server. The oAuth endpoints could be either hosted on the same code base as your API or live in a different app. The recommended way to integrate oAuth or any other kind of authentication with REST Layer is through a signed token like [JWT](https://jwt.io).
+
+In this schema, the authentication service indentify the user and store data relevant to the user's identification in a JWT token. This token is sent to the API client as a [bearer token](https://tools.ietf.org/html/rfc6750), thru for instance the `access-token` query-string parameter or the `Authorization` HTTP header. A http middleware then decode and verify this token and extract user info from it, and stores it into the context. In REST layer, user info is now accessible from your [resource hooks](#hooks) so you can change the query lookup or ensure mutated objects are owned by the user in order to handle the authorization part.
+
+See the [JWT auth example](https://github.com/rs/rest-layer/blob/master/examples/auth-jwt/main.go) for more info.
+
 ## Conditional Requests
 
 Each stored resource provides information on the last time it was updated (`Last-Modified`), along with a hash value computed on the representation itself (`ETag`). These headers allow clients to perform conditional requests by using the `If-Modified-Since` header:
@@ -1352,7 +1361,7 @@ When wrapped this way, one Hystrix command is created per storage handler action
 
 Once enabled, you must configure Hystrix for each command and start the Hystrix metrics stream handler.
 
-See [Hystrix godoc](https://godoc.org/github.com/afex/hystrix-go/hystrix) for more info and `examples/hystrix/main.go` for a complete usage example with REST layer.
+See [Hystrix godoc](https://godoc.org/github.com/afex/hystrix-go/hystrix) for more info and [examples/hystrix](https://github.com/rs/rest-layer/blob/master/examples/hystrix/main.go) for a complete usage example with REST layer.
 
 ## Licenses
 
