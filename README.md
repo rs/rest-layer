@@ -55,6 +55,8 @@ The REST Layer framework is composed of several sub-packages:
 	- [Extensible Data Validation](#extensible-data-validation)
 - [Timeout and Request Cancellation](#timeout-and-request-cancellation)
 - [Logging](#logging)
+- [CORS](#cors)
+- [JSONP](#jsonp)
 - [Data Storage Handler](#data-storage-handler)
 - [Custom Response Formatter / Sender](#custom-response-formatter-sender)
 - [GraphQL](#graphql)
@@ -1205,7 +1207,7 @@ resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string,
 	xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
 }
 
-// Install xlog logger
+// Install xlog logger with a complex routing configuration
 c.UseC(xlog.NewHandler(xlog.Config{
 	// Log info level and higher
 	Level: xlog.Level(resource.LoggerLevel),
@@ -1217,14 +1219,14 @@ c.UseC(xlog.NewHandler(xlog.Config{
 	// Output everything on console
 	Output: xlog.NewOutputChannel(xlog.MultiOutput{
 		// Send all logs with field type=mymodule to a remote syslog
-		0: xlog.FilterOutput{
+		xlog.FilterOutput{
 			Cond: func(fields map[string]interface{}) bool {
 				return fields["type"] == "mymiddleware"
 			},
 			Output: xlog.NewSyslogOutput("tcp", "1.2.3.4:1234", "mymiddleware"),
 		},
 		// Setup different output per log level
-		1: xlog.LevelOutput{
+		xlog.LevelOutput{
 			// Send errors to the console
 			Error: xlog.NewConsoleOutput(),
 			// Send syslog output for error level
@@ -1238,6 +1240,82 @@ c.UseC(xaccess.NewHandler())
 ```
 
 See [xlog](https://github.com/rs/xlog) documentation for more info.
+
+## CORS
+
+REST Layer doesn't support CORS by internally but rely on external middleware to do so. You may use the [CORS](http://github.com/rs/cors) middleware to add CORS support to REST Layer if needed. Here is a basic example:
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/rs/cors"
+	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/rest"
+)
+
+func main() {
+	index := resource.NewIndex()
+
+	// configure your resources
+
+	api, err := rest.NewHandler(index)
+	if err != nil {
+		log.Fatalf("Invalid API configuration: %s", err)
+	}
+
+	handler := cors.Default().Handler(api)
+	log.Fatal(http.ListenAndServe(":8080", handler))
+}
+```
+
+## JSONP
+
+In general you don’t really want to add JSONP when you can use CORS instead:
+
+> There have been some criticisms raised about JSONP. Cross-origin resource sharing (CORS) is a more recent method of getting data from a server in a different domain, which addresses some of those criticisms. All modern browsers now support CORS making it a viable cross-browser alternative (source.)
+> There are circumstances however when you do need JSONP, like when you have to support legacy software (IE6 anyone?)
+
+As for CORS, REST Layer doesn't support JSONP directly but rely on an external middleware. Such a middleware is very easy to write. Here is an example:
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/rest"
+)
+
+func main() {
+	index := resource.NewIndex()
+
+	// configure your resources
+
+	api, err := rest.NewHandler(index)
+	if err != nil {
+		log.Fatalf("Invalid API configuration: %s", err)
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fn := r.URL.Query().Get("callback")
+		if fn != "" {
+			w.Header().Set("Content-Type", "application/javascript")
+			w.Write([]byte(";fn("))
+		}
+		api.ServeHTTP(w, r)
+		if fn != "" {
+			w.Write([]byte(");"))
+		}
+	})
+	log.Fatal(http.ListenAndServe(":8080", handler))
+}
+```
 
 ## Data Storage Handler
 
