@@ -93,6 +93,8 @@
 </li>
 <li><a href="#timeout-and-request-cancellation">Timeout and Request Cancellation</a></li>
 <li><a href="#logging">Logging</a></li>
+<li><a href="#cors">CORS</a></li>
+<li><a href="#jsonp">JSONP</a></li>
 <li><a href="#data-storage-handler">Data Storage Handler</a></li>
 <li><a href="#custom-response-formatter-sender">Custom Response Formatter / Sender</a></li>
 <li><a href="#graphql">GraphQL</a></li>
@@ -152,6 +154,8 @@
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;<a href="http://github.com/rs/rest-layer-mem">Memory</a> (test only)</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;<a href="http://github.com/rs/rest-layer-mongo">MongoDB</a></li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;<a href="http://github.com/rs/rest-layer-es">ElasticSearch</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;SQL</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Google Datastore</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Redis</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Google BigTable</li>
 </ul>
@@ -1280,7 +1284,7 @@ resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string,
     xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
 }
 
-// Install xlog logger
+// Install xlog logger with a complex routing configuration
 c.UseC(xlog.NewHandler(xlog.Config{
     // Log info level and higher
     Level: xlog.Level(resource.LoggerLevel),
@@ -1292,14 +1296,14 @@ c.UseC(xlog.NewHandler(xlog.Config{
     // Output everything on console
     Output: xlog.NewOutputChannel(xlog.MultiOutput{
         // Send all logs with field type=mymodule to a remote syslog
-        0: xlog.FilterOutput{
+        xlog.FilterOutput{
             Cond: func(fields map[string]interface{}) bool {
                 return fields[&quot;type&quot;] == &quot;mymiddleware&quot;
             },
             Output: xlog.NewSyslogOutput(&quot;tcp&quot;, &quot;1.2.3.4:1234&quot;, &quot;mymiddleware&quot;),
         },
         // Setup different output per log level
-        1: xlog.LevelOutput{
+        xlog.LevelOutput{
             // Send errors to the console
             Error: xlog.NewConsoleOutput(),
             // Send syslog output for error level
@@ -1312,6 +1316,73 @@ c.UseC(xlog.NewHandler(xlog.Config{
 c.UseC(xaccess.NewHandler())
 </code></pre>
 <p>See <a href="https://github.com/rs/xlog">xlog</a> documentation for more info.</p>
+<h2 id="cors">CORS</h2>
+<p>REST Layer doesn&#39;t support CORS by internally but rely on external middleware to do so. You may use the <a href="http://github.com/rs/cors">CORS</a> middleware to add CORS support to REST Layer if needed. Here is a basic example:</p>
+<pre><code class="lang-go">package main
+
+import (
+    &quot;log&quot;
+    &quot;net/http&quot;
+
+    &quot;github.com/rs/cors&quot;
+    &quot;github.com/rs/rest-layer/resource&quot;
+    &quot;github.com/rs/rest-layer/rest&quot;
+)
+
+func main() {
+    index := resource.NewIndex()
+
+    // configure your resources
+
+    api, err := rest.NewHandler(index)
+    if err != nil {
+        log.Fatalf(&quot;Invalid API configuration: %s&quot;, err)
+    }
+
+    handler := cors.Default().Handler(api)
+    log.Fatal(http.ListenAndServe(&quot;:8080&quot;, handler))
+}
+</code></pre>
+<h2 id="jsonp">JSONP</h2>
+<p>In general you don’t really want to add JSONP when you can use CORS instead:</p>
+<blockquote>
+<p>There have been some criticisms raised about JSONP. Cross-origin resource sharing (CORS) is a more recent method of getting data from a server in a different domain, which addresses some of those criticisms. All modern browsers now support CORS making it a viable cross-browser alternative (source.)<br>There are circumstances however when you do need JSONP, like when you have to support legacy software (IE6 anyone?)</p>
+</blockquote>
+<p>As for CORS, REST Layer doesn&#39;t support JSONP directly but rely on an external middleware. Such a middleware is very easy to write. Here is an example:</p>
+<pre><code class="lang-go">package main
+
+import (
+    &quot;log&quot;
+    &quot;net/http&quot;
+
+    &quot;github.com/rs/rest-layer/resource&quot;
+    &quot;github.com/rs/rest-layer/rest&quot;
+)
+
+func main() {
+    index := resource.NewIndex()
+
+    // configure your resources
+
+    api, err := rest.NewHandler(index)
+    if err != nil {
+        log.Fatalf(&quot;Invalid API configuration: %s&quot;, err)
+    }
+
+    handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        fn := r.URL.Query().Get(&quot;callback&quot;)
+        if fn != &quot;&quot; {
+            w.Header().Set(&quot;Content-Type&quot;, &quot;application/javascript&quot;)
+            w.Write([]byte(&quot;;fn(&quot;))
+        }
+        api.ServeHTTP(w, r)
+        if fn != &quot;&quot; {
+            w.Write([]byte(&quot;);&quot;))
+        }
+    })
+    log.Fatal(http.ListenAndServe(&quot;:8080&quot;, handler))
+}
+</code></pre>
 <h2 id="data-storage-handler">Data Storage Handler</h2>
 <p>REST Layer doesn&#39;t handle storage of resources directly. A <a href="https://godoc.org/github.com/rs/rest-layer-mem#MemoryHandler">mem.MemoryHandler</a> is provided as an example but should be used for testing only.</p>
 <p>A resource storage handler is easy to write though. Some handlers for <a href="#storage-handlers">popular databases are available</a>, but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the <a href="https://godoc.org/github.com/rs/rest-layer/resource#Storer">resource.Storer</a> interface:</p>
