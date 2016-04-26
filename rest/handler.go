@@ -14,6 +14,9 @@ type Handler struct {
 	ResponseFormatter ResponseFormatter
 	// ResponseSender can be changed to extend the DefaultResponseSender
 	ResponseSender ResponseSender
+	// FallbackHandlerFunc is called when REST layer doesn't find a route for the request.
+	// If not set, a 404 or 405 standard REST error is returned.
+	FallbackHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request)
 	// index stores the resource router
 	index resource.Index
 }
@@ -66,7 +69,11 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 	skipBody := r.Method == "HEAD"
 	route, err := FindRoute(h.index, r)
 	if err != nil {
-		h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody)
+		if h.FallbackHandlerFunc != nil {
+			h.FallbackHandlerFunc(ctx, w, r)
+		} else {
+			h.sendResponse(ctx, w, 0, http.Header{}, err, skipBody)
+		}
 		return
 	}
 	defer route.Release()
@@ -79,6 +86,10 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 	if headers == nil {
 		headers = http.Header{}
 	}
+	if h.FallbackHandlerFunc != nil && (body == errResourceNotFound || body == ErrInvalidMethod) {
+		h.FallbackHandlerFunc(ctx, w, r)
+		return
+	}
 	h.sendResponse(ctx, w, status, headers, body, skipBody)
 }
 
@@ -90,7 +101,7 @@ func routeHandler(ctx context.Context, r *http.Request, route *RouteMatch) (stat
 	}
 	rsrc := route.Resource()
 	if rsrc == nil {
-		return http.StatusNotFound, nil, &Error{http.StatusNotFound, "Resource Not Found", nil}
+		return http.StatusNotFound, nil, errResourceNotFound
 	}
 	conf := rsrc.Conf()
 	isItem := route.ResourceID() != nil

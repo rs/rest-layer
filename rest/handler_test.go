@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"testing"
 
+	"golang.org/x/net/context"
+
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
@@ -51,6 +53,55 @@ func TestNewHandlerNoCompile(t *testing.T) {
 	}, nil, resource.DefaultConf)
 	_, err := NewHandler(i)
 	assert.EqualError(t, err, "foo: schema compilation error: f: not a schema.Validator pointer")
+}
+
+func TestHandlerFallbackHandlerResourceNotFound(t *testing.T) {
+	i := resource.NewIndex()
+	h, _ := NewHandler(i)
+	fallbacked := false
+	h.FallbackHandlerFunc = func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		fallbacked = true
+		w.Write([]byte("ok"))
+	}
+	r, _ := http.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	assert.True(t, fallbacked)
+	b, _ := ioutil.ReadAll(w.Body)
+	assert.Equal(t, "ok", string(b))
+}
+
+func TestHandlerFallbackHandlerInvalidMethod(t *testing.T) {
+	i := resource.NewIndex()
+	i.Bind("test", schema.Schema{}, nil, resource.Conf{AllowedModes: []resource.Mode{}})
+	h, _ := NewHandler(i)
+	fallbacked := false
+	h.FallbackHandlerFunc = func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		fallbacked = true
+		w.Write([]byte("ok"))
+	}
+	r, _ := http.NewRequest("GET", "/test", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	assert.True(t, fallbacked)
+	b, _ := ioutil.ReadAll(w.Body)
+	assert.Equal(t, "ok", string(b))
+}
+
+func TestHandlerFallbackHandlerRouteFound(t *testing.T) {
+	i := resource.NewIndex()
+	i.Bind("test", schema.Schema{}, mem.NewHandler(), resource.DefaultConf)
+	h, _ := NewHandler(i)
+	fallbacked := false
+	h.FallbackHandlerFunc = func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		fallbacked = true
+	}
+	r, _ := http.NewRequest("GET", "/test", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	assert.False(t, fallbacked)
+	b, _ := ioutil.ReadAll(w.Body)
+	assert.Equal(t, "[]", string(b))
 }
 
 func TestGetContext(t *testing.T) {
