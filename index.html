@@ -83,6 +83,7 @@
 </ul>
 </li>
 <li><a href="#pagination">Pagination</a></li>
+<li><a href="#authentication-and-authorization">Authentication &amp; Authorization</a></li>
 <li><a href="#conditional-requests">Conditional Requests</a></li>
 <li><a href="#data-integrity-and-concurrency-control">Data Integrity &amp; Concurrency Control</a></li>
 <li><a href="#data-validation">Data Validation</a><ul>
@@ -1171,6 +1172,10 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
 <h2 id="pagination">Pagination</h2>
 <p>Pagination is supported on collection URLs using <code>page</code> and <code>limit</code> query-string parameters. If you don&#39;t define a default pagination limit using <code>PaginationDefaultLimit</code> resource configuration parameter, the resource won&#39;t be paginated until you provide the <code>limit</code> query-string parameter.</p>
 <p>If your collections are large enough, failing to define a reasonable <code>PaginationDefaultLimit</code> parameter may quickly render your API unusable.</p>
+<h2 id="authentication-and-authorization">Authentication and Authorization</h2>
+<p>REST Layer doesn&#39;t provide any kind of support for authentication. Identifying the user is out of the scope of a REST API, it should be performed by an oAuth server. The oAuth endpoints could be either hosted on the same code base as your API or live in a different app. The recommended way to integrate oAuth or any other kind of authentication with REST Layer is through a signed token like <a href="https://jwt.io">JWT</a>.</p>
+<p>In this schema, the authentication service indentify the user and store data relevant to the user&#39;s identification in a JWT token. This token is sent to the API client as a <a href="https://tools.ietf.org/html/rfc6750">bearer token</a>, thru for instance the <code>access-token</code> query-string parameter or the <code>Authorization</code> HTTP header. A http middleware then decode and verify this token and extract user info from it, and stores it into the context. In REST layer, user info is now accessible from your <a href="#hooks">resource hooks</a> so you can change the query lookup or ensure mutated objects are owned by the user in order to handle the authorization part.</p>
+<p>See the <a href="https://github.com/rs/rest-layer/blob/master/examples/auth-jwt/main.go">JWT auth example</a> for more info.</p>
 <h2 id="conditional-requests">Conditional Requests</h2>
 <p>Each stored resource provides information on the last time it was updated (<code>Last-Modified</code>), along with a hash value computed on the representation itself (<code>ETag</code>). These headers allow clients to perform conditional requests by using the <code>If-Modified-Since</code> header:</p>
 <pre><code class="lang-http">&gt; http :8080/users/ar6ej4mkj5lfl688d8lg If-Modified-Since:&#39;Wed, 05 Dec 2012 09:53:07 GMT&#39;
@@ -1396,7 +1401,7 @@ index.Bind(&quot;posts&quot;, post, restrix.Wrap(&quot;posts&quot;, mongo.NewHan
 <li><code>MultiGet</code>: when several items are retrieved by their ids (on storage handler supporting <code>MultiGetter</code> interface.</li>
 </ul>
 <p>Once enabled, you must configure Hystrix for each command and start the Hystrix metrics stream handler.</p>
-<p>See <a href="https://godoc.org/github.com/afex/hystrix-go/hystrix">Hystrix godoc</a> for more info and <code>examples/hystrix/main.go</code> for a complete usage example with REST layer.</p>
+<p>See <a href="https://godoc.org/github.com/afex/hystrix-go/hystrix">Hystrix godoc</a> for more info and <a href="https://github.com/rs/rest-layer/blob/master/examples/hystrix/main.go">examples/hystrix</a> for a complete usage example with REST layer.</p>
 <h2 id="licenses">Licenses</h2>
 <p>All source code is licensed under the <a href="https://raw.github.com/rs/rest-layer/master/LICENSE">MIT License</a>.</p>
 
