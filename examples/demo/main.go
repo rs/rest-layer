@@ -36,7 +36,7 @@ var (
 				Filterable: true,
 				Sortable:   true,
 				Validator: &schema.String{
-					Regexp: "^[0-9a-zA-Z_-]{16}$",
+					Regexp: "^[0-9a-v]{20}$",
 				},
 			},
 			"created": {

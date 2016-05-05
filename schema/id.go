@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	// NewID is a field hook handler that generates a new unique id if none exist,
+	// NewID is a field hook handler that generates a new globally unique id if none exist,
 	// to be used in schema with OnInit.
 	//
 	// The generated ID is a Mongo like base64 object id (mgo/bson code has been embedded
@@ -18,7 +18,8 @@ var (
 		return value
 	}
 
-	// IDField is a common schema field configuration that generate an UUID for new item id.
+	// IDField is a common schema field configuration that generate an globally unique id
+	// for new item id.
 	IDField = Field{
 		Description: "The item's id",
 		Required:    true,
@@ -27,6 +28,7 @@ var (
 		Filterable:  true,
 		Sortable:    true,
 		Validator: &String{
+			// This regexp matches a base32 id
 			Regexp: "^[0-9a-v]{20}$",
 		},
 	}
