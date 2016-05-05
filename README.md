@@ -211,6 +211,7 @@ var (
 			"published": {
 				Required: true,
 				Filterable: true,
+				Default: false,
 				Validator: &schema.Bool{},
 			},
 			"title": {
