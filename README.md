@@ -130,14 +130,11 @@ package main
 import (
 	"log"
 	"net/http"
-	"net/url"
 
-	"github.com/rs/cors"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
-	"github.com/rs/xhandler"
 )
 
 var (
@@ -212,28 +209,22 @@ var (
 				},
 			},
 			"published": {
+				Required: true,
 				Filterable: true,
-				Validator:  &schema.Bool{},
+				Validator: &schema.Bool{},
 			},
-			// Sub-documents are handled via a sub-schema
-			"meta": {
-				Schema: &schema.Schema{
-					Fields: schema.Fields{
-						"title": {
-							Required: true,
-							Validator: &schema.String{
-								MaxLen: 150,
-							},
-						},
-						"body": {
-							// Dependency defines that body field can't be changed if
-							// the published field is not "false".
-							Dependency: schema.Q(`{"published": false}`),
-							Validator: &schema.String{
-								MaxLen: 100000,
-							},
-						},
-					},
+			"title": {
+				Required: true,
+				Validator: &schema.String{
+					MaxLen: 150,
+				},
+			},
+			"body": {
+				// Dependency defines that body field can't be changed if
+				// the published field is not "false".
+				Dependency: schema.Q(`{"published": false}`),
+				Validator: &schema.String{
+					MaxLen: 100000,
 				},
 			},
 		},
@@ -254,15 +245,11 @@ func main() {
 
 	// Bind a sub resource on /users/:user_id/posts[/:post_id]
 	// and reference the user on each post using the "user" field of the posts resource.
-	posts := users.Bind("posts", "user", post, mem.NewHandler(), resource.Conf{
+	users.Bind("posts", "user", post, mem.NewHandler(), resource.Conf{
 		// Posts can only be read, created and deleted, not updated
 		AllowedModes: []resource.Mode{resource.Read, resource.List,
 			 resource.Create, resource.Delete},
 	})
-
-	// Add a friendly alias to public posts
-	// (equivalent to /users/:user_id/posts?filter={"published":true})
-	posts.Alias("public", url.Values{"filter": []string{`{"published":true}`}})
 
 	// Create API HTTP handler for the resource graph
 	api, err := rest.NewHandler(index)
@@ -270,26 +257,8 @@ func main() {
 		log.Fatalf("Invalid API configuration: %s", err)
 	}
 
-	// Init a xhandler chain (see https://github.com/rs/xhandler)
-	//
-	// Note: You may choose to use REST layer without xhandler if you don't want
-	// to inject anything to its `net/context`. REST Layer is compatible with
-	// both approaches.
-	c := xhandler.Chain{}
-
-	// Add close notifier handler so context is cancelled when the client closes
-	// the connection
-	c.UseC(xhandler.CloseHandler)
-
-	// Add timeout handler
-	c.UseC(xhandler.TimeoutHandler(2 * time.Second))
-
-	// Add CORS support with passthrough option on so rest-layer can still
-	// handle OPTIONS method
-	c.UseC(cors.New(cors.Options{OptionsPassthrough: true}).HandlerC)
-
 	// Bind the API under /api/ path
-	http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
+	http.Handle("/api/", http.StripPrefix("/api/", api))
 
 	// Serve it
 	log.Print("Serving API on http://localhost:8080")
@@ -392,7 +361,7 @@ Lets create a post:
 
 ```http
 http POST :8080/api/users/ar6ejgmkj5lfl98r67p0/posts \
-  meta:='{"title":"My first post"}'
+  title="My first post"
 
 HTTP/1.1 200 OK
 Content-Length: 212
@@ -403,12 +372,10 @@ Last-Modified: Mon, 27 Jul 2015 19:46:55 GMT
 Vary: Origin
 
 {
-    "created": "2015-07-27T21:46:55.355857401+02:00",
     "id": "ar6ejs6kj5lflgc28es0",
-    "meta": {
-        "title": "My first post"
-    },
+    "created": "2015-07-27T21:46:55.355857401+02:00",
     "updated": "2015-07-27T21:46:55.355857989+02:00",
+	"title": "My first post",
     "user": "ar6ejgmkj5lfl98r67p0"
 }
 ```
@@ -448,13 +415,11 @@ X-Total: 1
 
 [
     {
+        "id": "ar6ejs6kj5lflgc28es0",
         "_etag": "307ae92df6c3dd54847bfc7d72422e07",
         "created": "2015-07-27T21:46:55.355857401+02:00",
-        "id": "ar6ejs6kj5lflgc28es0",
-        "meta": {
-            "title": "My first post"
-        },
         "updated": "2015-07-27T21:46:55.355857989+02:00",
+		"title": "My first post",
         "user": "ar6ejgmkj5lfl98r67p0"
     }
 ]
@@ -465,7 +430,7 @@ Notice the added `_etag` field. This is to let you get etags of multiple items w
 Now, let's get user's information for each posts in a single request:
 
 ```http
-http :8080/api/users/ar6ejgmkj5lfl98r67p0/posts fields=='id,meta{title},user{id,name}'
+http :8080/api/users/ar6ejgmkj5lfl98r67p0/posts fields=='id,title,user{id,name}'
 HTTP/1.1 200 OK
 Content-Length: 257
 Content-Type: application/json
@@ -476,13 +441,11 @@ X-Total: 1
 
 [
     {
+        "id": "ar6ejs6kj5lflgc28es0",
         "_etag": "307ae92df6c3dd54847bfc7d72422e07",
         "created": "2015-07-27T21:46:55.355857401+02:00",
-        "id": "ar6ejs6kj5lflgc28es0",
-        "meta": {
-            "title": "My first post"
-        },
         "updated": "2015-07-27T21:46:55.355857989+02:00",
+		"title": "My first post",
         "user": {
             "id": "ar6ejgmkj5lfl98r67p0",
             "name": "John Doe"
@@ -496,7 +459,7 @@ Notice how we selected which fields we wanted in the result using the [field sel
 We can go even further and embed a sub-request list responses. Let's say we want a list of users with the last two posts:
 
 ```http
-http GET :8080/api/users fields='id,name,posts(limit:2){id,meta{title}}'
+http GET :8080/api/users fields='id,name,posts(limit:2){id,title}'
 
 HTTP/1.1 201 Created
 Content-Length: 155
@@ -514,15 +477,11 @@ Vary: Origin
         "posts": [
             {
                 "id": "ar6ejs6kj5lflgc28es0",
-                "meta": {
-                    "title": "My first post"
-                }
+				"title": "My first post"
             },
             {
                 "id": "ar6ek26kj5lfljgh84qg",
-                "meta": {
-                    "title": "My second post"
-                }
+				"title": "My second post"
             }
         ]
     }
