@@ -503,7 +503,7 @@ Sample resource schema:
 
 ```go
 foo = schema.Schema{
-	Description: "A foo object"
+	Description: "A foo object",
     Fields: schema.Fields{
         "field_name": {
             Required: true,
