@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go/request"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
@@ -41,8 +42,8 @@ func UserFromContext(ctx context.Context) (*resource.Item, bool) {
 func NewJWTHandler(users *resource.Resource, jwtKeyFunc jwt.Keyfunc) func(next xhandler.HandlerC) xhandler.HandlerC {
 	return func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			token, err := jwt.ParseFromRequest(r, jwtKeyFunc)
-			if err == jwt.ErrNoTokenInRequest {
+			token, err := request.ParseFromRequest(r, request.OAuth2Extractor, jwtKeyFunc)
+			if err == request.ErrNoTokenInRequest {
 				// If no token is found, let REST Layer hooks decide if the resource is public or not
 				next.ServeHTTPC(ctx, w, r)
 				return
@@ -52,7 +53,8 @@ func NewJWTHandler(users *resource.Resource, jwtKeyFunc jwt.Keyfunc) func(next x
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
-			userID, ok := token.Claims["user_id"].(string)
+			claims := token.Claims.(jwt.MapClaims)
+			userID, ok := claims["user_id"].(string)
 			if !ok || userID == "" {
 				// The provided token is malformed, user_id claim is missing
 				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -320,13 +322,15 @@ func main() {
 
 	// Demo tokens
 	jackToken := jwt.New(jwt.SigningMethodHS256)
-	jackToken.Claims["user_id"] = "jack"
+	jackClaims := jackToken.Claims.(jwt.MapClaims)
+	jackClaims["user_id"] = "jack"
 	jackTokenString, err := jackToken.SignedString(jwtSecretBytes)
 	if err != nil {
 		log.Fatal(err)
 	}
 	johnToken := jwt.New(jwt.SigningMethodHS256)
-	johnToken.Claims["user_id"] = "john"
+	johnClaims := johnToken.Claims.(jwt.MapClaims)
+	johnClaims["user_id"] = "john"
 	johnTokenString, err := johnToken.SignedString(jwtSecretBytes)
 	if err != nil {
 		log.Fatal(err)
