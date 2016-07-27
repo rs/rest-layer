@@ -213,7 +213,7 @@ func TestHandler(t *testing.T) {
 	r.Header.Set("Content-Type", "application/json")
 	s, b = performRequest(gql, r)
 	assert.Equal(t, 400, s)
-	assert.Equal(t, "Cannot unmarshal JSON: invalid character 'i' looking for beginning of object key string\n{\"data\":null,\"errors\":[{\"message\":\"Must provide operation name if query contains multiple operations.\",\"locations\":[]}]}\n", b)
+	assert.Equal(t, "Cannot unmarshal JSON: invalid character 'i' looking for beginning of object key string\n{\"data\":null,\"errors\":[{\"message\":\"Must provide an operation.\",\"locations\":[]}]}\n", b)
 
 	r, _ = http.NewRequest("PUT", "/", nil)
 	s, b = performRequest(gql, r)
