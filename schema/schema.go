@@ -52,7 +52,10 @@ func mergeFieldErrors(errs map[string][]interface{}, mergeErrs map[string][]inte
 	}
 }
 
-// Compile implements Compiler interface and call the same function on each field
+// Compile implements Compiler interface and call the same function on each field.
+// Note: if you use schema as a standalone library, it is the *caller's* responsibility
+// to invoke the Compile method before using Prepare or Validate on a Schema instance,
+// otherwise FieldValidator instances may not be initialized correctly.
 func (s Schema) Compile() error {
 	// Search for all Dependecy on fields, and compile then
 	if err := compileDependencies(s, s); err != nil {
