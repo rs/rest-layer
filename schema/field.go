@@ -43,7 +43,11 @@ type Field struct {
 	// Handler is the piece of logic modifying the field value based on passed parameters.
 	// This handler is only called if at least on parameter is provided.
 	Handler FieldHandler
-	// Validator is used to validate the field's format.
+	// Validator is used to validate the field's format. Please note you *must* pass in pointers to
+	// FieldValidator instances otherwise `schema` will not be able to discover other interfaces,
+	// such as `Compiler`, and *will* prevent schema from initializing specific FieldValidators
+	// correctly causing unexpected runtime errors.
+	// @see http://research.swtch.com/interfaces for more details.
 	Validator FieldValidator
 	// Dependency rejects the field if the schema query doesn't match the document.
 	// Use schema.Q(`{"field": "value"}`) to populate this field.
