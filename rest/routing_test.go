@@ -53,7 +53,7 @@ func newRoute(method string) *RouteMatch {
 
 func TestFindRoute(t *testing.T) {
 	var route *RouteMatch
-	var err *Error
+	var err error
 	index := resource.NewIndex()
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
 	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}

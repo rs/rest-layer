@@ -57,7 +57,7 @@ func IndexFromContext(ctx context.Context) (resource.Index, bool) {
 }
 
 // FindRoute returns the REST route for the given request
-func FindRoute(index resource.Index, req *http.Request) (*RouteMatch, *Error) {
+func FindRoute(index resource.Index, req *http.Request) (*RouteMatch, error) {
 	route, ok := routePool.Get().(*RouteMatch)
 	if !ok {
 		route = &RouteMatch{
@@ -77,7 +77,7 @@ func FindRoute(index resource.Index, req *http.Request) (*RouteMatch, *Error) {
 }
 
 // findRoute recursively route a (sub)resource request
-func findRoute(path string, index resource.Index, route *RouteMatch) *Error {
+func findRoute(path string, index resource.Index, route *RouteMatch) error {
 	// Extract the first component of the path
 	var name string
 	name, path = nextPathComponent(path)
