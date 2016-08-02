@@ -553,6 +553,7 @@ REST Layer comes with a set of validators. You can add your own by implementing 
 | [schema.Bool][bool]     | Ensures the field is a Boolean
 | [schema.Array][array]   | Ensures the field is an array
 | [schema.Dict][dict]     | Ensures the field is a dict
+| [schema.Object][object] | Ensures the field is an object validating against a sub-schema
 | [schema.Time][time]     | Ensures the field is a datetime
 | [schema.URL][url]       | Ensures the field is a valid URL
 | [schema.IP][url]        | Ensures the field is a valid IPv4 or IPv6
@@ -561,19 +562,20 @@ REST Layer comes with a set of validators. You can add your own by implementing 
 | [schema.AnyOf][any]     | Ensures that at least one sub-validator is valid
 | [schema.AllOf][all]     | Ensures that at least all sub-validators are valid
 
-[str]:   https://godoc.org/github.com/rs/rest-layer/schema#String
-[int]:   https://godoc.org/github.com/rs/rest-layer/schema#Integer
-[float]: https://godoc.org/github.com/rs/rest-layer/schema#Float
-[bool]:  https://godoc.org/github.com/rs/rest-layer/schema#Bool
-[array]: https://godoc.org/github.com/rs/rest-layer/schema#Array
-[dict]:  https://godoc.org/github.com/rs/rest-layer/schema#Dict
-[time]:  https://godoc.org/github.com/rs/rest-layer/schema#Time
-[url]:   https://godoc.org/github.com/rs/rest-layer/schema#URL
-[ip]:    https://godoc.org/github.com/rs/rest-layer/schema#IP
-[pswd]:  https://godoc.org/github.com/rs/rest-layer/schema#Password
-[ref]:   https://godoc.org/github.com/rs/rest-layer/schema#Reference
-[any]:   https://godoc.org/github.com/rs/rest-layer/schema#AnyOf
-[all]:   https://godoc.org/github.com/rs/rest-layer/schema#AllOf
+[str]:    https://godoc.org/github.com/rs/rest-layer/schema#String
+[int]:    https://godoc.org/github.com/rs/rest-layer/schema#Integer
+[float]:  https://godoc.org/github.com/rs/rest-layer/schema#Float
+[bool]:   https://godoc.org/github.com/rs/rest-layer/schema#Bool
+[array]:  https://godoc.org/github.com/rs/rest-layer/schema#Array
+[dict]:   https://godoc.org/github.com/rs/rest-layer/schema#Dict
+[object]: https://godoc.org/github.com/rs/rest-layer/schema#Object
+[time]:   https://godoc.org/github.com/rs/rest-layer/schema#Time
+[url]:    https://godoc.org/github.com/rs/rest-layer/schema#URL
+[ip]:     https://godoc.org/github.com/rs/rest-layer/schema#IP
+[pswd]:   https://godoc.org/github.com/rs/rest-layer/schema#Password
+[ref]:    https://godoc.org/github.com/rs/rest-layer/schema#Reference
+[any]:    https://godoc.org/github.com/rs/rest-layer/schema#AnyOf
+[all]:    https://godoc.org/github.com/rs/rest-layer/schema#AllOf
 
 Some common hook handler to be used with `OnInit` and `OnUpdate` are also provided:
 
