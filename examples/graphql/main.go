@@ -11,13 +11,13 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/justinas/alice"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/graphql"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/xaccess"
-	"github.com/rs/xhandler"
 	"github.com/rs/xlog"
 )
 
@@ -142,28 +142,28 @@ func main() {
 	}
 
 	// Setup logger
-	c := xhandler.Chain{}
-	c.UseC(xlog.NewHandler(xlog.Config{}))
-	c.UseC(xaccess.NewHandler())
-	c.UseC(xlog.RequestHandler("req"))
-	c.UseC(xlog.RemoteAddrHandler("ip"))
-	c.UseC(xlog.UserAgentHandler("ua"))
-	c.UseC(xlog.RefererHandler("ref"))
-	c.UseC(xlog.RequestIDHandler("req_id", "Request-Id"))
+	c := alice.New()
+	c.Append(xlog.NewHandler(xlog.Config{}))
+	c.Append(xaccess.NewHandler())
+	c.Append(xlog.RequestHandler("req"))
+	c.Append(xlog.RemoteAddrHandler("ip"))
+	c.Append(xlog.UserAgentHandler("ua"))
+	c.Append(xlog.RefererHandler("ref"))
+	c.Append(xlog.RequestIDHandler("req_id", "Request-Id"))
 	resource.LoggerLevel = resource.LogLevelDebug
 	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
 		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
 	}
 
 	// Bind the API under /api/ path
-	http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
+	http.Handle("/api/", http.StripPrefix("/api/", c.Then(api)))
 
 	// Create and bind the graphql endpoint
 	graphql, err := graphql.NewHandler(index)
 	if err != nil {
 		log.Fatal(err)
 	}
-	http.Handle("/graphql", c.Handler(graphql))
+	http.Handle("/graphql", c.Then(graphql))
 	http.HandleFunc("/graphiql", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`
 <!DOCTYPE html>

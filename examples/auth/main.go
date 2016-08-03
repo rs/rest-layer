@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/justinas/alice"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/xaccess"
-	"github.com/rs/xhandler"
 	"github.com/rs/xlog"
 	"golang.org/x/net/context"
 )
@@ -35,11 +35,12 @@ func UserFromContext(ctx context.Context) (*resource.Item, bool) {
 }
 
 // NewBasicAuthHandler handles basic HTTP auth against the provided user resource
-func NewBasicAuthHandler(users *resource.Resource) func(next xhandler.HandlerC) xhandler.HandlerC {
-	return func(next xhandler.HandlerC) xhandler.HandlerC {
-		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func NewBasicAuthHandler(users *resource.Resource) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if u, p, ok := r.BasicAuth(); ok {
 				// Lookup the user by its id
+				ctx := r.Context()
 				user, err := users.Get(ctx, u)
 				if user != nil && err == resource.ErrUnauthorized {
 					// Ignore unauthorized errors set by ourselves
@@ -56,8 +57,8 @@ func NewBasicAuthHandler(users *resource.Resource) func(next xhandler.HandlerC) 
 				}
 				if schema.VerifyPassword(user.Payload["password"], []byte(p)) {
 					// Store the auth user into the context for later use
-					ctx = NewContextWithUser(ctx, user)
-					next.ServeHTTPC(ctx, w, r)
+					r = r.WithContext(NewContextWithUser(ctx, user))
+					next.ServeHTTP(w, r)
 					return
 				}
 			}
@@ -270,24 +271,24 @@ func main() {
 	}
 
 	// Setup logger
-	c := xhandler.Chain{}
-	c.UseC(xlog.NewHandler(xlog.Config{}))
-	c.UseC(xaccess.NewHandler())
-	c.UseC(xlog.RequestHandler("req"))
-	c.UseC(xlog.RemoteAddrHandler("ip"))
-	c.UseC(xlog.UserAgentHandler("ua"))
-	c.UseC(xlog.RefererHandler("ref"))
-	c.UseC(xlog.RequestIDHandler("req_id", "Request-Id"))
+	c := alice.New()
+	c.Append(xlog.NewHandler(xlog.Config{}))
+	c.Append(xaccess.NewHandler())
+	c.Append(xlog.RequestHandler("req"))
+	c.Append(xlog.RemoteAddrHandler("ip"))
+	c.Append(xlog.UserAgentHandler("ua"))
+	c.Append(xlog.RefererHandler("ref"))
+	c.Append(xlog.RequestIDHandler("req_id", "Request-Id"))
 	resource.LoggerLevel = resource.LogLevelDebug
 	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
 		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
 	}
 
 	// Setup auth middleware
-	c.UseC(NewBasicAuthHandler(users))
+	c.Append(NewBasicAuthHandler(users))
 
 	// Bind the API under /
-	http.Handle("/", c.Handler(api))
+	http.Handle("/", c.Then(api))
 
 	// Serve it
 	log.Print("Serving API on http://localhost:8080")

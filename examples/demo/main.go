@@ -4,17 +4,16 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 
 	"golang.org/x/net/context"
 
+	"github.com/justinas/alice"
 	"github.com/rs/cors"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/xaccess"
-	"github.com/rs/xhandler"
 	"github.com/rs/xlog"
 )
 
@@ -143,32 +142,31 @@ func main() {
 		log.Fatalf("Invalid API configuration: %s", err)
 	}
 
-	// Init a xhandler chain (see https://github.com/rs/xhandler)
-	c := xhandler.Chain{}
+	c := alice.New()
 
 	// Add close notifier handler so context is cancelled when the client closes
 	// the connection
-	c.UseC(xhandler.CloseHandler)
+	// c.Append(xhandler.CloseHandler)
 
 	// Add timeout handler
-	c.UseC(xhandler.TimeoutHandler(2 * time.Second))
+	// c.Append(xhandler.TimeoutHandler(2 * time.Second))
 
 	// Install a logger (see https://github.com/rs/xlog)
-	c.UseC(xlog.NewHandler(xlog.Config{}))
+	c.Append(xlog.NewHandler(xlog.Config{}))
 	resource.LoggerLevel = resource.LogLevelDebug
 	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
 		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
 	}
 
 	// Log API access
-	c.UseC(xaccess.NewHandler())
+	c.Append(xaccess.NewHandler())
 
 	// Add CORS support with passthrough option on so rest-layer can still
 	// handle OPTIONS method
-	c.UseC(cors.New(cors.Options{OptionsPassthrough: true}).HandlerC)
+	c.Append(cors.New(cors.Options{OptionsPassthrough: true}).Handler)
 
 	// Bind the API under /api/ path
-	http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
+	http.Handle("/api/", http.StripPrefix("/api/", c.Then(api)))
 
 	// Serve it
 	log.Print("Serving API on http://localhost:8080")

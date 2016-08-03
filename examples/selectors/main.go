@@ -10,12 +10,12 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/justinas/alice"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/xaccess"
-	"github.com/rs/xhandler"
 	"github.com/rs/xlog"
 )
 
@@ -128,16 +128,16 @@ func main() {
 	}
 
 	// Setup logger
-	c := xhandler.Chain{}
-	c.UseC(xlog.NewHandler(xlog.Config{}))
-	c.UseC(xaccess.NewHandler())
+	c := alice.New()
+	c.Append(xlog.NewHandler(xlog.Config{}))
+	c.Append(xaccess.NewHandler())
 	resource.LoggerLevel = resource.LogLevelDebug
 	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
 		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
 	}
 
 	// Bind the API under the root path
-	http.Handle("/", c.Handler(api))
+	http.Handle("/", c.Then(api))
 
 	// Inject some fixtures
 	fixtures := [][]string{

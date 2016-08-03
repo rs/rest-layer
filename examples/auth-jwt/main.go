@@ -9,12 +9,12 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"
+	"github.com/justinas/alice"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/xaccess"
-	"github.com/rs/xhandler"
 	"github.com/rs/xlog"
 	"golang.org/x/net/context"
 )
@@ -39,13 +39,13 @@ func UserFromContext(ctx context.Context) (*resource.Item, bool) {
 }
 
 // NewJWTHandler parse and validates JWT token if present and store it in the net/context
-func NewJWTHandler(users *resource.Resource, jwtKeyFunc jwt.Keyfunc) func(next xhandler.HandlerC) xhandler.HandlerC {
-	return func(next xhandler.HandlerC) xhandler.HandlerC {
-		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func NewJWTHandler(users *resource.Resource, jwtKeyFunc jwt.Keyfunc) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, err := request.ParseFromRequest(r, request.OAuth2Extractor, jwtKeyFunc)
 			if err == request.ErrNoTokenInRequest {
 				// If no token is found, let REST Layer hooks decide if the resource is public or not
-				next.ServeHTTPC(ctx, w, r)
+				next.ServeHTTP(w, r)
 				return
 			}
 			if err != nil || !token.Valid {
@@ -61,6 +61,7 @@ func NewJWTHandler(users *resource.Resource, jwtKeyFunc jwt.Keyfunc) func(next x
 				return
 			}
 			// Lookup the user by its id
+			ctx := r.Context()
 			user, err := users.Get(ctx, userID)
 			if user != nil && err == resource.ErrUnauthorized {
 				// Ignore unauthorized errors set by ourselves (see AuthResourceHook)
@@ -75,11 +76,12 @@ func NewJWTHandler(users *resource.Resource, jwtKeyFunc jwt.Keyfunc) func(next x
 				}
 				return
 			}
-			// Store it into the context
+			// Store it into the request's context
 			ctx = NewContextWithUser(ctx, user)
+			r = r.WithContext(ctx)
 			// If xlog is setup, store the user as logger field
 			xlog.FromContext(ctx).SetField("user_id", user.ID)
-			next.ServeHTTPC(ctx, w, r)
+			next.ServeHTTP(w, r)
 		})
 	}
 }
@@ -295,14 +297,14 @@ func main() {
 	}
 
 	// Setup logger
-	c := xhandler.Chain{}
-	c.UseC(xlog.NewHandler(xlog.Config{}))
-	c.UseC(xaccess.NewHandler())
-	c.UseC(xlog.RequestHandler("req"))
-	c.UseC(xlog.RemoteAddrHandler("ip"))
-	c.UseC(xlog.UserAgentHandler("ua"))
-	c.UseC(xlog.RefererHandler("ref"))
-	c.UseC(xlog.RequestIDHandler("req_id", "Request-Id"))
+	c := alice.New()
+	c.Append(xlog.NewHandler(xlog.Config{}))
+	c.Append(xaccess.NewHandler())
+	c.Append(xlog.RequestHandler("req"))
+	c.Append(xlog.RemoteAddrHandler("ip"))
+	c.Append(xlog.UserAgentHandler("ua"))
+	c.Append(xlog.RefererHandler("ref"))
+	c.Append(xlog.RequestIDHandler("req_id", "Request-Id"))
 	resource.LoggerLevel = resource.LogLevelDebug
 	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
 		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
@@ -310,7 +312,7 @@ func main() {
 
 	// Setup auth middleware
 	jwtSecretBytes := []byte(*jwtSecret)
-	c.UseC(NewJWTHandler(users, func(t *jwt.Token) (interface{}, error) {
+	c.Append(NewJWTHandler(users, func(t *jwt.Token) (interface{}, error) {
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, jwt.ErrInvalidKey
 		}
@@ -318,7 +320,7 @@ func main() {
 	}))
 
 	// Bind the API under /
-	http.Handle("/", c.Handler(api))
+	http.Handle("/", c.Then(api))
 
 	// Demo tokens
 	jackToken := jwt.New(jwt.SigningMethodHS256)
