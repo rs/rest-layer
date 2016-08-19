@@ -61,6 +61,7 @@ The REST Layer framework is composed of several sub-packages:
 - [Custom Response Formatter / Sender](#custom-response-formatter-sender)
 - [GraphQL](#graphql)
 - [Hystrix](#hystrix)
+- [JSONSchema](#jsonschema)
 
 ## Features
 
@@ -72,6 +73,7 @@ The REST Layer framework is composed of several sub-packages:
 - [x] GraphQL query support
 - [ ] GraphQL mutation support
 - [ ] Swagger Documentation
+- [x] JSONSchema Output (partial)
 - [ ] Testing framework
 - [x] Sub resources
 - [ ] Cascading deletes on sub resources
@@ -693,7 +695,7 @@ Hooks are piece of code you can attach before or after an operation is performed
 | ---------------------- | -------------
 | [FindEventHandler]     | Defines a function called when the resource is listed with or without a query. Note that hook is called for both resource and item fetch as well a prior to updates and deletes.
 | [FoundEventHandler]    | Defines a function called with the result of a find on resource.
-| [GetEventHandler]      | Defines a function called when a get is performed on an item of the resource. Note: when multi-get is performed this hook is called for each items id individually. 
+| [GetEventHandler]      | Defines a function called when a get is performed on an item of the resource. Note: when multi-get is performed this hook is called for each items id individually.
 | [GotEventHandler]      | Defines a function called with the result of a get on a resource.
 | [InsertEventHandler]   | Defines a function called before an item is inserted.
 | [InsertedEventHandler] | Defines a function called after an item has been inserted.
@@ -719,7 +721,7 @@ Hooks are piece of code you can attach before or after an operation is performed
 
 All hooks functions get a `context.Context` as first argument. If a network call must be performed from the hook, the context's deadline must be respected. If a hook return an error, the whole request is aborted with that error.
 
-You can also use the context to pass data to your hooks from a middleware executed before REST Layer. This can be used to manage authentication for instance. See [examples/auth](https://github.com/rs/rest-layer/blob/master/examples/auth/main.go) to see an example. 
+You can also use the context to pass data to your hooks from a middleware executed before REST Layer. This can be used to manage authentication for instance. See [examples/auth](https://github.com/rs/rest-layer/blob/master/examples/auth/main.go) to see an example.
 
 ### Sub Resources
 
@@ -1404,6 +1406,40 @@ When wrapped this way, one Hystrix command is created per storage handler action
 Once enabled, you must configure Hystrix for each command and start the Hystrix metrics stream handler.
 
 See [Hystrix godoc](https://godoc.org/github.com/afex/hystrix-go/hystrix) for more info and [examples/hystrix](https://github.com/rs/rest-layer/blob/master/examples/hystrix/main.go) for a complete usage example with REST layer.
+
+## JSONSchema
+
+An incomplete but stil useful JSONSchema implementation that covers many common use cases for Schema. Goal is to try and match the draft-04 spec. Patches welcome.
+
+```go
+import "github.com/rs/rest-layer/schema/jsonschema"
+
+b := new(bytes.Buffer)
+enc := jsonschema.NewEncoder(b)
+if err := enc.Encode(myschema); err != nil {
+  return err
+}
+fmt.Println(b.String()) // Valid JSON Document describing the schema
+```
+
+### Supported FieldValidators
+
+ - [x] schema.Schema
+ - [x] schema.Bool
+ - [ ] schema.Null
+ - [x] schema.Float
+ - [x] schema.Integer
+ - [x] schema.String
+ - [x] schema.Time
+ - [ ] schema.URL
+ - [ ] schema.IP
+ - [ ] schema.Password
+ - [x] schema.Array
+ - [x] schema.Object
+ - [ ] schema.Dict
+ - [ ] schema.AllOf
+ - [ ] schema.AnyOf
+ - [ ] Custom validators
 
 ## Licenses
 
