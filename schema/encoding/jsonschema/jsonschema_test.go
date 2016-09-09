@@ -55,7 +55,7 @@ func TestBoundaries(t *testing.T) {
 		Boundaries: &schema.Boundaries{Min: 10, Max: 100},
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
+	assert.NoError(t, validatorToJSONSchema(b, validator, false))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 	a := assert.New(t)
@@ -68,7 +68,7 @@ func TestRegexpEscaping(t *testing.T) {
 		Regexp: `\s+$`,
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
+	assert.NoError(t, validatorToJSONSchema(b, validator, false))
 	_, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 	a := assert.New(t)
@@ -81,7 +81,7 @@ func TestStringValidator(t *testing.T) {
 		MaxLen: 23,
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
+	assert.NoError(t, validatorToJSONSchema(b, validator, false))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -102,7 +102,7 @@ func TestStringValidator(t *testing.T) {
 func TestEmptyStringValidator(t *testing.T) {
 	validator := &schema.String{}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
+	assert.NoError(t, validatorToJSONSchema(b, validator, false))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -127,7 +127,7 @@ func TestAllowedStringValidation(t *testing.T) {
 		Allowed: []string{"one", "two"},
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
+	assert.NoError(t, validatorToJSONSchema(b, validator, false))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -145,13 +145,13 @@ func TestAllowedStringValidation(t *testing.T) {
 func TestIntegerValidatorNoBoundaryPanic(t *testing.T) {
 	validator := &schema.Integer{}
 	// Catch regressions in Integer boundary handling
-	assert.NotPanics(t, func() { validatorToJSONSchema(new(bytes.Buffer), validator) })
+	assert.NotPanics(t, func() { validatorToJSONSchema(new(bytes.Buffer), validator, false) })
 }
 
 func TestStringValidatorNoBoundaryPanic(t *testing.T) {
 	validator := &schema.String{}
 	// Catch regressions in Integer boundary handling
-	assert.NotPanics(t, func() { validatorToJSONSchema(new(bytes.Buffer), validator) })
+	assert.NotPanics(t, func() { validatorToJSONSchema(new(bytes.Buffer), validator, false) })
 }
 
 func TestAllowedIntegerValidator(t *testing.T) {
@@ -159,7 +159,7 @@ func TestAllowedIntegerValidator(t *testing.T) {
 		Allowed: []int{10, 50},
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
+	assert.NoError(t, validatorToJSONSchema(b, validator, false))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -181,7 +181,7 @@ func TestFloatValidator(t *testing.T) {
 		Allowed: []float64{23.5, 98.6},
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
+	assert.NoError(t, validatorToJSONSchema(b, validator, false))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -202,7 +202,7 @@ func TestFloatValidator(t *testing.T) {
 func TestArray(t *testing.T) {
 	validator := &schema.Array{}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
+	assert.NoError(t, validatorToJSONSchema(b, validator, false))
 	_, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -214,7 +214,7 @@ func TestArray(t *testing.T) {
 func TestTime(t *testing.T) {
 	validator := &schema.Time{}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
+	assert.NoError(t, validatorToJSONSchema(b, validator, false))
 	_, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -227,7 +227,7 @@ func TestTime(t *testing.T) {
 func TestBoolean(t *testing.T) {
 	validator := &schema.Bool{}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
+	assert.NoError(t, validatorToJSONSchema(b, validator, false))
 	_, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -236,10 +236,91 @@ func TestBoolean(t *testing.T) {
 	a.Contains(strJSON, `"type": "boolean"`)
 }
 
+func TestObjectWithNilSchema(t *testing.T) {
+	employee := &schema.Schema{
+		Description: "employee",
+		Fields: schema.Fields{
+			"name": schema.Field{
+				Validator: &schema.String{},
+			},
+			"startDate": schema.Field{
+				Validator: &schema.Time{},
+			},
+			"location": schema.Field{
+				Validator: &schema.Object{},
+			},
+		},
+	}
+	employee.Compile()
+	b := new(bytes.Buffer)
+	encoder := NewEncoder(b)
+	assert.NoError(t, encoder.Encode(employee))
+
+	_, err := isValidJSON(b.Bytes())
+	assert.NoError(t, err)
+}
+
+// Object when used with arrays need to be wrapped in an object.
+// Objects when embedded as a field should not be wrapped.
+// This tests the wrapping does not occur when embedded as a
+// field by validating the JSON document
+func TestSchemaWhenEmbeddedInObjectField(t *testing.T) {
+	location := &schema.Schema{
+		Description: "location",
+		Fields: schema.Fields{
+			"country": schema.Field{
+				Validator: &schema.String{},
+			},
+		},
+	}
+	employee := &schema.Schema{
+		Description: "employee",
+		Fields: schema.Fields{
+			"name": schema.Field{
+				Validator: &schema.String{},
+			},
+			"startDate": schema.Field{
+				Validator: &schema.Time{},
+			},
+			"location": schema.Field{
+				Validator: &schema.Object{
+					Schema: location,
+				},
+			},
+		},
+	}
+	employee.Compile()
+	b := new(bytes.Buffer)
+	encoder := NewEncoder(b)
+	assert.NoError(t, encoder.Encode(employee))
+
+	_, err := isValidJSON(b.Bytes())
+	assert.NoError(t, err)
+}
+
 func TestErrNotImplemented(t *testing.T) {
 	validator := &schema.IP{}
 	b := new(bytes.Buffer)
-	assert.Equal(t, ErrNotImplemented, validatorToJSONSchema(b, validator))
+	assert.Equal(t, ErrNotImplemented, validatorToJSONSchema(b, validator, false))
+}
+
+func TestArrayOfObjectsNilSchema(t *testing.T) {
+	s := &schema.Schema{
+		Description: "A list of students",
+		Fields: schema.Fields{
+			"students": schema.Field{
+				Validator: &schema.Array{
+					ValuesValidator: &schema.Object{},
+				},
+			},
+		},
+	}
+	b := new(bytes.Buffer)
+	encoder := NewEncoder(b)
+	assert.NoError(t, encoder.Encode(s))
+
+	_, err := isValidJSON(b.Bytes())
+	assert.NoError(t, err)
 }
 
 func TestArrayOfObjects(t *testing.T) {
