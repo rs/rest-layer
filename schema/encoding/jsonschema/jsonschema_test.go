@@ -55,7 +55,7 @@ func TestBoundaries(t *testing.T) {
 		Boundaries: &schema.Boundaries{Min: 10, Max: 100},
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator, false))
+	assert.NoError(t, validatorToJSONSchema(b, validator))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 	a := assert.New(t)
@@ -68,7 +68,7 @@ func TestRegexpEscaping(t *testing.T) {
 		Regexp: `\s+$`,
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator, false))
+	assert.NoError(t, validatorToJSONSchema(b, validator))
 	_, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 	a := assert.New(t)
@@ -81,7 +81,7 @@ func TestStringValidator(t *testing.T) {
 		MaxLen: 23,
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator, false))
+	assert.NoError(t, validatorToJSONSchema(b, validator))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -102,7 +102,7 @@ func TestStringValidator(t *testing.T) {
 func TestEmptyStringValidator(t *testing.T) {
 	validator := &schema.String{}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator, false))
+	assert.NoError(t, validatorToJSONSchema(b, validator))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -127,7 +127,7 @@ func TestAllowedStringValidation(t *testing.T) {
 		Allowed: []string{"one", "two"},
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator, false))
+	assert.NoError(t, validatorToJSONSchema(b, validator))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -145,13 +145,13 @@ func TestAllowedStringValidation(t *testing.T) {
 func TestIntegerValidatorNoBoundaryPanic(t *testing.T) {
 	validator := &schema.Integer{}
 	// Catch regressions in Integer boundary handling
-	assert.NotPanics(t, func() { validatorToJSONSchema(new(bytes.Buffer), validator, false) })
+	assert.NotPanics(t, func() { validatorToJSONSchema(new(bytes.Buffer), validator) })
 }
 
 func TestStringValidatorNoBoundaryPanic(t *testing.T) {
 	validator := &schema.String{}
 	// Catch regressions in Integer boundary handling
-	assert.NotPanics(t, func() { validatorToJSONSchema(new(bytes.Buffer), validator, false) })
+	assert.NotPanics(t, func() { validatorToJSONSchema(new(bytes.Buffer), validator) })
 }
 
 func TestAllowedIntegerValidator(t *testing.T) {
@@ -159,7 +159,7 @@ func TestAllowedIntegerValidator(t *testing.T) {
 		Allowed: []int{10, 50},
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator, false))
+	assert.NoError(t, validatorToJSONSchema(b, validator))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -181,7 +181,7 @@ func TestFloatValidator(t *testing.T) {
 		Allowed: []float64{23.5, 98.6},
 	}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator, false))
+	assert.NoError(t, validatorToJSONSchema(b, validator))
 	m, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -202,7 +202,7 @@ func TestFloatValidator(t *testing.T) {
 func TestArray(t *testing.T) {
 	validator := &schema.Array{}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator, false))
+	assert.NoError(t, validatorToJSONSchema(b, validator))
 	_, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -214,7 +214,7 @@ func TestArray(t *testing.T) {
 func TestTime(t *testing.T) {
 	validator := &schema.Time{}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator, false))
+	assert.NoError(t, validatorToJSONSchema(b, validator))
 	_, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -227,7 +227,7 @@ func TestTime(t *testing.T) {
 func TestBoolean(t *testing.T) {
 	validator := &schema.Bool{}
 	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator, false))
+	assert.NoError(t, validatorToJSONSchema(b, validator))
 	_, err := isValidJSON(wrapWithJSONObject(b))
 	assert.NoError(t, err)
 
@@ -301,7 +301,7 @@ func TestSchemaWhenEmbeddedInObjectField(t *testing.T) {
 func TestErrNotImplemented(t *testing.T) {
 	validator := &schema.IP{}
 	b := new(bytes.Buffer)
-	assert.Equal(t, ErrNotImplemented, validatorToJSONSchema(b, validator, false))
+	assert.Equal(t, ErrNotImplemented, validatorToJSONSchema(b, validator))
 }
 
 func TestArrayOfObjectsNilSchema(t *testing.T) {
@@ -321,6 +321,64 @@ func TestArrayOfObjectsNilSchema(t *testing.T) {
 
 	_, err := isValidJSON(b.Bytes())
 	assert.NoError(t, err)
+}
+
+func TestObjectFieldWithRequired(t *testing.T) {
+	s := &schema.Schema{
+		Description: "A list of students",
+		Fields: schema.Fields{
+			"student": schema.Field{
+				Validator: &schema.Object{
+					Schema: &schema.Schema{
+						Fields: schema.Fields{
+							"name": schema.Field{
+								Description: "a student name",
+								Required:    true,
+								Default:     "Unknown",
+								Validator: &schema.String{
+									MinLen: 0,
+									MaxLen: 10,
+								},
+							},
+							"class": schema.Field{
+								Default: "Unassigned",
+								Validator: &schema.String{
+									MinLen: 0,
+									MaxLen: 10,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b := new(bytes.Buffer)
+	encoder := NewEncoder(b)
+	assert.NoError(t, encoder.Encode(s))
+
+	m, err := isValidJSON(b.Bytes())
+	assert.NoError(t, err)
+
+	a := assert.New(t)
+	a.Equal("object", m["type"])
+	a.Equal("A list of students", m["title"])
+	p, ok := m["properties"].(map[string]interface{})
+	a.True(ok)
+
+	a.NotNil(p["student"])
+	student, ok := p["student"].(map[string]interface{})
+	a.True(ok)
+
+	a.Equal("object", student["type"])
+	properties, ok := student["properties"].(map[string]interface{})
+	a.True(ok)
+
+	_, ok = properties["name"].(map[string]interface{})
+	a.True(ok)
+
+	a.Equal(copyStringToInterface([]string{"name"}), student["required"])
 }
 
 func TestArrayOfObjects(t *testing.T) {
@@ -381,7 +439,7 @@ func TestArrayOfObjects(t *testing.T) {
 	ip, ok := items["properties"].(map[string]interface{})
 	a.True(ok)
 
-	a.Equal(copyStringToInterface([]string{"student"}), ip["required"])
+	a.Equal(copyStringToInterface([]string{"student"}), items["required"])
 
 	student, ok := ip["student"].(map[string]interface{})
 	a.True(ok)
@@ -416,6 +474,11 @@ func TestDefaultEncodingWithStringFieldAndIntegerDefault(t *testing.T) {
 
 	p, ok := m["properties"].(map[string]interface{})
 	a.True(ok)
+
+	r, ok := m["required"].([]interface{})
+	a.Equal(copyStringToInterface([]string{"item"}), r)
+	a.True(ok)
+
 	item, ok := p["item"].(map[string]interface{})
 	a.True(ok)
 

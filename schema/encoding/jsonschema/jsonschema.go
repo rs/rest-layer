@@ -42,7 +42,7 @@ func (ew errWriter) write(b []byte) {
 }
 
 // ValidatorToJSONSchema takes a validator and renders to JSON
-func validatorToJSONSchema(w io.Writer, v schema.FieldValidator, object bool) (err error) {
+func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
 	if v == nil {
 		return nil
 	}
@@ -99,21 +99,16 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator, object bool) (e
 	case *schema.Array:
 		ew.writeString(`"type": "array"`)
 		if t.ValuesValidator != nil {
-			ew.writeString(`, "items": `)
+			ew.writeString(`, "items": {`)
 			if ew.err == nil {
-				ew.err = validatorToJSONSchema(w, t.ValuesValidator, true)
+				ew.err = validatorToJSONSchema(w, t.ValuesValidator)
 			}
+			ew.writeString("}")
 		}
 	case *schema.Object:
-		if t.Schema == nil {
-			// incorrectly configured schema
-			// don't crash but do something reasonable
-			if object {
-				ew.writeString("{}")
-			}
-		} else {
+		if t.Schema != nil {
 			if ew.err == nil {
-				ew.err = schemaToJSONSchema(w, t.Schema, object)
+				ew.err = schemaToJSONSchema(w, t.Schema)
 			}
 		}
 	case *schema.Time:
@@ -127,14 +122,11 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator, object bool) (e
 }
 
 // SchemaToJSONSchema helper
-func schemaToJSONSchema(w io.Writer, s *schema.Schema, object bool) (err error) {
+func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 	if s == nil {
 		return
 	}
 	ew := errWriter{w: w}
-	if object {
-		ew.writeString("{")
-	}
 	if s.Description != "" {
 		ew.writeFormat(`"title": %q, `, s.Description)
 	}
@@ -158,7 +150,7 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema, object bool) (err error) 
 			ew.writeFormat(`"readOnly": %t, `, field.ReadOnly)
 		}
 		if ew.err == nil {
-			ew.err = validatorToJSONSchema(w, field.Validator, false)
+			ew.err = validatorToJSONSchema(w, field.Validator)
 		}
 		if field.Default != nil {
 			b, err := json.Marshal(field.Default)
@@ -173,11 +165,8 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema, object bool) (err error) 
 			break
 		}
 	}
-	ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
 	ew.writeString("}")
-	if object {
-		ew.writeString("}")
-	}
+	ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
 	return ew.err
 }
 
@@ -193,5 +182,13 @@ func NewEncoder(w io.Writer) *Encoder {
 
 // Encode is take schema and writes to Writer
 func (e *Encoder) Encode(s *schema.Schema) error {
-	return schemaToJSONSchema(e.Writer, s, true)
+	ew := errWriter{w: e.Writer}
+	ew.writeString("{")
+	if ew.err == nil {
+		ew.err = schemaToJSONSchema(e.Writer, s)
+	}
+	if ew.err == nil {
+		ew.writeString("}")
+	}
+	return ew.err
 }
