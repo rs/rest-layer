@@ -99,9 +99,13 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator, object bool) (e
 	case *schema.Array:
 		ew.writeString(`"type": "array"`)
 		if t.ValuesValidator != nil {
-			ew.writeString(`, "items": `)
+			ew.writeString(`, "items": {`)
 			if ew.err == nil {
-				ew.err = validatorToJSONSchema(w, t.ValuesValidator, true)
+				ew.err = validatorToJSONSchema(w, t.ValuesValidator, false)
+			}
+			ew.writeString("}")
+			if !object && ew.err == nil {
+				ew.err = requiredField(w, t.ValuesValidator)
 			}
 		}
 	case *schema.Object:
@@ -115,6 +119,9 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator, object bool) (e
 			if ew.err == nil {
 				ew.err = schemaToJSONSchema(w, t.Schema, object)
 			}
+			if !object && ew.err == nil {
+				ew.err = requiredField(w, t)
+			}
 		}
 	case *schema.Time:
 		ew.writeString(`"type": "string", "format": "date-time"`)
@@ -124,6 +131,27 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator, object bool) (e
 		return ErrNotImplemented
 	}
 	return ew.err
+}
+
+func requiredField(w io.Writer, v schema.FieldValidator) error {
+	switch t := v.(type) {
+	case *schema.Object:
+		ew := errWriter{w: w}
+		var required []string
+		if t.Schema == nil {
+			return nil
+		}
+		for key, field := range t.Schema.Fields {
+			if field.Required {
+				required = append(required, fmt.Sprintf("%q", key))
+			}
+		}
+		ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
+		if ew.err != nil {
+			return ew.err
+		}
+	}
+	return nil
 }
 
 // SchemaToJSONSchema helper
@@ -151,7 +179,7 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema, object bool) (err error) 
 		if field.Description != "" {
 			ew.writeFormat(`"description": %q, `, field.Description)
 		}
-		if field.Required {
+		if object && field.Required {
 			required = append(required, fmt.Sprintf("%q", key))
 		}
 		if field.ReadOnly {
@@ -173,7 +201,9 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema, object bool) (err error) 
 			break
 		}
 	}
-	ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
+	if object {
+		ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
+	}
 	ew.writeString("}")
 	if object {
 		ew.writeString("}")

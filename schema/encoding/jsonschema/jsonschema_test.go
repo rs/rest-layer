@@ -323,6 +323,64 @@ func TestArrayOfObjectsNilSchema(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestObjectFieldWithRequired(t *testing.T) {
+	s := &schema.Schema{
+		Description: "A list of students",
+		Fields: schema.Fields{
+			"student": schema.Field{
+				Validator: &schema.Object{
+					Schema: &schema.Schema{
+						Fields: schema.Fields{
+							"name": schema.Field{
+								Description: "a student name",
+								Required:    true,
+								Default:     "Unknown",
+								Validator: &schema.String{
+									MinLen: 0,
+									MaxLen: 10,
+								},
+							},
+							"class": schema.Field{
+								Default: "Unassigned",
+								Validator: &schema.String{
+									MinLen: 0,
+									MaxLen: 10,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b := new(bytes.Buffer)
+	encoder := NewEncoder(b)
+	assert.NoError(t, encoder.Encode(s))
+
+	m, err := isValidJSON(b.Bytes())
+	assert.NoError(t, err)
+
+	a := assert.New(t)
+	a.Equal("object", m["type"])
+	a.Equal("A list of students", m["title"])
+	p, ok := m["properties"].(map[string]interface{})
+	a.True(ok)
+
+	a.NotNil(p["student"])
+	student, ok := p["student"].(map[string]interface{})
+	a.True(ok)
+
+	a.Equal("object", student["type"])
+	properties, ok := student["properties"].(map[string]interface{})
+	a.True(ok)
+
+	_, ok = properties["name"].(map[string]interface{})
+	a.True(ok)
+
+	a.Equal(copyStringToInterface([]string{"name"}), student["required"])
+}
+
 func TestArrayOfObjects(t *testing.T) {
 	s := &schema.Schema{
 		Description: "A list of students",
@@ -381,7 +439,7 @@ func TestArrayOfObjects(t *testing.T) {
 	ip, ok := items["properties"].(map[string]interface{})
 	a.True(ok)
 
-	a.Equal(copyStringToInterface([]string{"student"}), ip["required"])
+	a.Equal(copyStringToInterface([]string{"student"}), items["required"])
 
 	student, ok := ip["student"].(map[string]interface{})
 	a.True(ok)
