@@ -42,7 +42,7 @@ func (ew errWriter) write(b []byte) {
 }
 
 // ValidatorToJSONSchema takes a validator and renders to JSON
-func validatorToJSONSchema(w io.Writer, v schema.FieldValidator, object bool) (err error) {
+func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
 	if v == nil {
 		return nil
 	}
@@ -99,21 +99,19 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator, object bool) (e
 	case *schema.Array:
 		ew.writeString(`"type": "array"`)
 		if t.ValuesValidator != nil {
-			ew.writeString(`, "items": `)
+			ew.writeString(`, "items": {`)
 			if ew.err == nil {
-				ew.err = validatorToJSONSchema(w, t.ValuesValidator, true)
+				ew.err = validatorToJSONSchema(w, t.ValuesValidator)
 			}
+			ew.writeString("}")
 		}
 	case *schema.Object:
-		if t.Schema == nil {
-			// incorrectly configured schema
-			// don't crash but do something reasonable
-			if object {
-				ew.writeString("{}")
-			}
-		} else {
+		if t.Schema != nil {
 			if ew.err == nil {
-				ew.err = schemaToJSONSchema(w, t.Schema, object)
+				ew.err = schemaToJSONSchema(w, t.Schema, false)
+			}
+			if ew.err == nil {
+				ew.err = requiredField(w, t)
 			}
 		}
 	case *schema.Time:
@@ -124,6 +122,27 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator, object bool) (e
 		return ErrNotImplemented
 	}
 	return ew.err
+}
+
+func requiredField(w io.Writer, v schema.FieldValidator) error {
+	switch t := v.(type) {
+	case *schema.Object:
+		ew := errWriter{w: w}
+		var required []string
+		if t.Schema == nil {
+			return nil
+		}
+		for key, field := range t.Schema.Fields {
+			if field.Required {
+				required = append(required, fmt.Sprintf("%q", key))
+			}
+		}
+		ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
+		if ew.err != nil {
+			return ew.err
+		}
+	}
+	return nil
 }
 
 // SchemaToJSONSchema helper
@@ -151,14 +170,14 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema, object bool) (err error) 
 		if field.Description != "" {
 			ew.writeFormat(`"description": %q, `, field.Description)
 		}
-		if field.Required {
+		if object && field.Required {
 			required = append(required, fmt.Sprintf("%q", key))
 		}
 		if field.ReadOnly {
 			ew.writeFormat(`"readOnly": %t, `, field.ReadOnly)
 		}
 		if ew.err == nil {
-			ew.err = validatorToJSONSchema(w, field.Validator, false)
+			ew.err = validatorToJSONSchema(w, field.Validator)
 		}
 		if field.Default != nil {
 			b, err := json.Marshal(field.Default)
@@ -173,7 +192,9 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema, object bool) (err error) 
 			break
 		}
 	}
-	ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
+	if object {
+		ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
+	}
 	ew.writeString("}")
 	if object {
 		ew.writeString("}")
