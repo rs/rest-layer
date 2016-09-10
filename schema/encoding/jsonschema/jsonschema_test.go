@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"testing"
+
 	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func isValidJSON(payload []byte) (map[string]interface{}, error) {
@@ -395,14 +396,14 @@ func TestArrayOfObjects(t *testing.T) {
 									Required:    true,
 									Default:     "Unknown",
 									Validator: &schema.String{
-										MinLen: 0,
+										MinLen: 1,
 										MaxLen: 10,
 									},
 								},
 								"class": schema.Field{
 									Default: "Unassigned",
 									Validator: &schema.String{
-										MinLen: 0,
+										MinLen: 0, // Default value.
 										MaxLen: 10,
 									},
 								},
@@ -413,42 +414,38 @@ func TestArrayOfObjects(t *testing.T) {
 			},
 		},
 	}
+	const expect = `{
+		"type": "object",
+		"title": "A list of students",
+		"properties": {
+			"students": {
+				"type": "array",
+				"items": {
+					"type": "object",
+					"properties": {
+						"student": {
+							"type": "string",
+							"description": "a student",
+							"default": "Unknown",
+							"minLength": 1,
+							"maxLength": 10
+						},
+						"class": {
+							"type": "string",
+							"default": "Unassigned",
+							"maxLength": 10
+						}
+					},
+					"required": ["student"]
+				}
+			}
+		}
+	}`
 
 	b := new(bytes.Buffer)
 	encoder := NewEncoder(b)
 	assert.NoError(t, encoder.Encode(s))
-
-	m, err := isValidJSON(b.Bytes())
-	assert.NoError(t, err)
-
-	a := assert.New(t)
-	a.Equal("object", m["type"])
-	a.Equal("A list of students", m["title"])
-	p, ok := m["properties"].(map[string]interface{})
-	a.True(ok)
-	a.NotNil(p["students"])
-	students, ok := p["students"].(map[string]interface{})
-	a.True(ok)
-
-	a.Equal("array", students["type"])
-	items, ok := students["items"].(map[string]interface{})
-	a.True(ok)
-
-	a.Equal("object", items["type"])
-
-	ip, ok := items["properties"].(map[string]interface{})
-	a.True(ok)
-
-	a.Equal(copyStringToInterface([]string{"student"}), items["required"])
-
-	student, ok := ip["student"].(map[string]interface{})
-	a.True(ok)
-	a.Equal("a student", student["description"])
-	a.Equal("Unknown", student["default"])
-
-	class, ok := ip["class"].(map[string]interface{})
-	a.True(ok)
-	a.Equal("Unassigned", class["default"])
+	assert.JSONEq(t, expect, b.String())
 }
 
 func TestDefaultEncodingWithStringFieldAndIntegerDefault(t *testing.T) {
