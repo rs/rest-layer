@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 
@@ -43,6 +44,23 @@ func (ew errWriter) write(b []byte) {
 	_, ew.err = ew.w.Write(b)
 }
 
+// boundariesToJSONSchema writes JSON Schema keys and values based on b, prefixed by a comma and without curly braces,
+// to w. The prefixing comma is only written if at least one key/value pair is also written.
+func boundariesToJSONSchema(w io.Writer, b *schema.Boundaries) error {
+	if b == nil {
+		return nil
+	}
+	ew := errWriter{w: w}
+
+	if !math.IsNaN(b.Min) && !math.IsInf(b.Min, -1) {
+		ew.writeFormat(`, "minimum": %s`, strconv.FormatFloat(b.Min, 'E', -1, 64))
+	}
+	if !math.IsNaN(b.Max) && !math.IsInf(b.Max, 1) {
+		ew.writeFormat(`, "maximum": %s`, strconv.FormatFloat(b.Max, 'E', -1, 64))
+	}
+	return ew.err
+}
+
 // SchemaToJSONSchema writes JSON Schema keys and values based on v, without the outer curly braces, to w. Note
 // that not all FieldValidator types are supported at the moment.
 func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
@@ -79,10 +97,8 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
 			}
 			ew.writeFormat(`, "enum": [%s]`, strings.Join(allowed, ","))
 		}
-		if t.Boundaries != nil {
-			ew.writeFormat(`, "minimum": %s, "maximum": %s`,
-				strconv.FormatFloat(t.Boundaries.Min, 'E', -1, 64),
-				strconv.FormatFloat(t.Boundaries.Max, 'E', -1, 64))
+		if ew.err == nil {
+			ew.err = boundariesToJSONSchema(w, t.Boundaries)
 		}
 	case *schema.Float:
 		ew.writeString(`"type": "number"`)
@@ -93,12 +109,9 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
 			}
 			ew.writeFormat(`, "enum": [%s]`, strings.Join(allowed, ","))
 		}
-		if t.Boundaries != nil {
-			ew.writeFormat(`, "minimum": %s, "maximum": %s`,
-				strconv.FormatFloat(t.Boundaries.Min, 'E', -1, 64),
-				strconv.FormatFloat(t.Boundaries.Max, 'E', -1, 64))
+		if ew.err == nil {
+			ew.err = boundariesToJSONSchema(w, t.Boundaries)
 		}
-
 	case *schema.Array:
 		ew.writeString(`"type": "array"`)
 		if t.ValuesValidator != nil {
@@ -130,7 +143,7 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 
 	ew := errWriter{w: w}
 	if s.Description != "" {
-		ew.writeFormat(`"title": %q, `, s.Description)
+		ew.writeFormat(`"description": %q, `, s.Description)
 	}
 	ew.writeString(`"type": "object", `)
 	ew.writeString(`"additionalProperties": false, `)

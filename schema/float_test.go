@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,18 @@ func TestFloatValidator(t *testing.T) {
 	assert.EqualError(t, err, "is lower than 2.00")
 	assert.Nil(t, s)
 	s, err = Float{Boundaries: &Boundaries{Min: 2, Max: 10}}.Validate(3.1)
+	assert.NoError(t, err)
+	assert.Equal(t, 3.1, s)
+	s, err = Float{Boundaries: &Boundaries{Min: math.Inf(-1), Max: 10}}.Validate(3.1)
+	assert.NoError(t, err)
+	assert.Equal(t, 3.1, s)
+	s, err = Float{Boundaries: &Boundaries{Min: math.NaN(), Max: 10}}.Validate(3.1)
+	assert.NoError(t, err)
+	assert.Equal(t, 3.1, s)
+	s, err = Float{Boundaries: &Boundaries{Min: 2, Max: math.Inf(1)}}.Validate(3.1)
+	assert.NoError(t, err)
+	assert.Equal(t, 3.1, s)
+	s, err = Float{Boundaries: &Boundaries{Min: 2, Max: math.NaN()}}.Validate(3.1)
 	assert.NoError(t, err)
 	assert.Equal(t, 3.1, s)
 	s, err = Float{Boundaries: &Boundaries{}}.Validate(1.1)
