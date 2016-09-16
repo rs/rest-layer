@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/rs/rest-layer/schema"
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/rs/rest-layer/schema"
 )
 
 var (
-	// ErrNotImplemented means schema.FieldValidator type is not implemented
-	ErrNotImplemented = errors.New("Schema not Implemented")
+	// ErrNotImplemented is returned when the JSON schema encoding logic for a schema.FieldValidator has not (yet)
+	// been implemented.
+	ErrNotImplemented = errors.New("not implemented")
 )
 
 type errWriter struct {
@@ -41,7 +43,8 @@ func (ew errWriter) write(b []byte) {
 	_, ew.err = ew.w.Write(b)
 }
 
-// ValidatorToJSONSchema takes a validator and renders to JSON
+// SchemaToJSONSchema writes JSON Schema keys and values based on v, without the outer curly braces, to w. Note
+// that not all FieldValidator types are supported at the moment.
 func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
 	if v == nil {
 		return nil
@@ -106,10 +109,8 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
 			ew.writeString("}")
 		}
 	case *schema.Object:
-		if t.Schema != nil {
-			if ew.err == nil {
-				ew.err = schemaToJSONSchema(w, t.Schema)
-			}
+		if ew.err == nil && t.Schema != nil {
+			ew.err = schemaToJSONSchema(w, t.Schema)
 		}
 	case *schema.Time:
 		ew.writeString(`"type": "string", "format": "date-time"`)
@@ -121,11 +122,12 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
 	return ew.err
 }
 
-// SchemaToJSONSchema helper
+// SchemaToJSONSchema writes JSON Schema keys and values based on s, without the outer curly braces, to w.
 func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 	if s == nil {
 		return
 	}
+
 	ew := errWriter{w: w}
 	if s.Description != "" {
 		ew.writeFormat(`"title": %q, `, s.Description)
@@ -166,29 +168,32 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 		}
 	}
 	ew.writeString("}")
-	ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
+
+	if len(required) > 0 {
+		ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
+	}
 	return ew.err
 }
 
-// Encoder encodes schema.Schema into a JSONSchema
+// Encoder writes the JSON Schema representation of a schema.Schema to an output stream. Note that only a sub-set of the
+// FieldValidator types in the schema package is supported at the moment. Custom validators are also not yet handled.
+// Attempting to encode a schema containing such fields will result in a ErrNotImplemented error.
 type Encoder struct {
 	io.Writer
 }
 
-// NewEncoder returns a new JSONSchema Encoder.
+// NewEncoder returns a new JSONSchema Encoder that writes to w.
 func NewEncoder(w io.Writer) *Encoder {
 	return &Encoder{w}
 }
 
-// Encode is take schema and writes to Writer
+// Encode writes the JSON Schema representation of s to the stream, followed by a newline character.
 func (e *Encoder) Encode(s *schema.Schema) error {
 	ew := errWriter{w: e.Writer}
 	ew.writeString("{")
 	if ew.err == nil {
 		ew.err = schemaToJSONSchema(e.Writer, s)
 	}
-	if ew.err == nil {
-		ew.writeString("}")
-	}
+	ew.writeString("}\n")
 	return ew.err
 }
