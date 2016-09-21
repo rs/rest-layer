@@ -417,11 +417,13 @@ func TestArrayOfObjects(t *testing.T) {
 	const expect = `{
 		"type": "object",
 		"title": "A list of students",
+		"additionalProperties": false,
 		"properties": {
 			"students": {
 				"type": "array",
 				"items": {
 					"type": "object",
+					"additionalProperties": false,
 					"properties": {
 						"student": {
 							"type": "string",
