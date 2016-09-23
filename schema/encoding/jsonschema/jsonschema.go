@@ -133,6 +133,7 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 		ew.writeFormat(`"title": %q, `, s.Description)
 	}
 	ew.writeString(`"type": "object", `)
+	ew.writeString(`"additionalProperties": false, `)
 	ew.writeString(`"properties": {`)
 	var required []string
 	var notFirst bool
