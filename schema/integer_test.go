@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,18 @@ func TestIntegerValidator(t *testing.T) {
 	assert.EqualError(t, err, "is lower than 2")
 	assert.Nil(t, s)
 	s, err = Integer{Boundaries: &Boundaries{Min: 2, Max: 10}}.Validate(3)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, s)
+	s, err = Integer{Boundaries: &Boundaries{Min: math.Inf(-1), Max: 10}}.Validate(3)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, s)
+	s, err = Integer{Boundaries: &Boundaries{Min: math.NaN(), Max: 10}}.Validate(3)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, s)
+	s, err = Integer{Boundaries: &Boundaries{Min: 2, Max: math.Inf(1)}}.Validate(3)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, s)
+	s, err = Integer{Boundaries: &Boundaries{Min: 2, Max: math.NaN()}}.Validate(3)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, s)
 	s, err = Integer{Boundaries: &Boundaries{}}.Validate(1)
