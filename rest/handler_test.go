@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/rs/rest-layer-mem"
@@ -101,14 +100,6 @@ func TestHandlerFallbackHandlerRouteFound(t *testing.T) {
 	assert.False(t, fallbacked)
 	b, _ := ioutil.ReadAll(w.Body)
 	assert.Equal(t, "[]", string(b))
-}
-
-func TestGetContext(t *testing.T) {
-	w := newRecorder()
-	defer w.Close()
-	c := getContext(w, &http.Request{URL: &url.URL{}})
-	_, ok := c.Deadline()
-	assert.False(t, ok)
 }
 
 func TestHandlerServeHTTPNoStorage(t *testing.T) {

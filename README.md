@@ -7,7 +7,7 @@ REST APIs made easy.
 
 REST Layer is an API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable [backend storages](#storage-handlers) with no boiler plate code so you can focus on your business logic.
 
-Implemented as a `net/http` handler, it plays well with standard middleware like [CORS](http://github.com/rs/cors). It is also [context](https://godoc.org/context) aware thanks to [xhandler](https://github.com/rs/xhandler). This allows deadline management to be supported down to the storage and permit an easy extensibility by passing custom data between layers of the framework.
+Implemented as a `net/http` handler, it plays well with standard middleware like [CORS](http://github.com/rs/cors). It is also [context](https://godoc.org/context) aware. This allows deadline management to be supported down to the storage and permit an easy extensibility by passing custom data between layers of the framework.
 
 REST Layer is an opinionated framework. Unlike many API frameworks, you don't directly control the routing and you don't have to write handlers. You just define resources and sub-resources with a [schema](#resource-configuration), the framework automatically figures out what routes need to be generated behind the scene. You don't have to take care of the HTTP headers and response, JSON encoding, etc. either. REST layer handles HTTP [conditional requests](#conditional-requests), caching, [integrity checking](#data-integrity-and-concurrency-control) for you.
 
