@@ -144,13 +144,13 @@ func main() {
 
 	// Setup logger
 	c := alice.New()
-	c.Append(xlog.NewHandler(xlog.Config{}))
-	c.Append(xaccess.NewHandler())
-	c.Append(xlog.RequestHandler("req"))
-	c.Append(xlog.RemoteAddrHandler("ip"))
-	c.Append(xlog.UserAgentHandler("ua"))
-	c.Append(xlog.RefererHandler("ref"))
-	c.Append(xlog.RequestIDHandler("req_id", "Request-Id"))
+	c = c.Append(xlog.NewHandler(xlog.Config{}))
+	c = c.Append(xaccess.NewHandler())
+	c = c.Append(xlog.RequestHandler("req"))
+	c = c.Append(xlog.RemoteAddrHandler("ip"))
+	c = c.Append(xlog.UserAgentHandler("ua"))
+	c = c.Append(xlog.RefererHandler("ref"))
+	c = c.Append(xlog.RequestIDHandler("req_id", "Request-Id"))
 	resource.LoggerLevel = resource.LogLevelDebug
 	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
 		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)

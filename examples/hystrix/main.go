@@ -48,8 +48,8 @@ func main() {
 
 	// Setup logger
 	c := alice.New()
-	c.Append(xlog.NewHandler(xlog.Config{}))
-	c.Append(xaccess.NewHandler())
+	c = c.Append(xlog.NewHandler(xlog.Config{}))
+	c = c.Append(xaccess.NewHandler())
 	resource.LoggerLevel = resource.LogLevelDebug
 	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
 		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)

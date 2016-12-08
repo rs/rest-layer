@@ -153,18 +153,18 @@ func main() {
 	// c.Append(xhandler.TimeoutHandler(2 * time.Second))
 
 	// Install a logger (see https://github.com/rs/xlog)
-	c.Append(xlog.NewHandler(xlog.Config{}))
+	c = c.Append(xlog.NewHandler(xlog.Config{}))
 	resource.LoggerLevel = resource.LogLevelDebug
 	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
 		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
 	}
 
 	// Log API access
-	c.Append(xaccess.NewHandler())
+	c = c.Append(xaccess.NewHandler())
 
 	// Add CORS support with passthrough option on so rest-layer can still
 	// handle OPTIONS method
-	c.Append(cors.New(cors.Options{OptionsPassthrough: true}).Handler)
+	c = c.Append(cors.New(cors.Options{OptionsPassthrough: true}).Handler)
 
 	// Bind the API under /api/ path
 	http.Handle("/api/", http.StripPrefix("/api/", c.Then(api)))
