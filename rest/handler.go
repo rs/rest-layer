@@ -1,11 +1,11 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
-	"golang.org/x/net/context"
 )
 
 // Handler is a net/http compatible handler used to serve the configured REST API

@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"errors"
 	"net/url"
 	"sync"
@@ -9,7 +10,6 @@ import (
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 // mockHandler is a read-only storage handler which always return what is stored in items

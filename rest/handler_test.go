@@ -1,13 +1,12 @@
 package rest
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"

@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/xaccess"
 	"github.com/rs/xlog"
-	"golang.org/x/net/context"
 )
 
 // NOTE: this exemple demonstrates how to implement basic authentication/authorization with REST Layer.

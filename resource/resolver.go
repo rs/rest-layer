@@ -1,6 +1,6 @@
 package resource
 
-import "golang.org/x/net/context"
+import "context"
 
 func resolveAsyncSelectors(ctx context.Context, p map[string]interface{}) error {
 	for {

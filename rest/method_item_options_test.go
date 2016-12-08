@@ -1,10 +1,9 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"

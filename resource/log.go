@@ -1,10 +1,9 @@
 package resource
 
 import (
+	"context"
 	"fmt"
 	"log"
-
-	"golang.org/x/net/context"
 )
 
 // LogLevel defines log levels

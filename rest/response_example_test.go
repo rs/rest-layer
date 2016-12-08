@@ -1,11 +1,11 @@
 package rest_test
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
-	"golang.org/x/net/context"
 )
 
 type myResponseFormatter struct {

@@ -3,11 +3,10 @@
 package restlayer
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"net/url"
-
-	"golang.org/x/net/context"
 
 	"github.com/justinas/alice"
 	"github.com/rs/cors"

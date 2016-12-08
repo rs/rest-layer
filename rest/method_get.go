@@ -1,10 +1,9 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 	"strconv"
-
-	"golang.org/x/net/context"
 )
 
 // listGet handles GET resquests on a resource URL

@@ -1,12 +1,12 @@
 package rest
 
 import (
+	"context"
 	"strings"
 	"sync"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
-	"golang.org/x/net/context"
 )
 
 // ResourcePath is the list of ResourcePathComponent leading to the requested resource

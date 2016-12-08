@@ -1,9 +1,8 @@
 package rest
 
 import (
+	"context"
 	"net/http"
-
-	"golang.org/x/net/context"
 )
 
 // listOptions handles OPTIONS requests on a resource URL

@@ -1,12 +1,11 @@
 package schema
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"reflect"
 	"strings"
-
-	"golang.org/x/net/context"
 )
 
 // Schema defines fields for a document

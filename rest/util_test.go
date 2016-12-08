@@ -2,12 +2,10 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"testing"
-
-	"golang.org/x/net/context"
-
 	"time"
 
 	"github.com/rs/rest-layer/resource"

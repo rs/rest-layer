@@ -1,8 +1,9 @@
 package schema
 
 import (
+	"context"
+
 	"github.com/rs/xid"
-	"golang.org/x/net/context"
 )
 
 var (

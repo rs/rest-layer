@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"testing"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 type FakeResponseFormatter struct {

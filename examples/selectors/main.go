@@ -3,14 +3,13 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-
-	"golang.org/x/net/context"
 
 	"github.com/justinas/alice"
 	"github.com/rs/rest-layer-mem"

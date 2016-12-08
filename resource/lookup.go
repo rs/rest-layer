@@ -1,11 +1,10 @@
 package resource
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
-
-	"golang.org/x/net/context"
 
 	"github.com/rs/rest-layer/schema"
 )

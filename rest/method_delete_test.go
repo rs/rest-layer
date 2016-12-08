@@ -2,6 +2,7 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/url"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 func TestHandlerDeleteList(t *testing.T) {

@@ -1,12 +1,12 @@
 package rest
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 func TestNewError(t *testing.T) {

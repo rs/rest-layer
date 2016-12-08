@@ -1,9 +1,8 @@
 package resource
 
 import (
+	"context"
 	"fmt"
-
-	"golang.org/x/net/context"
 
 	"github.com/rs/rest-layer/schema"
 )

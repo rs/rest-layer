@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 	"time"
 
 	"github.com/rs/rest-layer/resource"
-	"golang.org/x/net/context"
 )
 
 // ResponseFormatter defines an interface responsible for formatting a the different types of response objects

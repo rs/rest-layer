@@ -1,13 +1,13 @@
 package resource
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"sort"
 	"time"
 
 	"github.com/rs/rest-layer/schema"
-	"golang.org/x/net/context"
 )
 
 // Resource holds information about a class of items exposed on the API

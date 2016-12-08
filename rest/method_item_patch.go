@@ -1,10 +1,10 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/rs/rest-layer/resource"
-	"golang.org/x/net/context"
 )
 
 // itemPatch handles PATCH resquests on an item URL

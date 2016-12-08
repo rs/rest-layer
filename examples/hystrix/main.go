@@ -3,13 +3,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-
-	"golang.org/x/net/context"
 
 	"github.com/afex/hystrix-go/hystrix"
 	"github.com/justinas/alice"

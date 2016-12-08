@@ -7,7 +7,7 @@ REST APIs made easy.
 
 REST Layer is an API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable [backend storages](#storage-handlers) with no boiler plate code so you can focus on your business logic.
 
-Implemented as a `net/http` handler, it plays well with standard middleware like [CORS](http://github.com/rs/cors). It is also [net/context](https://godoc.org/golang.org/x/net/context) aware thanks to [xhandler](https://github.com/rs/xhandler). This allows deadline management to be supported down to the storage and permit an easy extensibility by passing custom data between layers of the framework.
+Implemented as a `net/http` handler, it plays well with standard middleware like [CORS](http://github.com/rs/cors). It is also [context](https://godoc.org/context) aware thanks to [xhandler](https://github.com/rs/xhandler). This allows deadline management to be supported down to the storage and permit an easy extensibility by passing custom data between layers of the framework.
 
 REST Layer is an opinionated framework. Unlike many API frameworks, you don't directly control the routing and you don't have to write handlers. You just define resources and sub-resources with a [schema](#resource-configuration), the framework automatically figures out what routes need to be generated behind the scene. You don't have to take care of the HTTP headers and response, JSON encoding, etc. either. REST layer handles HTTP [conditional requests](#conditional-requests), caching, [integrity checking](#data-integrity-and-concurrency-control) for you.
 
@@ -87,7 +87,7 @@ The REST Layer framework is composed of several sub-packages:
 - [x] Extensible data validation and transformation
 - [x] Conditional requests (Last-Modified / Etag)
 - [x] Data integrity and concurrency control (If-Match)
-- [x] Timeout and request cancellation thru [net/context](https://godoc.org/golang.org/x/net/context)
+- [x] Timeout and request cancellation thru [context](https://godoc.org/context)
 - [x] Logging
 - [x] Multi-GET
 - [ ] Bulk inserts
@@ -1138,7 +1138,7 @@ See [schema.IP](https://godoc.org/github.com/rs/rest-layer/schema#IP) validator 
 
 ## Timeout and Request Cancellation
 
-REST Layer respects [net/context](https://golang.org/x/net/context) deadline from end to end. Timeout and request cancellation are thus handled throught `net/context`. By default no cancellation handling or per request timeout are defined. You can easily add them using [xhandler](https://github.com/rs/xhandler) provided handlers as follow:
+REST Layer respects [context](https://godoc.org/context) deadline from end to end. Timeout and request cancellation are thus handled throught `context`. By default no cancellation handling or per request timeout are defined. You can easily add them using [xhandler](https://github.com/rs/xhandler) provided handlers as follow:
 
 ```go
 // Init a xhandler chain (see http://github.com/rs/xhandler)
@@ -1299,7 +1299,7 @@ type Storer interface {
 
 Mutation methods like `Update` and `Delete` must ensure they are atomically mutating the same item as specified in argument by checking their `ETag` (the stored `ETag` must match the `ETag` of the provided item). In case the handler can't guarantee that, the storage must be left untouched, and a [resource.ErrConflict](https://godoc.org/github.com/rs/rest-layer/resource#pkg-variables) must be returned.
 
-If the operation is not immediate, the method must listen for cancellation on the passed `ctx`. If the operation is stopped due to context cancellation, the function must return the result of the [ctx.Err()](https://godoc.org/golang.org/x/net/context#Context) method. See [this blog post](https://blog.golang.org/context) for more information about how `net/context` works.
+If the operation is not immediate, the method must listen for cancellation on the passed `ctx`. If the operation is stopped due to context cancellation, the function must return the result of the [ctx.Err()](https://godoc.org/golang.org/x/net/context#Context) method. See [this blog post](https://blog.golang.org/context) for more information about how `context` works.
 
 If the backend storage is able to efficiently fetch multiple document by their id, it can implement the optional [resource.MultiGetter](https://godoc.org/github.com/rs/rest-layer/resource#MultiGetter) interface. REST Layer will automatically use it whenever possible.
 

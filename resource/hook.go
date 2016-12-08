@@ -1,9 +1,8 @@
 package resource
 
 import (
+	"context"
 	"errors"
-
-	"golang.org/x/net/context"
 )
 
 // FindEventHandler is an interface to be implemented by an event handler that

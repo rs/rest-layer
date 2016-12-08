@@ -3,8 +3,8 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -18,7 +18,6 @@ import (
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/xaccess"
 	"github.com/rs/xlog"
-	"golang.org/x/net/context"
 )
 
 // NOTE: this example show how to integrate REST Layer with JWT. No authentication is performed
@@ -229,14 +228,11 @@ var (
 				},
 				OnInit: func(ctx context.Context, value interface{}) interface{} {
 					// If not set, set the user to currently logged user if any
-					fmt.Printf("value: %#v\n", value)
 					if value == nil {
 						if user, found := UserFromContext(ctx); found {
-							println("coucou")
 							value = user.ID
 						}
 					}
-					fmt.Printf("value: %#v\n", value)
 					return value
 				},
 			},

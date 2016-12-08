@@ -1,10 +1,9 @@
 package schema
 
 import (
+	"context"
 	"errors"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 var (

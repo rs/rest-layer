@@ -1,11 +1,10 @@
 package schema
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
-
-	"golang.org/x/net/context"
 )
 
 // Fields defines a map of name -> field pairs

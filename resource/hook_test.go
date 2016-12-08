@@ -1,10 +1,9 @@
 package resource
 
 import (
+	"context"
 	"errors"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/stretchr/testify/assert"
 )

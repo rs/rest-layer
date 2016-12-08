@@ -1,10 +1,9 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 	"strconv"
-
-	"golang.org/x/net/context"
 )
 
 // listDelete handles DELETE resquests on a resource URL

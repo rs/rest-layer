@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
-	"golang.org/x/net/context"
 )
 
 // RouteMatch represent a REST request's matched resource with the method to apply and its parameters

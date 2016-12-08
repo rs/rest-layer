@@ -1,9 +1,8 @@
 package rest
 
 import (
+	"context"
 	"net/http"
-
-	"golang.org/x/net/context"
 )
 
 // itemDelete handles DELETE resquests on an item URL

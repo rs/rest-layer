@@ -1,14 +1,13 @@
 package rest
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"

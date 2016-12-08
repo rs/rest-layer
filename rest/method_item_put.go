@@ -1,11 +1,11 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
-	"golang.org/x/net/context"
 )
 
 // itemPut handles PUT resquests on an item URL

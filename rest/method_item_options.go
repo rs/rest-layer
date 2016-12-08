@@ -1,9 +1,8 @@
 package rest
 
 import (
+	"context"
 	"net/http"
-
-	"golang.org/x/net/context"
 )
 
 // itemOptions handles OPTIONS requests on a item URL

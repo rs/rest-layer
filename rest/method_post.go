@@ -1,11 +1,11 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/rs/rest-layer/resource"
-	"golang.org/x/net/context"
 )
 
 // listPost handles POST resquests on a resource URL

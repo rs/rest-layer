@@ -1,8 +1,9 @@
 package resource
 
 import (
+	"context"
+
 	"github.com/rs/rest-layer/schema"
-	"golang.org/x/net/context"
 )
 
 // Storer defines the interface of an handler able to store and retrieve resources

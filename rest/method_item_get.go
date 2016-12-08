@@ -1,10 +1,9 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 // itemGet handles GET and HEAD resquests on an item URL
