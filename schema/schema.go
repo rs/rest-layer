@@ -323,6 +323,9 @@ func (s Schema) validate(changes map[string]interface{}, base map[string]interfa
 				doc[field] = value
 			}
 		}
+		if def.Schema == nil && def.Validator == nil {
+			addFieldError(errs, field, fmt.Errorf("At least one of Validator or Schema should be set."))
+		}
 	}
 	return doc, errs
 }
