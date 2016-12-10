@@ -370,6 +370,25 @@ func TestEncoder(t *testing.T) {
 				}
 			}`,
 		},
+		{
+			name: `Incorrectly configured field`,
+			schema: schema.Schema{
+				Fields: schema.Fields{
+					"location": schema.Field{
+						Description: "location of your stuff",
+					},
+				},
+			},
+			expect: `{
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"location": {
+						"description": "location of your stuff"
+					}
+				}
+			}`,
+		},
 	}
 	for i := range testCases {
 		testCases[i].Run(t)
