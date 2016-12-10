@@ -27,20 +27,21 @@ type errWriter struct {
 	properties int       // track properties written
 }
 
-// Comma optionally outputs a comma.
+// comma optionally outputs a comma.
 // Invoke this when you're about to write a property.
 // Tracks how many have been written and emits if not the first.
-func (ew *errWriter) Comma() {
+func (ew *errWriter) comma() {
 	if ew.properties > 0 {
 		ew.writeString(",")
 	}
 	ew.properties++
 }
 
-func (ew *errWriter) ResetPropertiesCount() {
+func (ew *errWriter) resetPropertiesCount() {
 	ew.properties = 0
 }
 
+// Compatibility with io.Writer interface
 func (ew errWriter) Write(p []byte) (int, error) {
 	if ew.err != nil {
 		return 0, ew.err
@@ -62,7 +63,7 @@ func (ew errWriter) writeString(s string) {
 	_, ew.err = ew.w.Write([]byte(s))
 }
 
-func (ew errWriter) write(b []byte) {
+func (ew errWriter) writeBytes(b []byte) {
 	if ew.err != nil {
 		return
 	}
@@ -163,15 +164,15 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
 func serializeField(ew errWriter, key string, field schema.Field) error {
 	ew.writeFormat("%q: {", key)
 	if field.Description != "" {
-		ew.Comma()
+		ew.comma()
 		ew.writeFormat(`"description": %q`, field.Description)
 	}
 	if field.ReadOnly {
-		ew.Comma()
+		ew.comma()
 		ew.writeFormat(`"readOnly": %t`, field.ReadOnly)
 	}
 	if field.Validator != nil {
-		ew.Comma()
+		ew.comma()
 		ew.err = validatorToJSONSchema(ew, field.Validator)
 	}
 	if field.Default != nil {
@@ -179,12 +180,12 @@ func serializeField(ew errWriter, key string, field schema.Field) error {
 		if err != nil {
 			return err
 		}
-		ew.Comma()
+		ew.comma()
 		ew.writeString(`"default": `)
-		ew.write(b)
+		ew.writeBytes(b)
 	}
 	ew.writeString("}")
-	ew.ResetPropertiesCount()
+	ew.resetPropertiesCount()
 	return nil
 }
 
