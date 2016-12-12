@@ -18,27 +18,31 @@ var (
 	ErrNotImplemented = errors.New("not implemented")
 )
 
+type fieldWriter struct {
+	errWriter
+	propertiesCount int
+}
+
 // Wrap IO writer so we can consolidate error handling
 // in a single place. Also track properties written
 // so we know when to emit a separator.
 type errWriter struct {
-	w          io.Writer // writer instance
-	err        error     // track errors
-	properties int       // track properties written
+	w   io.Writer // writer instance
+	err error     // track errors
 }
 
 // comma optionally outputs a comma.
 // Invoke this when you're about to write a property.
 // Tracks how many have been written and emits if not the first.
-func (ew *errWriter) comma() {
-	if ew.properties > 0 {
-		ew.writeString(",")
+func (fw *fieldWriter) comma() {
+	if fw.propertiesCount > 0 {
+		fw.writeString(",")
 	}
-	ew.properties++
+	fw.propertiesCount++
 }
 
-func (ew *errWriter) resetPropertiesCount() {
-	ew.properties = 0
+func (fw *fieldWriter) resetPropertiesCount() {
+	fw.propertiesCount = 0
 }
 
 // Compatibility with io.Writer interface
@@ -162,30 +166,31 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
 }
 
 func serializeField(ew errWriter, key string, field schema.Field) error {
-	ew.writeFormat("%q: {", key)
+	fw := fieldWriter{ew, 0}
+	fw.writeFormat("%q: {", key)
 	if field.Description != "" {
-		ew.comma()
-		ew.writeFormat(`"description": %q`, field.Description)
+		fw.comma()
+		fw.writeFormat(`"description": %q`, field.Description)
 	}
 	if field.ReadOnly {
-		ew.comma()
-		ew.writeFormat(`"readOnly": %t`, field.ReadOnly)
+		fw.comma()
+		fw.writeFormat(`"readOnly": %t`, field.ReadOnly)
 	}
 	if field.Validator != nil {
-		ew.comma()
-		ew.err = validatorToJSONSchema(ew, field.Validator)
+		fw.comma()
+		fw.err = validatorToJSONSchema(ew, field.Validator)
 	}
 	if field.Default != nil {
 		b, err := json.Marshal(field.Default)
 		if err != nil {
 			return err
 		}
-		ew.comma()
-		ew.writeString(`"default": `)
-		ew.writeBytes(b)
+		fw.comma()
+		fw.writeString(`"default": `)
+		fw.writeBytes(b)
 	}
-	ew.writeString("}")
-	ew.resetPropertiesCount()
+	fw.writeString("}")
+	fw.resetPropertiesCount()
 	return nil
 }
 
