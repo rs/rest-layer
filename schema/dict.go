@@ -11,6 +11,10 @@ type Dict struct {
 	KeysValidator FieldValidator
 	// ValuesValidator is the validator to apply on dict values
 	ValuesValidator FieldValidator
+	// MinLen defines the minimum number of fields (default 0)
+	MinLen int
+	// MaxLen defines the maximum number of fields (default no limit)
+	MaxLen int
 }
 
 // Compile implements Compiler interface
@@ -53,6 +57,13 @@ func (v Dict) Validate(value interface{}) (interface{}, error) {
 			}
 		}
 		dest[key] = val
+	}
+	l := len(dest)
+	if l < v.MinLen {
+		return nil, fmt.Errorf("has fewer properties than %d", v.MinLen)
+	}
+	if v.MaxLen > 0 && l > v.MaxLen {
+		return nil, fmt.Errorf("has more properties than %d", v.MaxLen)
 	}
 	return dest, nil
 }

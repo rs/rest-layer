@@ -175,7 +175,61 @@ func TestEncoder(t *testing.T) {
 			}`,
 		},
 		{
-			name: "Required=true(1/1)",
+			name: "MinLen=2",
+			schema: schema.Schema{
+				Fields: schema.Fields{
+					"foo": schema.Field{
+						Validator: &schema.Bool{},
+					},
+					"bar": schema.Field{
+						Validator: &schema.Bool{},
+					},
+					"baz": schema.Field{
+						Validator: &schema.Bool{},
+					},
+				},
+				MinLen: 2,
+			},
+			expect: `{
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"foo": {"type": "boolean"},
+					"bar": {"type": "boolean"},
+					"baz": {"type": "boolean"}
+				},
+				"minProperties": 2
+			}`,
+		},
+		{
+			name: "MaxLen=2",
+			schema: schema.Schema{
+				Fields: schema.Fields{
+					"foo": schema.Field{
+						Validator: &schema.Bool{},
+					},
+					"bar": schema.Field{
+						Validator: &schema.Bool{},
+					},
+					"baz": schema.Field{
+						Validator: &schema.Bool{},
+					},
+				},
+				MaxLen: 2,
+			},
+			expect: `{
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"foo": {"type": "boolean"},
+					"bar": {"type": "boolean"},
+					"baz": {"type": "boolean"}
+				},
+				"maxProperties": 2
+			}`,
+		},
+		{
+			name: "Required=true(1/2)",
 			schema: schema.Schema{
 				Fields: schema.Fields{
 					"name": schema.Field{

@@ -229,6 +229,12 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 		}
 	}
 	ew.writeString("}")
+	if s.MinLen > 0 {
+		ew.writeFormat(`, "minProperties": %s`, strconv.FormatInt(int64(s.MinLen), 10))
+	}
+	if s.MaxLen > 0 {
+		ew.writeFormat(`, "maxProperties": %s`, strconv.FormatInt(int64(s.MaxLen), 10))
+	}
 
 	if len(required) > 0 {
 		ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
