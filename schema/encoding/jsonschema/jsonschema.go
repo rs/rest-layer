@@ -18,9 +18,39 @@ var (
 	ErrNotImplemented = errors.New("not implemented")
 )
 
+type fieldWriter struct {
+	errWriter
+	propertiesCount int
+}
+
+// Wrap IO writer so we can consolidate error handling
+// in a single place. Also track properties written
+// so we know when to emit a separator.
 type errWriter struct {
-	w   io.Writer
-	err error
+	w   io.Writer // writer instance
+	err error     // track errors
+}
+
+// comma optionally outputs a comma.
+// Invoke this when you're about to write a property.
+// Tracks how many have been written and emits if not the first.
+func (fw *fieldWriter) comma() {
+	if fw.propertiesCount > 0 {
+		fw.writeString(",")
+	}
+	fw.propertiesCount++
+}
+
+func (fw *fieldWriter) resetPropertiesCount() {
+	fw.propertiesCount = 0
+}
+
+// Compatibility with io.Writer interface
+func (ew errWriter) Write(p []byte) (int, error) {
+	if ew.err != nil {
+		return 0, ew.err
+	}
+	return ew.w.Write(p)
 }
 
 func (ew errWriter) writeFormat(format string, a ...interface{}) {
@@ -37,7 +67,7 @@ func (ew errWriter) writeString(s string) {
 	_, ew.err = ew.w.Write([]byte(s))
 }
 
-func (ew errWriter) write(b []byte) {
+func (ew errWriter) writeBytes(b []byte) {
 	if ew.err != nil {
 		return
 	}
@@ -135,6 +165,35 @@ func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
 	return ew.err
 }
 
+func serializeField(ew errWriter, key string, field schema.Field) error {
+	fw := fieldWriter{ew, 0}
+	fw.writeFormat("%q: {", key)
+	if field.Description != "" {
+		fw.comma()
+		fw.writeFormat(`"description": %q`, field.Description)
+	}
+	if field.ReadOnly {
+		fw.comma()
+		fw.writeFormat(`"readOnly": %t`, field.ReadOnly)
+	}
+	if field.Validator != nil {
+		fw.comma()
+		fw.err = validatorToJSONSchema(ew, field.Validator)
+	}
+	if field.Default != nil {
+		b, err := json.Marshal(field.Default)
+		if err != nil {
+			return err
+		}
+		fw.comma()
+		fw.writeString(`"default": `)
+		fw.writeBytes(b)
+	}
+	fw.writeString("}")
+	fw.resetPropertiesCount()
+	return nil
+}
+
 // SchemaToJSONSchema writes JSON Schema keys and values based on s, without the outer curly braces, to w.
 func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 	if s == nil {
@@ -155,29 +214,11 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 			ew.writeString(", ")
 		}
 		notFirst = true
-		ew.writeFormat("%q: {", key)
-		if field.Description != "" {
-			ew.writeFormat(`"description": %q, `, field.Description)
-		}
 		if field.Required {
 			required = append(required, fmt.Sprintf("%q", key))
 		}
-		if field.ReadOnly {
-			ew.writeFormat(`"readOnly": %t, `, field.ReadOnly)
-		}
-		if ew.err == nil {
-			ew.err = validatorToJSONSchema(w, field.Validator)
-		}
-		if field.Default != nil {
-			b, err := json.Marshal(field.Default)
-			if err != nil {
-				return err
-			}
-			ew.writeString(`, "default": `)
-			ew.write(b)
-		}
-		ew.writeString("}")
-		if ew.err != nil {
+		err := serializeField(ew, key, field)
+		if err != nil || ew.err != nil {
 			break
 		}
 	}
