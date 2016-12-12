@@ -9,6 +9,10 @@ import (
 type Array struct {
 	// ValuesValidator is the validator to apply on array items
 	ValuesValidator FieldValidator
+	// MinLen defines the minimum array length (default 0)
+	MinLen int
+	// MaxLen defines the maximum array length (default no limit)
+	MaxLen int
 }
 
 // Compile implements Compiler interface
@@ -35,6 +39,13 @@ func (v Array) Validate(value interface{}) (interface{}, error) {
 			}
 			arr[i] = val
 		}
+	}
+	l := len(arr)
+	if l < v.MinLen {
+		return nil, fmt.Errorf("has fewer items than %d", v.MinLen)
+	}
+	if v.MaxLen > 0 && l > v.MaxLen {
+		return nil, fmt.Errorf("has more items than %d", v.MaxLen)
 	}
 	return arr, nil
 }

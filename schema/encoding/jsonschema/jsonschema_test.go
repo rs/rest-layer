@@ -65,18 +65,6 @@ func TestFloatValidator(t *testing.T) {
 
 }
 
-func TestArray(t *testing.T) {
-	validator := &schema.Array{}
-	b := new(bytes.Buffer)
-	assert.NoError(t, validatorToJSONSchema(b, validator))
-	_, err := isValidJSON(wrapWithJSONObject(b))
-	assert.NoError(t, err)
-
-	a := assert.New(t)
-	strJSON := string(wrapWithJSONObject(b))
-	a.Contains(strJSON, `"type": "array"`)
-}
-
 func TestTime(t *testing.T) {
 	validator := &schema.Time{}
 	b := new(bytes.Buffer)
