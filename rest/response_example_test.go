@@ -18,8 +18,8 @@ func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header
 	ctx, data := r.DefaultResponseFormatter.FormatList(ctx, headers, l, skipBody)
 	return ctx, map[string]interface{}{
 		"meta": map[string]int{
-			"total": l.Total,
-			"page":  l.Page,
+			"total":  l.Total,
+			"offset": l.Offset,
 		},
 		"list": data,
 	}

@@ -9,15 +9,15 @@ import (
 // want to be called before a find is performed on a resource. This interface is
 // to be used with resource.Use() method.
 type FindEventHandler interface {
-	OnFind(ctx context.Context, lookup *Lookup, page, perPage int) error
+	OnFind(ctx context.Context, lookup *Lookup, offset, limit int) error
 }
 
 // FindEventHandlerFunc converts a function into a FindEventHandler.
-type FindEventHandlerFunc func(ctx context.Context, lookup *Lookup, page, perPage int) error
+type FindEventHandlerFunc func(ctx context.Context, lookup *Lookup, offset, limit int) error
 
 // OnFind implements FindEventHandler
-func (e FindEventHandlerFunc) OnFind(ctx context.Context, lookup *Lookup, page, perPage int) error {
-	return e(ctx, lookup, page, perPage)
+func (e FindEventHandlerFunc) OnFind(ctx context.Context, lookup *Lookup, offset, limit int) error {
+	return e(ctx, lookup, offset, limit)
 }
 
 // FoundEventHandler is an interface to be implemented by an event handler that
@@ -256,9 +256,9 @@ func (h *eventHandler) use(e interface{}) error {
 	return nil
 }
 
-func (h *eventHandler) onFind(ctx context.Context, lookup *Lookup, page, perPage int) error {
+func (h *eventHandler) onFind(ctx context.Context, lookup *Lookup, offset, limit int) error {
 	for _, e := range h.onFindH {
-		if err := e.OnFind(ctx, lookup, page, perPage); err != nil {
+		if err := e.OnFind(ctx, lookup, offset, limit); err != nil {
 			return err
 		}
 	}

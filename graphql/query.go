@@ -63,6 +63,9 @@ func (t types) getGetQuery(idx resource.Index, r *resource.Resource) *graphql.Fi
 }
 
 var listArgs = graphql.FieldConfigArgument{
+	"skip": &graphql.ArgumentConfig{
+		Type: graphql.Int,
+	},
 	"page": &graphql.ArgumentConfig{
 		Type: graphql.Int,
 	},
@@ -77,17 +80,26 @@ var listArgs = graphql.FieldConfigArgument{
 	},
 }
 
-func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url.Values) (lookup *resource.Lookup, page int, perPage int, err error) {
-	page = 1
-	// Default value on non HEAD request for perPage is -1 (pagination disabled)
-	perPage = -1
+func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url.Values) (lookup *resource.Lookup, offset int, limit int, err error) {
+	skip := 0
+	page := 1
+	// Default value on non HEAD request for limit is -1 (pagination disabled)
+	limit = -1
+
 	if l := r.Conf().PaginationDefaultLimit; l > 0 {
-		perPage = l
+		limit = l
+	}
+	if s, ok := p.Args["skip"].(string); ok && s != "" {
+		i, err := strconv.ParseUint(s, 10, 32)
+		if err != nil {
+			return nil, 0, 0, errors.New("invalid `skip` parameter")
+		}
+		skip = int(i)
 	}
 	if p, ok := p.Args["page"].(string); ok && p != "" {
 		i, err := strconv.ParseUint(p, 10, 32)
 		if err != nil {
-			return nil, 0, 0, errors.New("invalid `limit` parameter")
+			return nil, 0, 0, errors.New("invalid `page` parameter")
 		}
 		page = int(i)
 	}
@@ -96,11 +108,12 @@ func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url
 		if err != nil {
 			return nil, 0, 0, errors.New("invalid `limit` parameter")
 		}
-		perPage = int(i)
+		limit = int(i)
 	}
-	if perPage == -1 && page != 1 {
+	if page != 1 && limit == -1 {
 		return nil, 0, 0, errors.New("cannot use `page' parameter with no `limit' paramter on a resource with no default pagination size")
 	}
+	offset = (page-1)*limit + skip
 	lookup = resource.NewLookup()
 	if sort, ok := p.Args["sort"].(string); ok && sort != "" {
 		if err := lookup.SetSort(sort, r.Validator()); err != nil {
@@ -128,11 +141,11 @@ func (t types) getListQuery(idx resource.Index, r *resource.Resource, params url
 		Type:        graphql.NewList(t.getObjectType(idx, r)),
 		Args:        listArgs,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			lookup, page, perPage, err := listParamResolver(r, p, params)
+			lookup, offset, limit, err := listParamResolver(r, p, params)
 			if err != nil {
 				return nil, err
 			}
-			list, err := r.Find(p.Context, lookup, page, perPage)
+			list, err := r.Find(p.Context, lookup, offset, limit)
 			if err != nil {
 				return nil, err
 			}

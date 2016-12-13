@@ -29,6 +29,12 @@ func TestResourceBind(t *testing.T) {
 					path: ".bar",
 				},
 				Params: schema.Params{
+					"skip": schema.Param{
+						Description: "The number of items to skip",
+						Validator: schema.Integer{
+							Boundaries: &schema.Boundaries{Min: 0},
+						},
+					},
 					"page": schema.Param{
 						Description: "The page number",
 						Validator: schema.Integer{

@@ -23,7 +23,7 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	rsrc := route.Resource()
 	// Fetch original item if exist (PUT can be used to create a document with a manual id)
 	var original *resource.Item
-	if l, err := rsrc.Find(ctx, lookup, 1, 1); err != nil && err != ErrNotFound {
+	if l, err := rsrc.Find(ctx, lookup, 0, 1); err != nil && err != ErrNotFound {
 		e = NewError(err)
 		return e.Code, nil, e
 	} else if len(l.Items) == 1 {

@@ -110,11 +110,11 @@ func TestDefaultResponseFormatterFormatList(t *testing.T) {
 
 	h = http.Header{}
 	rctx, payload = rf.FormatList(ctx, h, &resource.ItemList{
-		Total: 1,
-		Page:  1,
-		Items: []*resource.Item{{Payload: map[string]interface{}{"foo": "bar"}}},
+		Total:  1,
+		Offset: 2,
+		Items:  []*resource.Item{{Payload: map[string]interface{}{"foo": "bar"}}},
 	}, false)
-	assert.Equal(t, http.Header{"X-Total": []string{"1"}, "X-Page": []string{"1"}}, h)
+	assert.Equal(t, http.Header{"X-Total": []string{"1"}, "X-Offset": []string{"2"}}, h)
 	assert.Equal(t, rctx, ctx)
 	assert.Equal(t, []map[string]interface{}{{"foo": "bar"}}, payload)
 

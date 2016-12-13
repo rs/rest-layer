@@ -85,8 +85,8 @@ func (f DefaultResponseFormatter) FormatList(ctx context.Context, headers http.H
 	if l.Total >= 0 {
 		headers.Set("X-Total", strconv.FormatInt(int64(l.Total), 10))
 	}
-	if l.Page > 0 {
-		headers.Set("X-Page", strconv.FormatInt(int64(l.Page), 10))
+	if l.Offset > 0 {
+		headers.Set("X-Offset", strconv.FormatInt(int64(l.Offset), 10))
 	}
 	if !skipBody {
 		payload := make([]map[string]interface{}, len(l.Items))

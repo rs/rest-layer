@@ -38,7 +38,7 @@ func TestHandlerDeleteList(t *testing.T) {
 	assert.Equal(t, http.Header{"X-Total": []string{"5"}}, headers)
 	assert.Nil(t, body)
 
-	l, err := s.Find(context.TODO(), resource.NewLookup(), 1, -1)
+	l, err := s.Find(context.TODO(), resource.NewLookup(), 0, -1)
 	assert.NoError(t, err)
 	assert.Len(t, l.Items, 0)
 }
@@ -73,7 +73,7 @@ func TestHandlerDeleteListFilter(t *testing.T) {
 	assert.Equal(t, http.Header{"X-Total": []string{"2"}}, headers)
 	assert.Nil(t, body)
 
-	l, err := s.Find(context.TODO(), resource.NewLookup(), 1, -1)
+	l, err := s.Find(context.TODO(), resource.NewLookup(), 0, -1)
 	assert.NoError(t, err)
 	if assert.Len(t, l.Items, 3) {
 		assert.Equal(t, "3", l.Items[0].ID)

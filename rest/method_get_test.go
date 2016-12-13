@@ -218,7 +218,7 @@ func TestHandlerGetListPagination(t *testing.T) {
 			assert.Equal(t, "3", l.Items[0].ID)
 			assert.Equal(t, "4", l.Items[1].ID)
 		}
-		assert.Equal(t, 2, l.Page)
+		assert.Equal(t, 2, l.Offset)
 		assert.Equal(t, 5, l.Total)
 	}
 
@@ -232,7 +232,23 @@ func TestHandlerGetListPagination(t *testing.T) {
 		if assert.Len(t, l.Items, 1) {
 			assert.Equal(t, "5", l.Items[0].ID)
 		}
-		assert.Equal(t, 3, l.Page)
+		assert.Equal(t, 4, l.Offset)
+		assert.Equal(t, 5, l.Total)
+	}
+
+	rm.Params.Set("skip", "1")
+	rm.Params.Set("page", "2")
+
+	status, headers, body = listGet(context.TODO(), r, rm)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Nil(t, headers)
+	if assert.IsType(t, body, &resource.ItemList{}) {
+		l := body.(*resource.ItemList)
+		if assert.Len(t, l.Items, 2) {
+			assert.Equal(t, "4", l.Items[0].ID)
+			assert.Equal(t, "5", l.Items[1].ID)
+		}
+		assert.Equal(t, 3, l.Offset)
 		assert.Equal(t, 5, l.Total)
 	}
 }

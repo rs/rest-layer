@@ -87,7 +87,7 @@ func getSubResourceResolver(r *resource.Resource) graphql.FieldResolveFn {
 		if !ok {
 			return nil, nil
 		}
-		lookup, page, perPage, err := listParamResolver(r, p, nil)
+		lookup, offset, limit, err := listParamResolver(r, p, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +98,7 @@ func getSubResourceResolver(r *resource.Resource) graphql.FieldResolveFn {
 				Value: parent["id"],
 			},
 		})
-		list, err := r.Find(p.Context, lookup, page, perPage)
+		list, err := r.Find(p.Context, lookup, offset, limit)
 		if err != nil {
 			return nil, err
 		}
