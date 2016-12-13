@@ -858,7 +858,7 @@ Here we sort the result by ascending quantity and descending date:
 
 ## Skipping
 
-Skipping of resource items is defined through the `offset` query-string parameter. The `offset` value is an integer defining the number of items to skip when querying for items.
+Skipping of resource items is defined through the `offset` query-string parameter. The `offset` value is a positive integer defining the number of items to skip when querying for items.
 
 To use a resource field with the `offset` parameter, the field must be defined on the resource.
 
