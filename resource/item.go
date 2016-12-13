@@ -24,11 +24,16 @@ type Item struct {
 
 // ItemList represents a list of items
 type ItemList struct {
+	// Results defines the total number of items in the collection matching the current
+	// context without any filter applied. If the storage handler cannot compute this value, -1 is set.
+	Results int
 	// Total defines the total number of items in the collection matching the current
 	// context. If the storage handler cannot compute this value, -1 is set.
 	Total int
 	// Page is the current page represented by this ItemList.
 	Page int
+	// Offset is the offset of the query (mongodb skip)
+	Offset int
 	// Items is the list of items contained in the current page given the current
 	// context.
 	Items []*Item

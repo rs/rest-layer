@@ -12,7 +12,7 @@ func itemDelete(ctx context.Context, r *http.Request, route *RouteMatch) (status
 	if e != nil {
 		return e.Code, nil, e
 	}
-	l, err := route.Resource().Find(ctx, lookup, 1, 1)
+	l, err := route.Resource().Find(ctx, lookup, 1, 1, 0)
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

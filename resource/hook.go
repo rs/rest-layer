@@ -257,7 +257,7 @@ func (h *eventHandler) use(e interface{}) error {
 	return nil
 }
 
-func (h *eventHandler) onFind(ctx context.Context, lookup *Lookup, page, perPage int) error {
+func (h *eventHandler) onFind(ctx context.Context, lookup *Lookup, page, perPage int, skip int) error {
 	for _, e := range h.onFindH {
 		if err := e.OnFind(ctx, lookup, page, perPage); err != nil {
 			return err
