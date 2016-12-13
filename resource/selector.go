@@ -195,11 +195,11 @@ func subResourceHandler(f Field, def *schema.Field, rsrc *Resource, resolver Ref
 		if v, ok := f.Params["limit"].(int); ok {
 			perPage = v
 		}
-		skip := 0
+		offset := 0
 		if v, ok := f.Params["offset"].(int); ok {
-			skip = v
+			offset = v
 		}
-		list, err := rsrc.Find(ctx, l, page, perPage, skip)
+		list, err := rsrc.Find(ctx, l, page, perPage, offset)
 		if err != nil {
 			return nil, fmt.Errorf("%s: error fetching sub-resource: %v", f.Name, err)
 		}

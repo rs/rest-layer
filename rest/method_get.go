@@ -10,7 +10,7 @@ import (
 func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	page := 1
 	perPage := 0
-	skip := 0
+	offset := 0
 	rsrc := route.Resource()
 	if route.Method != "HEAD" {
 		if l := rsrc.Conf().PaginationDefaultLimit; l > 0 {
@@ -38,7 +38,7 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			if err != nil {
 				return 422, nil, &Error{422, "Invalid `offset` parameter", nil}
 			}
-			skip = int(i)
+			offset = int(i)
 		}
 		if perPage == -1 && page != 1 {
 			return 422, nil, &Error{422, "Cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size", nil}
@@ -48,7 +48,7 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	if e != nil {
 		return e.Code, nil, e
 	}
-	list, err := rsrc.Find(ctx, lookup, page, perPage, skip)
+	list, err := rsrc.Find(ctx, lookup, page, perPage, offset)
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e
