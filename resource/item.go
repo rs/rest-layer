@@ -24,9 +24,6 @@ type Item struct {
 
 // ItemList represents a list of items
 type ItemList struct {
-	// Results defines the total number of items in the collection matching the current
-	// context without any filter applied. If the storage handler cannot compute this value, -1 is set.
-	Results int
 	// Total defines the total number of items in the collection matching the current
 	// context. If the storage handler cannot compute this value, -1 is set.
 	Total int
