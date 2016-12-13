@@ -848,13 +848,28 @@ You can invert the operator by passing `false`.
 
 ## Sorting
 
-Sorting is of resource items is defined throught the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix its name with a minus (`-`) character.
+Sorting of resource items is defined throught the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix its name with a minus (`-`) character.
 
 To use a resource field with the `sort` parameter, the field must be defined on the resource and the `Sortable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
 
 Here we sort the result by ascending quantity and descending date:
 
 	/posts?sort=quantity,-created
+
+## Skipping
+
+Skipping of resource items is defined throught the `offset` query-string parameter. The `offset` value is an integer defining the number of items to skip when querying for items.
+
+To use a resource field with the `offset` parameter, the field must be defined on the resource.
+
+Skip the first 10 items of the result:
+
+    /posts?offset=10
+
+Return the first 2 items after skipping the first 10 of the result:
+
+    /posts?offset=10&limit=2
+Note that `offset` can't be used with pagination.
 
 ## Field Selection
 
