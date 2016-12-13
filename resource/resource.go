@@ -305,7 +305,7 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 }
 
 // Find implements Storer interface
-func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage int, offset int) (list *ItemList, err error) {
+func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage, offset int) (list *ItemList, err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {
 			found := -1
