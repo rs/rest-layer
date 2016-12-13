@@ -14,6 +14,10 @@ type Schema struct {
 	Description string
 	// Fields defines the schema's allowed fields
 	Fields Fields
+	// MinLen defines the minimum number of fields (default 0)
+	MinLen int
+	// MaxLen defines the maximum number of fields (default no limit)
+	MaxLen int
 }
 
 // Validator is an interface used to validate schema against actual data
@@ -323,6 +327,15 @@ func (s Schema) validate(changes map[string]interface{}, base map[string]interfa
 				doc[field] = value
 			}
 		}
+	}
+	l := len(doc)
+	if l < s.MinLen {
+		addFieldError(errs, "", fmt.Sprintf("has fewer properties than %d", s.MinLen))
+		return nil, errs
+	}
+	if s.MaxLen > 0 && l > s.MaxLen {
+		addFieldError(errs, "", fmt.Sprintf("has more properties than %d", s.MaxLen))
+		return nil, errs
 	}
 	return doc, errs
 }
