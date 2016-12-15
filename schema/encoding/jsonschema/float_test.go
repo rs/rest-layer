@@ -1,3 +1,5 @@
+// +build go1.7
+
 package jsonschema_test
 
 import (
@@ -31,7 +33,7 @@ func TestFloatValidatorEncode(t *testing.T) {
 					},
 				},
 			},
-			customValidate: fieldValidator("f", `{"type": "number", "enum": [0,0.5,100]}`),
+			customValidate: fieldValidator("f", `{"type": "number", "enum": [0, 0.5, 100]}`),
 		},
 		{
 			name: "Boundaries={Min:0,Max:100}",

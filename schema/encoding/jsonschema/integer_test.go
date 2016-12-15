@@ -1,11 +1,30 @@
+// +build go1.7
+
 package jsonschema_test
 
 import (
+	"bytes"
 	"math"
 	"testing"
 
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/encoding/jsonschema"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestIntegerValidatorNoBoundaryPanic(t *testing.T) {
+	s := schema.Schema{
+		Fields: schema.Fields{
+			"i": schema.Field{
+				Validator: &schema.Integer{},
+			},
+		},
+	}
+	assert.NotPanics(t, func() {
+		enc := jsonschema.NewEncoder(new(bytes.Buffer))
+		enc.Encode(&s)
+	})
+}
 
 func TestIntegerValidatorEncode(t *testing.T) {
 	testCases := []encoderTestCase{

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -23,17 +24,8 @@ type fieldWriter struct {
 	propertiesCount int
 }
 
-// Wrap IO writer so we can consolidate error handling
-// in a single place. Also track properties written
-// so we know when to emit a separator.
-type errWriter struct {
-	w   io.Writer // writer instance
-	err error     // track errors
-}
-
-// comma optionally outputs a comma.
-// Invoke this when you're about to write a property.
-// Tracks how many have been written and emits if not the first.
+// comma optionally outputs a comma.  Invoke this when you're about to write a property.  Tracks how many have been
+// written and emits if not the first.
 func (fw *fieldWriter) comma() {
 	if fw.propertiesCount > 0 {
 		fw.writeString(",")
@@ -45,7 +37,14 @@ func (fw *fieldWriter) resetPropertiesCount() {
 	fw.propertiesCount = 0
 }
 
-// Compatibility with io.Writer interface
+// Wrap IO writer so we can consolidate error handling in a single place. Also track properties written so we know when
+// to emit a separator.
+type errWriter struct {
+	w   io.Writer // writer instance
+	err error     // track errors
+}
+
+// Write ensures compatibility with the io.Writer interface.
 func (ew errWriter) Write(p []byte) (int, error) {
 	if ew.err != nil {
 		return 0, ew.err
@@ -72,6 +71,16 @@ func (ew errWriter) writeBytes(b []byte) {
 		return
 	}
 	_, ew.err = ew.w.Write(b)
+}
+
+// sortedFieldNames returns a list with all field names alphabetically sorted.
+func sortedFieldNames(v schema.Fields) []string {
+	keys := make([]string, 0, len(v))
+	for k := range v {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // boundariesToJSONSchema writes JSON Schema keys and values based on b, prefixed by a comma and without curly braces,
@@ -197,7 +206,7 @@ func serializeField(ew errWriter, key string, field schema.Field) error {
 	}
 	fw.writeString("}")
 	fw.resetPropertiesCount()
-	return nil
+	return fw.err
 }
 
 // SchemaToJSONSchema writes JSON Schema keys and values based on s, without the outer curly braces, to w.
@@ -215,7 +224,8 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 	ew.writeString(`"properties": {`)
 	var required []string
 	var notFirst bool
-	for key, field := range s.Fields {
+	for _, key := range sortedFieldNames(s.Fields) {
+		field := s.Fields[key]
 		if notFirst {
 			ew.writeString(", ")
 		}
@@ -223,9 +233,9 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 		if field.Required {
 			required = append(required, fmt.Sprintf("%q", key))
 		}
-		err := serializeField(ew, key, field)
-		if err != nil || ew.err != nil {
-			break
+		ew.err = serializeField(ew, key, field)
+		if ew.err != nil {
+			return ew.err
 		}
 	}
 	ew.writeString("}")
