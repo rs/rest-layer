@@ -12,6 +12,76 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// studentSchema serves as a complex nested schema example.
+var studentSchema = schema.Schema{
+	Description: "Object with array of students",
+	Fields: schema.Fields{
+		"students": {
+			Description: "Array of students",
+			Validator: &schema.Array{
+				ValuesValidator: &schema.Object{
+					Schema: &schema.Schema{
+						Description: "Student and class",
+						Fields: schema.Fields{
+							"student": {
+								Description: "The student name",
+								Required:    true,
+								Default:     "Unknown",
+								Validator: &schema.String{
+									MinLen: 1,
+									MaxLen: 10,
+								},
+							},
+							"class": {
+								Description: "The class name",
+								Default:     "Unassigned",
+								Validator: &schema.String{
+									MinLen: 0, // Default value.
+									MaxLen: 10,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+}
+
+// studentSchemaJSON contains the expected JSON serialization of studentSchema.
+const studentSchemaJSON = `{
+	"type": "object",
+	"description": "Object with array of students",
+	"additionalProperties": false,
+	"properties": {
+		"students": {
+			"type": "array",
+			"description": "Array of students",
+			"items": {
+				"type": "object",
+				"description": "Student and class",
+				"additionalProperties": false,
+				"properties": {
+					"student": {
+						"type": "string",
+						"description": "The student name",
+						"default": "Unknown",
+						"minLength": 1,
+						"maxLength": 10
+					},
+					"class": {
+						"type": "string",
+						"description": "The class name",
+						"default": "Unassigned",
+						"maxLength": 10
+					}
+				},
+				"required": ["student"]
+			}
+		}
+	}
+}`
+
 type dummyValidator struct{}
 
 func (v dummyValidator) Validate(value interface{}) (interface{}, error) {
@@ -340,73 +410,9 @@ func TestEncoder(t *testing.T) {
 			}`,
 		},
 		{
-			name: "Validator=Array,ValuesValidator=Object{Schema:Student}",
-			schema: schema.Schema{
-				Description: "Object with array of students",
-				Fields: schema.Fields{
-					"students": {
-						Description: "Array of students",
-						Validator: &schema.Array{
-							ValuesValidator: &schema.Object{
-								Schema: &schema.Schema{
-									Description: "Student and class",
-									Fields: schema.Fields{
-										"student": {
-											Description: "The student name",
-											Required:    true,
-											Default:     "Unknown",
-											Validator: &schema.String{
-												MinLen: 1,
-												MaxLen: 10,
-											},
-										},
-										"class": {
-											Description: "The class name",
-											Default:     "Unassigned",
-											Validator: &schema.String{
-												MinLen: 0, // Default value.
-												MaxLen: 10,
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			expect: `{
-				"type": "object",
-				"description": "Object with array of students",
-				"additionalProperties": false,
-				"properties": {
-					"students": {
-						"type": "array",
-						"description": "Array of students",
-						"items": {
-							"type": "object",
-							"description": "Student and class",
-							"additionalProperties": false,
-							"properties": {
-								"student": {
-									"type": "string",
-									"description": "The student name",
-									"default": "Unknown",
-									"minLength": 1,
-									"maxLength": 10
-								},
-								"class": {
-									"type": "string",
-									"description": "The class name",
-									"default": "Unassigned",
-									"maxLength": 10
-								}
-							},
-							"required": ["student"]
-						}
-					}
-				}
-			}`,
+			name:   "Validator=Array,ValuesValidator=Object{Schema:Student}",
+			schema: studentSchema,
+			expect: studentSchemaJSON,
 		},
 		{
 			name: `Validator=Object,Fields["location"].Validator=Object`,
