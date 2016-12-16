@@ -1,3 +1,5 @@
+// +build go1.7
+
 package jsonschema_test
 
 import (
@@ -10,6 +12,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type dummyValidator struct{}
+
+func (v dummyValidator) Validate(value interface{}) (interface{}, error) {
+	return value, nil
+}
+
+func TestErrNotImplemented(t *testing.T) {
+	s := schema.Schema{
+		Fields: schema.Fields{
+			"i": {
+				Validator: &dummyValidator{},
+			},
+		},
+	}
+	enc := jsonschema.NewEncoder(new(bytes.Buffer))
+	assert.Equal(t, jsonschema.ErrNotImplemented, enc.Encode(&s))
+}
+
 // encoderTestCase is used to test the Encoder.Encode() function.
 type encoderTestCase struct {
 	name           string
@@ -18,23 +38,20 @@ type encoderTestCase struct {
 	customValidate encoderValidator
 }
 
-// Run runs the testCase according to your Go version. For Go >= 1.7, test cases are run in parallel using the Go 1.7
-// sub-test feature. For older versions of Go, the testCase name is simply logged before tests are run sequentially.
 func (tc *encoderTestCase) Run(t *testing.T) {
-	tc.run(t)
-}
+	t.Run(tc.name, func(t *testing.T) {
+		t.Parallel()
 
-// test performs the actual test and is used by both implementations of run.
-func (tc *encoderTestCase) test(t *testing.T) {
-	b := new(bytes.Buffer)
-	enc := jsonschema.NewEncoder(b)
-	assert.NoError(t, enc.Encode(&tc.schema))
+		b := new(bytes.Buffer)
+		enc := jsonschema.NewEncoder(b)
+		assert.NoError(t, enc.Encode(&tc.schema))
 
-	if tc.customValidate == nil {
-		assert.JSONEq(t, tc.expect, b.String())
-	} else {
-		tc.customValidate(t, b.Bytes())
-	}
+		if tc.customValidate == nil {
+			assert.JSONEq(t, tc.expect, b.String())
+		} else {
+			tc.customValidate(t, b.Bytes())
+		}
+	})
 }
 
 // encoderValidator can be used to validate encoded data.
@@ -63,7 +80,7 @@ func TestEncoder(t *testing.T) {
 			name: "ReadOnly=true",
 			schema: schema.Schema{
 				Fields: schema.Fields{
-					"name": schema.Field{
+					"name": {
 						ReadOnly:  true,
 						Validator: &schema.String{},
 					},
@@ -84,7 +101,7 @@ func TestEncoder(t *testing.T) {
 			name: `type(Default)=string`,
 			schema: schema.Schema{
 				Fields: schema.Fields{
-					"name": schema.Field{
+					"name": {
 						Validator: &schema.String{},
 						Default:   "Luke",
 					},
@@ -110,7 +127,7 @@ func TestEncoder(t *testing.T) {
 			name: `type(Default)=int`,
 			schema: schema.Schema{
 				Fields: schema.Fields{
-					"name": schema.Field{
+					"name": {
 						Validator: &schema.String{},
 						Default:   24,
 					},
@@ -135,10 +152,10 @@ func TestEncoder(t *testing.T) {
 						Validator: &schema.Object{
 							Schema: &schema.Schema{
 								Fields: schema.Fields{
-									"name": schema.Field{
+									"name": {
 										Validator: &schema.String{},
 									},
-									"age": schema.Field{
+									"age": {
 										Validator: &schema.Integer{},
 									},
 								},
@@ -178,13 +195,13 @@ func TestEncoder(t *testing.T) {
 			name: "MinLen=2",
 			schema: schema.Schema{
 				Fields: schema.Fields{
-					"foo": schema.Field{
+					"foo": {
 						Validator: &schema.Bool{},
 					},
-					"bar": schema.Field{
+					"bar": {
 						Validator: &schema.Bool{},
 					},
-					"baz": schema.Field{
+					"baz": {
 						Validator: &schema.Bool{},
 					},
 				},
@@ -205,13 +222,13 @@ func TestEncoder(t *testing.T) {
 			name: "MaxLen=2",
 			schema: schema.Schema{
 				Fields: schema.Fields{
-					"foo": schema.Field{
+					"foo": {
 						Validator: &schema.Bool{},
 					},
-					"bar": schema.Field{
+					"bar": {
 						Validator: &schema.Bool{},
 					},
-					"baz": schema.Field{
+					"baz": {
 						Validator: &schema.Bool{},
 					},
 				},
@@ -232,11 +249,11 @@ func TestEncoder(t *testing.T) {
 			name: "Required=true(1/2)",
 			schema: schema.Schema{
 				Fields: schema.Fields{
-					"name": schema.Field{
+					"name": {
 						Required:  true,
 						Validator: &schema.String{},
 					},
-					"age": schema.Field{
+					"age": {
 						Validator: &schema.Integer{},
 					},
 				},
@@ -259,15 +276,15 @@ func TestEncoder(t *testing.T) {
 			name: "Required=true(2/3)",
 			schema: schema.Schema{
 				Fields: schema.Fields{
-					"name": schema.Field{
+					"name": {
 						Required:  true,
 						Validator: &schema.String{},
 					},
-					"age": schema.Field{
+					"age": {
 						Required:  true,
 						Validator: &schema.Integer{},
 					},
-					"class": schema.Field{
+					"class": {
 						Validator: &schema.String{},
 					},
 				},
@@ -304,7 +321,7 @@ func TestEncoder(t *testing.T) {
 			name: "Validator=Array,ValuesValidator=Object{Schema:nil}",
 			schema: schema.Schema{
 				Fields: schema.Fields{
-					"students": schema.Field{
+					"students": {
 						Validator: &schema.Array{
 							ValuesValidator: &schema.Object{},
 						},
@@ -327,14 +344,14 @@ func TestEncoder(t *testing.T) {
 			schema: schema.Schema{
 				Description: "Object with array of students",
 				Fields: schema.Fields{
-					"students": schema.Field{
+					"students": {
 						Description: "Array of students",
 						Validator: &schema.Array{
 							ValuesValidator: &schema.Object{
 								Schema: &schema.Schema{
 									Description: "Student and class",
 									Fields: schema.Fields{
-										"student": schema.Field{
+										"student": {
 											Description: "The student name",
 											Required:    true,
 											Default:     "Unknown",
@@ -343,7 +360,7 @@ func TestEncoder(t *testing.T) {
 												MaxLen: 10,
 											},
 										},
-										"class": schema.Field{
+										"class": {
 											Description: "The class name",
 											Default:     "Unassigned",
 											Validator: &schema.String{
@@ -395,11 +412,11 @@ func TestEncoder(t *testing.T) {
 			name: `Validator=Object,Fields["location"].Validator=Object`,
 			schema: schema.Schema{
 				Fields: schema.Fields{
-					"location": schema.Field{
+					"location": {
 						Validator: &schema.Object{
 							Schema: &schema.Schema{
 								Fields: schema.Fields{
-									"country": schema.Field{
+									"country": {
 										Validator: &schema.String{},
 									},
 								},
@@ -428,7 +445,7 @@ func TestEncoder(t *testing.T) {
 			name: `Incorrectly configured field`,
 			schema: schema.Schema{
 				Fields: schema.Fields{
-					"location": schema.Field{
+					"location": {
 						Description: "location of your stuff",
 					},
 				},
