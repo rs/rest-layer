@@ -30,7 +30,7 @@ type ItemList struct {
 	// Page is the current page represented by this ItemList.
 	Page int
 	// Offset is the offset of the query (mongodb skip)
-	Offset int
+	Skip int
 	// Items is the list of items contained in the current page given the current
 	// context.
 	Items []*Item

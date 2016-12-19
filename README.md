@@ -858,18 +858,18 @@ Here we sort the result by ascending quantity and descending date:
 
 ## Skipping
 
-Skipping of resource items is defined through the `offset` query-string parameter. The `offset` value is a positive integer defining the number of items to skip when querying for items.
+Skipping of resource items is defined through the `skip` query-string parameter. The `skip` value is a positive integer defining the number of items to skip when querying for items.
 
-To use a resource field with the `offset` parameter, the field must be defined on the resource.
+To use a resource field with the `skip` parameter, the field must be defined on the resource.
 
 Skip the first 10 items of the result:
 
-    /posts?offset=10
+    /posts?skip=10
 
 Return the first 2 items after skipping the first 10 of the result:
 
-    /posts?offset=10&limit=2
-Note that `offset` can't be used with pagination.
+    /posts?skip=10&limit=2
+Note that `skip` can't be used with pagination.
 
 ## Field Selection
 

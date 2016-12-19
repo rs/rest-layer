@@ -81,41 +81,49 @@ func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url
 	offset = 1
 	// Default value on non HEAD request for limit is -1 (pagination disabled)
 	limit = -1
+
 	if l := r.Conf().PaginationDefaultLimit; l > 0 {
 		limit = l
 	}
-	if p, ok := p.Args["offset"].(string); ok && p != "" {
+	if s, ok := p.Args["skip"].(string); ok && s != "" {
+		i, err := strconv.ParseUint(s, 10, 32)
+		if err != nil {
+			return nil, 0, 0, errors.New("Invalid `skip` parameter")
+		}
+		offset = int(i)
+	}
+	if p, ok := p.Args["page"].(string); ok && p != "" {
 		i, err := strconv.ParseUint(p, 10, 32)
 		if err != nil {
-			return nil, 0, 0, errors.New("invalid `limit` parameter")
+			return nil, 0, 0, errors.New("Invalid `page` parameter")
 		}
 		offset = int(i)
 	}
 	if l, ok := p.Args["limit"].(string); ok && l != "" {
 		i, err := strconv.ParseUint(l, 10, 32)
 		if err != nil {
-			return nil, 0, 0, errors.New("invalid `limit` parameter")
+			return nil, 0, 0, errors.New("Invalid `limit` parameter")
 		}
 		limit = int(i)
 	}
-	if limit == -1 && offset != 1 {
-		return nil, 0, 0, errors.New("cannot use `offset' parameter with no `limit' paramter on a resource with no default pagination size")
+	if offset >= 0 && limit == -1 {
+		return nil, 0, 0, errors.New("cannot use `page' parameter with no `limit' paramter on a resource with no default pagination size")
 	}
 	lookup = resource.NewLookup()
 	if sort, ok := p.Args["sort"].(string); ok && sort != "" {
 		if err := lookup.SetSort(sort, r.Validator()); err != nil {
-			return nil, 0, 0, fmt.Errorf("invalid `sort` parameter: %v", err)
+			return nil, 0, 0, fmt.Errorf("Invalid `sort` parameter: %v", err)
 		}
 	}
 	if filter, ok := p.Args["filter"].(string); ok && filter != "" {
 		if err := lookup.AddFilter(filter, r.Validator()); err != nil {
-			return nil, 0, 0, fmt.Errorf("invalid `filter` parameter: %v", err)
+			return nil, 0, 0, fmt.Errorf("Invalid `filter` parameter: %v", err)
 		}
 	}
 	if params != nil {
 		if filter := params.Get("filter"); filter != "" {
 			if err := lookup.AddFilter(filter, r.Validator()); err != nil {
-				return nil, 0, 0, fmt.Errorf("invalid `filter` parameter: %v", err)
+				return nil, 0, 0, fmt.Errorf("Invalid `filter` parameter: %v", err)
 			}
 		}
 	}
