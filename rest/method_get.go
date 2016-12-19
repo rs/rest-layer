@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/http"
 	"strconv"
-
-	"github.com/Sirupsen/logrus"
 )
 
 // listGet handles GET resquests on a resource URL
@@ -38,7 +36,6 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		}
 		if p := route.Params.Get("page"); p != "" {
 			if isSetOffset {
-				logrus.Error(offset)
 				return 422, nil, &Error{422, "Cannot use `page' parameter together with `offset` parameter.", nil}
 			}
 			i, err := strconv.ParseUint(p, 10, 32)
