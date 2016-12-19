@@ -11,7 +11,7 @@ import (
 func TestHookUseFind(t *testing.T) {
 	h := eventHandler{}
 	called := false
-	err := h.use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, page, perPage int) error {
+	err := h.use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
 		called = true
 		return nil
 	}))
@@ -31,7 +31,7 @@ func TestHookUseFind(t *testing.T) {
 	err = h.onFind(nil, nil, 0, 0)
 	assert.True(t, called)
 
-	err = h.use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, page, perPage int) error {
+	err = h.use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
 		return errors.New("error")
 	}))
 	assert.NoError(t, err)

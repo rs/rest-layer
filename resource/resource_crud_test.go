@@ -10,7 +10,7 @@ import (
 )
 
 type testStorer struct {
-	find   func(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error)
+	find   func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error)
 	insert func(ctx context.Context, items []*Item) error
 	update func(ctx context.Context, item *Item, original *Item) error
 	delete func(ctx context.Context, item *Item) error
@@ -22,8 +22,8 @@ type testMStorer struct {
 	multiGet func(ctx context.Context, ids []interface{}) ([]*Item, error)
 }
 
-func (s testStorer) Find(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error) {
-	return s.find(ctx, lookup, page, perPage)
+func (s testStorer) Find(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
+	return s.find(ctx, lookup, offset, limit)
 }
 func (s testStorer) Insert(ctx context.Context, items []*Item) error {
 	return s.insert(ctx, items)
@@ -43,7 +43,7 @@ func (s testMStorer) MultiGet(ctx context.Context, ids []interface{}) ([]*Item, 
 
 func newTestStorer() *testStorer {
 	return &testStorer{
-		find: func(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error) {
+		find: func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
 			return &ItemList{}, nil
 		},
 		insert: func(ctx context.Context, items []*Item) error {
@@ -338,16 +338,16 @@ func TestResourceFind(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.find = func(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error) {
+	s.find = func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
 		handler = true
 		return &ItemList{Items: []*Item{{ID: 1}}}, nil
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, page, perPage int) error {
+	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
 		preHook = true
 		assert.NotNil(t, lookup)
-		assert.Equal(t, 1, page)
-		assert.Equal(t, 2, perPage)
+		assert.Equal(t, 1, offset)
+		assert.Equal(t, 2, limit)
 		return nil
 	}))
 	r.Use(FoundEventHandlerFunc(func(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
@@ -367,7 +367,7 @@ func TestResourceFind(t *testing.T) {
 func TestResourceMultiFindPostHookOverwrite(t *testing.T) {
 	i := NewIndex()
 	s := newTestMStorer()
-	s.find = func(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error) {
+	s.find = func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
 		return &ItemList{Items: []*Item{{ID: 1}}}, nil
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
@@ -384,16 +384,16 @@ func TestResourceFindError(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.find = func(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error) {
+	s.find = func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
 		handler = true
 		return nil, errors.New("storer error")
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, page, perPage int) error {
+	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
 		preHook = true
 		assert.NotNil(t, lookup)
-		assert.Equal(t, 1, page)
-		assert.Equal(t, 2, perPage)
+		assert.Equal(t, 1, offset)
+		assert.Equal(t, 2, limit)
 		return nil
 	}))
 	r.Use(FoundEventHandlerFunc(func(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
@@ -414,12 +414,12 @@ func TestResourceFindPreHookError(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.find = func(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error) {
+	s.find = func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
 		handler = true
 		return nil, errors.New("storer error")
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, page, perPage int) error {
+	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
 		preHook = true
 		return errors.New("pre hook error")
 	}))
@@ -441,16 +441,16 @@ func TestResourceFindPostHookError(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.find = func(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error) {
+	s.find = func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
 		handler = true
 		return &ItemList{Items: []*Item{{ID: 1}}}, nil
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, page, perPage int) error {
+	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
 		preHook = true
 		assert.NotNil(t, lookup)
-		assert.Equal(t, 1, page)
-		assert.Equal(t, 2, perPage)
+		assert.Equal(t, 1, offset)
+		assert.Equal(t, 2, limit)
 		return nil
 	}))
 	r.Use(FoundEventHandlerFunc(func(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {

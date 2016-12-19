@@ -1304,7 +1304,7 @@ A resource storage handler is easy to write though. Some handlers for [popular d
 
 ```go
 type Storer interface {
-	Find(ctx context.Context, lookup *resource.Lookup, page, perPage int) (*resource.ItemList, error)
+	Find(ctx context.Context, lookup *resource.Lookup, offset, limit int) (*resource.ItemList, error)
 	Insert(ctx context.Context, items []*resource.Item) error
 	Update(ctx context.Context, item *resource.Item, original *resource.Item) error
 	Delete(ctx context.Context, item *resource.Item) error
@@ -1364,7 +1364,7 @@ type myResponseFormatter struct {
 
 // Add a wrapper around the list with pagination info
 func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
-	ctx, data := r.DefaultResponseSender.FormatList(ctx, headers, l, skipBody)
+	ctx, data := r.DefaultResponseFormatter.FormatList(ctx, headers, l, skipBody)
 	return ctx, map[string]interface{}{
 		"meta": map[string]int{
 			"total": l.Total,
