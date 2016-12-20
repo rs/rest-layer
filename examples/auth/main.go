@@ -77,7 +77,7 @@ type AuthResourceHook struct {
 }
 
 // OnFind implements resource.FindEventHandler interface
-func (a AuthResourceHook) OnFind(ctx context.Context, lookup *resource.Lookup, page, perPage int) error {
+func (a AuthResourceHook) OnFind(ctx context.Context, lookup *resource.Lookup, offset, limit int) error {
 	// Reject unauthorized users
 	user, found := UserFromContext(ctx)
 	if !found {

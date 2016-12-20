@@ -196,7 +196,7 @@ func TestHandler(t *testing.T) {
 	r, _ = http.NewRequest("GET", "/?query={posts(id:\"ar5qrgukj5l7a6eq2ps0\"){id,meta{title},followers(limit:2){user{id,name}}}}", nil)
 	s, b = performRequest(gql, r)
 	assert.Equal(t, 200, s)
-	assert.Equal(t, "{\"data\":{\"posts\":{\"followers\":[{\"user\":{\"id\":\"fan1\",\"name\":\"Fan 1\"}},{\"user\":{\"id\":\"fan2\",\"name\":\"Fan 2\"}},{\"user\":{\"id\":\"fan3\",\"name\":\"Fan 3\"}}],\"id\":\"ar5qrgukj5l7a6eq2ps0\",\"meta\":{\"title\":\"First Post\"}}}}\n", b)
+	assert.Equal(t, "{\"data\":{\"posts\":{\"followers\":[{\"user\":{\"id\":\"fan1\",\"name\":\"Fan 1\"}},{\"user\":{\"id\":\"fan2\",\"name\":\"Fan 2\"}}],\"id\":\"ar5qrgukj5l7a6eq2ps0\",\"meta\":{\"title\":\"First Post\"}}}}\n", b)
 
 	r, _ = http.NewRequest("POST", "/", bytes.NewBufferString("{postsList{id,thumb_s_url:thumbnail_url(height:80)}}"))
 	s, b = performRequest(gql, r)

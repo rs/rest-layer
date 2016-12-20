@@ -413,7 +413,6 @@ Content-Length: 257
 Content-Type: application/json
 Date: Mon, 27 Jul 2015 19:51:46 GMT
 Vary: Origin
-X-Page: 1
 X-Total: 1
 
 [
@@ -439,7 +438,6 @@ Content-Length: 257
 Content-Type: application/json
 Date: Mon, 27 Jul 2015 19:51:46 GMT
 Vary: Origin
-X-Page: 1
 X-Total: 1
 
 [
@@ -848,13 +846,28 @@ You can invert the operator by passing `false`.
 
 ## Sorting
 
-Sorting is of resource items is defined throught the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix its name with a minus (`-`) character.
+Sorting of resource items is defined through the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix its name with a minus (`-`) character.
 
 To use a resource field with the `sort` parameter, the field must be defined on the resource and the `Sortable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
 
 Here we sort the result by ascending quantity and descending date:
 
 	/posts?sort=quantity,-created
+
+## Skipping
+
+Skipping of resource items is defined through the `skip` query-string parameter. The `skip` value is a positive integer defining the number of items to skip when querying for items.
+
+To use a resource field with the `skip` parameter, the field must be defined on the resource.
+
+Skip the first 10 items of the result:
+
+    /posts?skip=10
+
+Return the first 2 items after skipping the first 10 of the result:
+
+    /posts?skip=10&limit=2
+Note that `skip` can't be used with pagination.
 
 ## Field Selection
 
@@ -999,13 +1012,13 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts \
 
 In the above example, the `user` field is a reference on the `users` resource. REST Layer did fetch the user referenced by the post and embedded the requested sub-fields (`id` and `name`). Same for `comments`: `comments` is set as a sub-resource of the `posts` resource. With this syntax, it's easy to get the last 10 comments on the post in the same REST request. For each of those comment, we asked to embed the `user` field referenced resource with `id` and `name` fields again.
 
-Notice the `sort` and `limit` parameters passed to the `comments` field. Those are field parameter automatically exposed by connections to let you control the embedded list order, filter and pagination. You can use `sort`, `filter`, `page` and `limit` parameters with those field with the same syntax as their top level query-string parameter counterpart.
+Notice the `sort` and `limit` parameters passed to the `comments` field. Those are field parameter automatically exposed by connections to let you control the embedded list order, filter and pagination. You can use `sort`, `filter`, `skip`, `page` and `limit` parameters with those field with the same syntax as their top level query-string parameter counterpart.
 
 Such request can quickly generate a lot of queries on the storage handler. To ensure a fast response time, REST layer tries to coalesce those storage requests and to execute them concurrently whenever possible.
 
 ## Pagination
 
-Pagination is supported on collection URLs using `page` and `limit` query-string parameters. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated until you provide the `limit` query-string parameter.
+Pagination is supported on collection URLs using `skip`, `page` and `limit` query-string parameters. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated until you provide the `limit` query-string parameter.
 
 If your collections are large enough, failing to define a reasonable `PaginationDefaultLimit` parameter may quickly render your API unusable.
 
@@ -1289,7 +1302,7 @@ A resource storage handler is easy to write though. Some handlers for [popular d
 
 ```go
 type Storer interface {
-	Find(ctx context.Context, lookup *resource.Lookup, page, perPage int) (*resource.ItemList, error)
+	Find(ctx context.Context, lookup *resource.Lookup, offset, limit int) (*resource.ItemList, error)
 	Insert(ctx context.Context, items []*resource.Item) error
 	Update(ctx context.Context, item *resource.Item, original *resource.Item) error
 	Delete(ctx context.Context, item *resource.Item) error
@@ -1349,11 +1362,11 @@ type myResponseFormatter struct {
 
 // Add a wrapper around the list with pagination info
 func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
-	ctx, data := r.DefaultResponseSender.FormatList(ctx, headers, l, skipBody)
+	ctx, data := r.DefaultResponseFormatter.FormatList(ctx, headers, l, skipBody)
 	return ctx, map[string]interface{}{
 		"meta": map[string]int{
-			"total": l.Total,
-			"page":  l.Page,
+			"offset": l.Offset,
+			"total":  l.Total,
 		},
 		"list": data,
 	}
@@ -1364,7 +1377,7 @@ func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header
 
 In parallel of the REST API handler, REST Layer is also able to handle GraphQL queries (mutation will come later). GraphQL is a query language created by Facebook which provides a common interface fetch and manipulate data. REST Layer's GraphQL handler is able to read a [resource.Index](https://godoc.org/github.com/rs/rest-layer/resource#Index) and create a corresponding GraphQL schema.
 
-GraphQL doesn't expose resources directly, but queries. REST Layer take all the resources defined at the root of the `resource.Index` and create two GraphQL queries for each one. On query is just the name of the endpoint, so `/users` would result in `users` and another is the name of the endpoint suffixed with `List`, as `usersList`. The item queries takes an `id` parameter and the list queries take `page`, `limit`, `filter` and `sort` parameters. All sub-resources are accessible using GraphQL sub-selection syntax.
+GraphQL doesn't expose resources directly, but queries. REST Layer take all the resources defined at the root of the `resource.Index` and create two GraphQL queries for each one. On query is just the name of the endpoint, so `/users` would result in `users` and another is the name of the endpoint suffixed with `List`, as `usersList`. The item queries takes an `id` parameter and the list queries take `skip`, `page`, `limit`, `filter` and `sort` parameters. All sub-resources are accessible using GraphQL sub-selection syntax.
 
 If you resource defines aliases, some additional GraphQL queris are exposes with their name constructed as the name of the resource suffixed with the name of the alias with a capital. So for `users` with an alias `admin`, the query would be `usersAdmin`.
 

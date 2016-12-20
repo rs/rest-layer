@@ -21,7 +21,7 @@ type Storer interface {
 	// If the fetching of the data is not immediate, the method must listen for cancellation
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the ctx.Err() method.
-	Find(ctx context.Context, lookup *Lookup, page, perPage int) (*ItemList, error)
+	Find(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error)
 	// Insert stores new items in the backend store. If any of the items does already exist,
 	// no item should be inserted and a resource.ErrConflict must be returned. The insertion
 	// of the items must be performed atomically. If more than one item is provided and the
@@ -134,7 +134,7 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 			})
 		}
 		var list *ItemList
-		list, err = s.Storer.Find(ctx, l, 1, len(ids))
+		list, err = s.Storer.Find(ctx, l, 0, len(ids))
 		if list != nil {
 			tmp = list.Items
 		}
@@ -155,29 +155,29 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 }
 
 // Find tries to use storer MultiGet with some pattern or Find otherwise
-func (s storageWrapper) Find(ctx context.Context, lookup *Lookup, page, perPage int) (list *ItemList, err error) {
+func (s storageWrapper) Find(ctx context.Context, lookup *Lookup, offset, limit int) (list *ItemList, err error) {
 	if s.Storer == nil {
 		return nil, ErrNoStorage
 	}
 	if mg, ok := s.Storer.(MultiGetter); ok {
 		// If storage supports MultiGetter interface, detect some common find pattern that could be
 		// converted to multi get
-		if q := lookup.Filter(); len(q) == 1 && page == 1 && len(lookup.Sort()) == 0 {
+		if q := lookup.Filter(); len(q) == 1 && offset == 0 && len(lookup.Sort()) == 0 {
 			switch op := q[0].(type) {
 			case schema.Equal:
 				// When query pattern is a single document request by its id, use the multi get API
-				if id, ok := op.Value.(string); ok && op.Field == "id" && (perPage == 1 || perPage < 0) {
+				if id, ok := op.Value.(string); ok && op.Field == "id" && (limit == 1 || limit < 0) {
 					return wrapMgetList(mg.MultiGet(ctx, []interface{}{id}))
 				}
 			case schema.In:
 				// When query pattern is a list of documents request by their ids, use the multi get API
-				if op.Field == "id" && perPage < 0 || perPage == len(op.Values) {
+				if op.Field == "id" && limit < 0 || limit == len(op.Values) {
 					return wrapMgetList(mg.MultiGet(ctx, valuesToInterface(op.Values)))
 				}
 			}
 		}
 	}
-	return s.Storer.Find(ctx, lookup, page, perPage)
+	return s.Storer.Find(ctx, lookup, offset, limit)
 }
 
 // wrapMgetList wraps a MultiGet response into a resource.ItemList response
@@ -185,7 +185,7 @@ func wrapMgetList(items []*Item, err error) (*ItemList, error) {
 	if err != nil {
 		return nil, err
 	}
-	list := &ItemList{Page: 1, Total: len(items), Items: items}
+	list := &ItemList{Offset: 0, Total: len(items), Items: items}
 	return list, nil
 }
 

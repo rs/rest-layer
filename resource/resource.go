@@ -156,6 +156,12 @@ func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *
 			path: "." + name,
 		},
 		Params: schema.Params{
+			"skip": schema.Param{
+				Description: "The number of items to skip",
+				Validator: schema.Integer{
+					Boundaries: &schema.Boundaries{Min: 0},
+				},
+			},
 			"page": schema.Param{
 				Description: "The page number",
 				Validator: schema.Integer{
@@ -305,22 +311,22 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 }
 
 // Find implements Storer interface
-func (r *Resource) Find(ctx context.Context, lookup *Lookup, page, perPage int) (list *ItemList, err error) {
+func (r *Resource) Find(ctx context.Context, lookup *Lookup, offset, limit int) (list *ItemList, err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {
 			found := -1
 			if list != nil {
 				found = len(list.Items)
 			}
-			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Find(..., %d, %d)", r.path, page, perPage), map[string]interface{}{
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Find(..., %d, %d)", r.path, offset, limit), map[string]interface{}{
 				"duration": time.Since(t),
 				"found":    found,
 				"error":    err,
 			})
 		}(time.Now())
 	}
-	if err = r.hooks.onFind(ctx, lookup, page, perPage); err == nil {
-		list, err = r.storage.Find(ctx, lookup, page, perPage)
+	if err = r.hooks.onFind(ctx, lookup, offset, limit); err == nil {
+		list, err = r.storage.Find(ctx, lookup, offset, limit)
 	}
 	r.hooks.onFound(ctx, lookup, &list, &err)
 	return

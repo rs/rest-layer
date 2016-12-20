@@ -118,7 +118,7 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 		go func(index int) {
 			defer wait.Done()
 			// Check if the resource exists
-			list, err := p[index].Resource.Find(ctx, l, 1, 1)
+			list, err := p[index].Resource.Find(ctx, l, 0, 1)
 			if err != nil {
 				c <- err
 			} else if len(list.Items) == 0 {

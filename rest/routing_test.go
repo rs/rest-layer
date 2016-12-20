@@ -33,14 +33,14 @@ func (m *mockHandler) Delete(ctx context.Context, item *resource.Item) error {
 func (m *mockHandler) Clear(ctx context.Context, lookup *resource.Lookup) (int, error) {
 	return 0, ErrNotImplemented
 }
-func (m *mockHandler) Find(ctx context.Context, lookup *resource.Lookup, page, perPage int) (*resource.ItemList, error) {
+func (m *mockHandler) Find(ctx context.Context, lookup *resource.Lookup, offset, limit int) (*resource.ItemList, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.queries = append(m.queries, lookup.Filter())
-	return &resource.ItemList{Total: len(m.items), Page: page, Items: m.items}, nil
+	return &resource.ItemList{Total: len(m.items), Items: m.items}, nil
 }
 
 func newRoute(method string) *RouteMatch {

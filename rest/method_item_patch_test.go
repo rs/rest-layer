@@ -31,7 +31,7 @@ func TestHandlerPatchItem(t *testing.T) {
 	b, _ := ioutil.ReadAll(w.Body)
 	assert.Equal(t, `{"bar":"baz","foo":"baz","id":"1"}`, string(b))
 	lkp := resource.NewLookupWithQuery(schema.Query{schema.Equal{Field: "id", Value: "1"}})
-	l, err := s.Find(context.TODO(), lkp, 1, 1)
+	l, err := s.Find(context.TODO(), lkp, 0, 1)
 	assert.NoError(t, err)
 	if assert.Len(t, l.Items, 1) {
 		assert.Equal(t, map[string]interface{}{"id": "1", "foo": "baz", "bar": "baz"}, l.Items[0].Payload)

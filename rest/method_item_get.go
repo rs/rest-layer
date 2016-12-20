@@ -13,7 +13,7 @@ func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		return e.Code, nil, e
 	}
 	rsrc := route.Resource()
-	list, err := rsrc.Find(ctx, lookup, 1, 1)
+	list, err := rsrc.Find(ctx, lookup, 0, 1)
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

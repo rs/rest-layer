@@ -27,8 +27,10 @@ type ItemList struct {
 	// Total defines the total number of items in the collection matching the current
 	// context. If the storage handler cannot compute this value, -1 is set.
 	Total int
-	// Page is the current page represented by this ItemList.
-	Page int
+	// Offset is the index of the first item of the list in the global collection.
+	Offset int
+	// Limit is the max number of items requested.
+	Limit int
 	// Items is the list of items contained in the current page given the current
 	// context.
 	Items []*Item
