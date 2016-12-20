@@ -848,13 +848,28 @@ You can invert the operator by passing `false`.
 
 ## Sorting
 
-Sorting is of resource items is defined throught the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix its name with a minus (`-`) character.
+Sorting of resource items is defined through the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix its name with a minus (`-`) character.
 
 To use a resource field with the `sort` parameter, the field must be defined on the resource and the `Sortable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
 
 Here we sort the result by ascending quantity and descending date:
 
 	/posts?sort=quantity,-created
+
+## Skipping
+
+Skipping of resource items is defined through the `skip` query-string parameter. The `skip` value is a positive integer defining the number of items to skip when querying for items.
+
+To use a resource field with the `skip` parameter, the field must be defined on the resource.
+
+Skip the first 10 items of the result:
+
+    /posts?skip=10
+
+Return the first 2 items after skipping the first 10 of the result:
+
+    /posts?skip=10&limit=2
+Note that `skip` can't be used with pagination.
 
 ## Field Selection
 
@@ -1289,7 +1304,7 @@ A resource storage handler is easy to write though. Some handlers for [popular d
 
 ```go
 type Storer interface {
-	Find(ctx context.Context, lookup *resource.Lookup, page, perPage int) (*resource.ItemList, error)
+	Find(ctx context.Context, lookup *resource.Lookup, offset, limit int) (*resource.ItemList, error)
 	Insert(ctx context.Context, items []*resource.Item) error
 	Update(ctx context.Context, item *resource.Item, original *resource.Item) error
 	Delete(ctx context.Context, item *resource.Item) error
@@ -1349,7 +1364,7 @@ type myResponseFormatter struct {
 
 // Add a wrapper around the list with pagination info
 func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
-	ctx, data := r.DefaultResponseSender.FormatList(ctx, headers, l, skipBody)
+	ctx, data := r.DefaultResponseFormatter.FormatList(ctx, headers, l, skipBody)
 	return ctx, map[string]interface{}{
 		"meta": map[string]int{
 			"total": l.Total,

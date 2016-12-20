@@ -29,6 +29,8 @@ type ItemList struct {
 	Total int
 	// Page is the current page represented by this ItemList.
 	Page int
+	// Skip is the offset of the query
+	Skip int
 	// Items is the list of items contained in the current page given the current
 	// context.
 	Items []*Item

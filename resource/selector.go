@@ -187,15 +187,15 @@ func subResourceHandler(f Field, def *schema.Field, rsrc *Resource, resolver Ref
 				return nil, fmt.Errorf("%s: invalid sort: %v", f.Name, err)
 			}
 		}
-		page := 1
+		offset := 1
 		if v, ok := f.Params["page"].(int); ok {
-			page = v
+			offset = v
 		}
-		perPage := 20
+		limit := 20
 		if v, ok := f.Params["limit"].(int); ok {
-			perPage = v
+			limit = v
 		}
-		list, err := rsrc.Find(ctx, l, page, perPage)
+		list, err := rsrc.Find(ctx, l, offset, limit)
 		if err != nil {
 			return nil, fmt.Errorf("%s: error fetching sub-resource: %v", f.Name, err)
 		}

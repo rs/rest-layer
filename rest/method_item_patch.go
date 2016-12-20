@@ -22,7 +22,7 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	// Get original item if any
 	rsrc := route.Resource()
 	var original *resource.Item
-	if l, err := rsrc.Find(ctx, lookup, 1, 1); err != nil {
+	if l, err := rsrc.Find(ctx, lookup, 0, 1); err != nil {
 		// If item can't be fetch, return an error
 		e = NewError(err)
 		return e.Code, nil, e
