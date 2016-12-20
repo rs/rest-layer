@@ -43,7 +43,7 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			if err != nil {
 				return 422, nil, &Error{422, "Invalid `page` parameter", nil}
 			}
-			page = int(i)
+			page = int(i) - 1
 			if limit <= 0 {
 				return 422, nil, &Error{422, "Cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size", nil}
 			}
@@ -64,8 +64,8 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 
 	// Set appropriate fields.
 	if page >= 0 {
-		list.Page = page
-		list.Skip = (page * limit) - limit
+		list.Page = page + 1
+		list.Skip = ((page + 1) * limit) - limit
 	} else {
 		if isSetOffset {
 			list.Skip = offset
