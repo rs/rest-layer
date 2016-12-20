@@ -49,13 +49,24 @@ func (p *ResourcePath) Prepend(rsrc *resource.Resource, field string, value inte
 	*p = append(ResourcePath{rp}, *p...)
 }
 
-func (p *ResourcePath) append(rsrc *resource.Resource, field string, value interface{}, name string) {
+func (p *ResourcePath) append(rsrc *resource.Resource, field string, value interface{}, name string) (err error) {
+	if field != "" && value != nil {
+		if f, found := rsrc.Schema().Fields["id"]; found {
+			if f.Validator != nil {
+				value, err = f.Validator.Validate(value)
+				if err != nil {
+					return
+				}
+			}
+		}
+	}
 	rp := resourcePathComponentPool.Get().(*ResourcePathComponent)
 	rp.Name = name
 	rp.Field = field
 	rp.Value = value
 	rp.Resource = rsrc
 	*p = append(*p, rp)
+	return
 }
 
 func (p *ResourcePath) clear() {

@@ -102,7 +102,9 @@ func findRoute(path string, index resource.Index, route *RouteMatch) error {
 				subResourcePath := resourcePath + "." + subPathComp
 				if subResource, found := index.GetResource(subResourcePath, nil); found {
 					// Append the intermediate resource path
-					route.ResourcePath.append(rsrc, subResource.ParentField(), id, name)
+					if err := route.ResourcePath.append(rsrc, subResource.ParentField(), id, name); err != nil {
+						return err
+					}
 					// Recurse to match the sub-path
 					if err := findRoute(path, index, route); err != nil {
 						return err
@@ -124,13 +126,11 @@ func findRoute(path string, index resource.Index, route *RouteMatch) error {
 				}
 			} else {
 				// Set the id route field
-				route.ResourcePath.append(rsrc, "id", id, name)
-				return nil
+				return route.ResourcePath.append(rsrc, "id", id, name)
 			}
 		}
 		// Set the collection resource
-		route.ResourcePath.append(rsrc, "", nil, name)
-		return nil
+		return route.ResourcePath.append(rsrc, "", nil, name)
 	}
 	route.ResourcePath.clear()
 	return errResourceNotFound
