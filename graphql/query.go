@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/graphql-go/graphql"
@@ -89,26 +88,14 @@ func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url
 	if l := r.Conf().PaginationDefaultLimit; l > 0 {
 		limit = l
 	}
-	if s, ok := p.Args["skip"].(string); ok && s != "" {
-		i, err := strconv.ParseUint(s, 10, 32)
-		if err != nil {
-			return nil, 0, 0, errors.New("invalid `skip` parameter")
-		}
-		skip = int(i)
+	if i, ok := p.Args["skip"].(int); ok && i >= 0 {
+		skip = i
 	}
-	if p, ok := p.Args["page"].(string); ok && p != "" {
-		i, err := strconv.ParseUint(p, 10, 32)
-		if err != nil {
-			return nil, 0, 0, errors.New("invalid `page` parameter")
-		}
-		page = int(i)
+	if i, ok := p.Args["page"].(int); ok && i > 0 && i < 1000 {
+		page = i
 	}
-	if l, ok := p.Args["limit"].(string); ok && l != "" {
-		i, err := strconv.ParseUint(l, 10, 32)
-		if err != nil {
-			return nil, 0, 0, errors.New("invalid `limit` parameter")
-		}
-		limit = int(i)
+	if i, ok := p.Args["limit"].(int); ok && i >= 0 && i < 1000 {
+		limit = i
 	}
 	if page != 1 && limit == -1 {
 		return nil, 0, 0, errors.New("cannot use `page' parameter with no `limit' paramter on a resource with no default pagination size")
