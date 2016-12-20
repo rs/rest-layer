@@ -10,6 +10,7 @@ import (
 func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	offset := 0
 	limit := 0
+	page := -1
 	isSetOffset := false
 	rsrc := route.Resource()
 	if route.Method != "HEAD" {
@@ -42,7 +43,7 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			if err != nil {
 				return 422, nil, &Error{422, "Invalid `page` parameter", nil}
 			}
-			page := int(i) - 1
+			page = int(i)
 			if limit <= 0 {
 				return 422, nil, &Error{422, "Cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size", nil}
 			}
@@ -57,6 +58,20 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e
+	}
+	// Now we can set Total.
+	list.Total = len(list.Items)
+
+	// Set appropriate fields.
+	if page >= 0 {
+		list.Page = page
+		list.Skip = (page * limit) - limit
+	} else {
+		if isSetOffset {
+			list.Skip = offset
+		} else {
+			list.Skip = 0
+		}
 	}
 	for _, item := range list.Items {
 		item.Payload, err = lookup.ApplySelector(ctx, rsrc.Validator(), item.Payload, getReferenceResolver(ctx, rsrc))

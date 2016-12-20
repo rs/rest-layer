@@ -78,7 +78,7 @@ var listArgs = graphql.FieldConfigArgument{
 }
 
 func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url.Values) (lookup *resource.Lookup, offset int, limit int, err error) {
-	offset = 1
+	offset = 0
 	// Default value on non HEAD request for limit is -1 (pagination disabled)
 	limit = -1
 
