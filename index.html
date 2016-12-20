@@ -19,7 +19,7 @@
 <p>REST APIs made easy.</p>
 <p><a href="https://godoc.org/github.com/rs/rest-layer"><img src="http://img.shields.io/badge/godoc-reference-blue.svg?style=flat" alt="godoc"></a> <a href="https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE"><img src="http://img.shields.io/badge/license-MIT-red.svg?style=flat" alt="license"></a> <a href="https://travis-ci.org/rs/rest-layer"><img src="https://img.shields.io/travis/rs/rest-layer.svg?style=flat" alt="build"></a> <a href="https://goreportcard.com/report/github.com/rs/rest-layer"><img src="https://goreportcard.com/badge/github.com/rs/rest-layer" alt="Go Report Card"></a> <iframe src="https://ghbtns.com/github-btn.html?user=rs&repo=rest-layer&type=star&count=true" frameborder="0" scrolling="0" width="170px" height="20px"></iframe></p>
 <p>REST Layer is an API framework heavily inspired by the excellent <a href="http://python-eve.org">Python Eve</a>. It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable <a href="#storage-handlers">backend storages</a> with no boiler plate code so you can focus on your business logic.</p>
-<p>Implemented as a <code>net/http</code> handler, it plays well with standard middleware like <a href="http://github.com/rs/cors">CORS</a>. It is also <a href="https://godoc.org/golang.org/x/net/context">net/context</a> aware thanks to <a href="https://github.com/rs/xhandler">xhandler</a>. This allows deadline management to be supported down to the storage and permit an easy extensibility by passing custom data between layers of the framework.</p>
+<p>Implemented as a <code>net/http</code> handler, it plays well with standard middleware like <a href="http://github.com/rs/cors">CORS</a>. It is also <a href="https://godoc.org/context">context</a> aware. This allows deadline management to be supported down to the storage and permit an easy extensibility by passing custom data between layers of the framework.</p>
 <p>REST Layer is an opinionated framework. Unlike many API frameworks, you don&#39;t directly control the routing and you don&#39;t have to write handlers. You just define resources and sub-resources with a <a href="#resource-configuration">schema</a>, the framework automatically figures out what routes need to be generated behind the scene. You don&#39;t have to take care of the HTTP headers and response, JSON encoding, etc. either. REST layer handles HTTP <a href="#conditional-requests">conditional requests</a>, caching, <a href="#data-integrity-and-concurrency-control">integrity checking</a> for you.</p>
 <p>A powerful and extensible <a href="#resource-configuration">validation engine</a> make sure that data comes pre-validated to your <a href="#data-storage-handler">custom storage handlers</a>. Generic resource handlers for <a href="http://github.com/rs/rest-layer-mongo">MongoDB</a>, <a href="http://github.com/rs/rest-layer-es">ElastiSearch</a> and other databases are also available so you have few to no code to write to get up and running.</p>
 <p>Moreover, REST Layer let you create a graph API by linking resources between them. Thanks to its advanced <a href="#field-selection">field selection</a> syntax or <a href="#graphql">GraphQL</a> support, you can gather resources and their dependencies in a single request, saving you from costly network roundtrips.</p>
@@ -83,6 +83,7 @@
 </ul>
 </li>
 <li><a href="#pagination">Pagination</a></li>
+<li><a href="#skipping">Skipping</a></li>
 <li><a href="#authentication-and-authorization">Authentication &amp; Authorization</a></li>
 <li><a href="#conditional-requests">Conditional Requests</a></li>
 <li><a href="#data-integrity-and-concurrency-control">Data Integrity &amp; Concurrency Control</a></li>
@@ -99,6 +100,7 @@
 <li><a href="#custom-response-formatter-sender">Custom Response Formatter / Sender</a></li>
 <li><a href="#graphql">GraphQL</a></li>
 <li><a href="#hystrix">Hystrix</a></li>
+<li><a href="#jsonschema">JSONSchema</a></li>
 </ul>
 <h2 id="features">Features</h2>
 <ul>
@@ -110,6 +112,7 @@
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;GraphQL query support</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;GraphQL mutation support</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Swagger Documentation</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;JSONSchema Output (partial)</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Testing framework</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Sub resources</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Cascading deletes on sub resources</li>
@@ -123,7 +126,7 @@
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Extensible data validation and transformation</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Conditional requests (Last-Modified / Etag)</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Data integrity and concurrency control (If-Match)</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Timeout and request cancellation thru <a href="https://godoc.org/golang.org/x/net/context">net/context</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Timeout and request cancellation thru <a href="https://godoc.org/context">context</a></li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Logging</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;Multi-GET</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Bulk inserts</li>
@@ -246,6 +249,7 @@ var (
             &quot;published&quot;: {
                 Required: true,
                 Filterable: true,
+                Default: false,
                 Validator: &amp;schema.Bool{},
             },
             &quot;title&quot;: {
@@ -416,7 +420,6 @@ Content-Length: 257
 Content-Type: application/json
 Date: Mon, 27 Jul 2015 19:51:46 GMT
 Vary: Origin
-X-Page: 1
 X-Total: 1
 
 [
@@ -438,7 +441,6 @@ Content-Length: 257
 Content-Type: application/json
 Date: Mon, 27 Jul 2015 19:51:46 GMT
 Vary: Origin
-X-Page: 1
 X-Total: 1
 
 [
@@ -492,7 +494,7 @@ Vary: Origin
 <p>Resource field configuration is performed throught the <a href="https://godoc.org/github.com/rs/rest-layer/schema">schema</a> package. A schema is a struct describing a resource. A schema is composed of metadata about the resource and a description of the allowed fields through a map of field name pointing to field definition.</p>
 <p>Sample resource schema:</p>
 <pre><code class="lang-go">foo = schema.Schema{
-    Description: &quot;A foo object&quot;
+    Description: &quot;A foo object&quot;,
     Fields: schema.Fields{
         &quot;field_name&quot;: {
             Required: true,
@@ -619,6 +621,10 @@ Vary: Origin
 <tr>
 <td><a href="https://godoc.org/github.com/rs/rest-layer/schema#Dict">schema.Dict</a></td>
 <td>Ensures the field is a dict</td>
+</tr>
+<tr>
+<td><a href="https://godoc.org/github.com/rs/rest-layer/schema#Object">schema.Object</a></td>
+<td>Ensures the field is an object validating against a sub-schema</td>
 </tr>
 <tr>
 <td><a href="https://godoc.org/github.com/rs/rest-layer/schema#Time">schema.Time</a></td>
@@ -851,7 +857,7 @@ posts := index.Bind(&quot;posts&quot;, post, mem.NewHandler(), resource.DefaultC
 </tr>
 <tr>
 <td><a href="https://godoc.org/github.com/rs/rest-layer/resource#GetEventHandler">GetEventHandler</a></td>
-<td>Defines a function called when a get is performed on an item of the resource. Note: when multi-get is performed this hook is called for each items id individually. </td>
+<td>Defines a function called when a get is performed on an item of the resource. Note: when multi-get is performed this hook is called for each items id individually.</td>
 </tr>
 <tr>
 <td><a href="https://godoc.org/github.com/rs/rest-layer/resource#GotEventHandler">GotEventHandler</a></td>
@@ -892,7 +898,7 @@ posts := index.Bind(&quot;posts&quot;, post, mem.NewHandler(), resource.DefaultC
 </tbody>
 </table>
 <p>All hooks functions get a <code>context.Context</code> as first argument. If a network call must be performed from the hook, the context&#39;s deadline must be respected. If a hook return an error, the whole request is aborted with that error.</p>
-<p>You can also use the context to pass data to your hooks from a middleware executed before REST Layer. This can be used to manage authentication for instance. See <a href="https://github.com/rs/rest-layer/blob/master/examples/auth/main.go">examples/auth</a> to see an example. </p>
+<p>You can also use the context to pass data to your hooks from a middleware executed before REST Layer. This can be used to manage authentication for instance. See <a href="https://github.com/rs/rest-layer/blob/master/examples/auth/main.go">examples/auth</a> to see an example.</p>
 <h3 id="sub-resources">Sub Resources</h3>
 <p>Sub resources can be used to express a one-to-may parent-child relationship between two resources. A sub-resource is automatically filtered by it&#39;s parent on the field specified as second argument of the <code>Bind</code> method.</p>
 <p>To create a sub-resource, you bind you resource on the object returned by the binding of the parent resource. For instance, here we bind a <code>comments</code> resource to a <code>posts</code> resource:</p>
@@ -1015,7 +1021,7 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
 </table>
 <p><em>Some storage handlers may not support all operators. Refer to the storage handler&#39;s documentation for more info.</em></p>
 <h2 id="sorting">Sorting</h2>
-<p>Sorting is of resource items is defined throught the <code>sort</code> query-string parameter. The <code>sort</code> value is a list of resource&#39;s fields separated by comas (<code>,</code>). To invert a field&#39;s sort, you can prefix its name with a minus (<code>-</code>) character.</p>
+<p>Sorting of resource items is defined through the <code>sort</code> query-string parameter. The <code>sort</code> value is a list of resource&#39;s fields separated by comas (<code>,</code>). To invert a field&#39;s sort, you can prefix its name with a minus (<code>-</code>) character.</p>
 <p>To use a resource field with the <code>sort</code> parameter, the field must be defined on the resource and the <code>Sortable</code> field property must be set to <code>true</code>. You may want to ensure the backend database has this field indexed when enabled.</p>
 <p>Here we sort the result by ascending quantity and descending date:</p>
 <pre><code>/posts?sort=quantity,-created
@@ -1130,12 +1136,24 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
 ]
 </code></pre>
 <p>In the above example, the <code>user</code> field is a reference on the <code>users</code> resource. REST Layer did fetch the user referenced by the post and embedded the requested sub-fields (<code>id</code> and <code>name</code>). Same for <code>comments</code>: <code>comments</code> is set as a sub-resource of the <code>posts</code> resource. With this syntax, it&#39;s easy to get the last 10 comments on the post in the same REST request. For each of those comment, we asked to embed the <code>user</code> field referenced resource with <code>id</code> and <code>name</code> fields again.</p>
-<p>Notice the <code>sort</code> and <code>limit</code> parameters passed to the <code>comments</code> field. Those are field parameter automatically exposed by connections to let you control the embedded list order, filter and pagination. You can use <code>sort</code>, <code>filter</code>, <code>page</code> and <code>limit</code> parameters with those field with the same syntax as their top level query-string parameter counterpart.</p>
+<p>Notice the <code>sort</code> and <code>limit</code> parameters passed to the <code>comments</code> field. Those are field parameter automatically exposed by connections to let you control the embedded list order, filter and pagination. You can use <code>sort</code>, <code>filter</code>, <code>skip</code>, <code>page</code> and <code>limit</code> parameters with those field with the same syntax as their top level query-string parameter counterpart.</p>
 <p>Such request can quickly generate a lot of queries on the storage handler. To ensure a fast response time, REST layer tries to coalesce those storage requests and to execute them concurrently whenever possible.</p>
 <h2 id="pagination">Pagination</h2>
 <p>Pagination is supported on collection URLs using <code>page</code> and <code>limit</code> query-string parameters. If you don&#39;t define a default pagination limit using <code>PaginationDefaultLimit</code> resource configuration parameter, the resource won&#39;t be paginated until you provide the <code>limit</code> query-string parameter.</p>
 <p>If your collections are large enough, failing to define a reasonable <code>PaginationDefaultLimit</code> parameter may quickly render your API unusable.</p>
-<h2 id="authentication-and-authorization">Authentication and Authorization</h2>
+<h2 id="skipping">Skipping</h2>
+<p>Skipping of resource items is defined through the <code>skip</code> query-string parameter. The <code>skip</code> value is a positive integer defining the number of items to skip when querying for items.</p>
+<p>To use a resource field with the <code>skip</code> parameter, the field must be defined on the resource.</p>
+<p>Skip the first 10 items of the result:</p>
+<pre><code>/posts?skip=10
+</code></pre><p>Return the first 2 items after skipping the first 10 of the result:</p>
+<pre><code>/posts?skip=10&amp;limit=2
+</code></pre><p>The <code>skip</code> parameter can be used in conjunction with the <code>page</code> parameter. You may want them both when for instance, you show the first N elements of a list and then allow to paginate the remaining items:</p>
+<p>Show the first 2 elements:</p>
+<pre><code>/posts?limit=2
+</code></pre><p>Paginate the rest of the list:</p>
+<pre><code>/posts?skip=2&amp;page=1&amp;limit=10
+</code></pre><h2 id="authentication-and-authorization">Authentication and Authorization</h2>
 <p>REST Layer doesn&#39;t provide any kind of support for authentication. Identifying the user is out of the scope of a REST API, it should be performed by an oAuth server. The oAuth endpoints could be either hosted on the same code base as your API or live in a different app. The recommended way to integrate oAuth or any other kind of authentication with REST Layer is through a signed token like <a href="https://jwt.io">JWT</a>.</p>
 <p>In this schema, the authentication service indentify the user and store data relevant to the user&#39;s identification in a JWT token. This token is sent to the API client as a <a href="https://tools.ietf.org/html/rfc6750">bearer token</a>, thru for instance the <code>access-token</code> query-string parameter or the <code>Authorization</code> HTTP header. A http middleware then decode and verify this token and extract user info from it, and stores it into the context. In REST layer, user info is now accessible from your <a href="#hooks">resource hooks</a> so you can change the query lookup or ensure mutated objects are owned by the user in order to handle the authorization part.</p>
 <p>See the <a href="https://github.com/rs/rest-layer/blob/master/examples/auth-jwt/main.go">JWT auth example</a> for more info.</p>
@@ -1218,7 +1236,7 @@ Vary: Origin
 <p>When a validator implements this interface, the method is called with the field&#39;s value just before JSON marshaling. You should return an error if the format stored in the db is invalid and can&#39;t be converted back into a suitable representation.</p>
 <p>See <a href="https://godoc.org/github.com/rs/rest-layer/schema#IP">schema.IP</a> validator for an implementation example.</p>
 <h2 id="timeout-and-request-cancellation">Timeout and Request Cancellation</h2>
-<p>REST Layer respects <a href="https://golang.org/x/net/context">net/context</a> deadline from end to end. Timeout and request cancellation are thus handled throught <code>net/context</code>. By default no cancellation handling or per request timeout are defined. You can easily add them using <a href="https://github.com/rs/xhandler">xhandler</a> provided handlers as follow:</p>
+<p>REST Layer respects <a href="https://godoc.org/context">context</a> deadline from end to end. Timeout and request cancellation are thus handled throught <code>context</code>. By default no cancellation handling or per request timeout are defined. You can easily add them using <a href="https://github.com/rs/xhandler">xhandler</a> provided handlers as follow:</p>
 <pre><code class="lang-go">// Init a xhandler chain (see http://github.com/rs/xhandler)
 c := xhandler.Chain{}
 
@@ -1346,7 +1364,7 @@ func main() {
 <p>REST Layer doesn&#39;t handle storage of resources directly. A <a href="https://godoc.org/github.com/rs/rest-layer-mem#MemoryHandler">mem.MemoryHandler</a> is provided as an example but should be used for testing only.</p>
 <p>A resource storage handler is easy to write though. Some handlers for <a href="#storage-handlers">popular databases are available</a>, but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the <a href="https://godoc.org/github.com/rs/rest-layer/resource#Storer">resource.Storer</a> interface:</p>
 <pre><code class="lang-go">type Storer interface {
-    Find(ctx context.Context, lookup *resource.Lookup, page, perPage int) (*resource.ItemList, error)
+    Find(ctx context.Context, lookup *resource.Lookup, offset, limit int) (*resource.ItemList, error)
     Insert(ctx context.Context, items []*resource.Item) error
     Update(ctx context.Context, item *resource.Item, original *resource.Item) error
     Delete(ctx context.Context, item *resource.Item) error
@@ -1354,7 +1372,7 @@ func main() {
 }
 </code></pre>
 <p>Mutation methods like <code>Update</code> and <code>Delete</code> must ensure they are atomically mutating the same item as specified in argument by checking their <code>ETag</code> (the stored <code>ETag</code> must match the <code>ETag</code> of the provided item). In case the handler can&#39;t guarantee that, the storage must be left untouched, and a <a href="https://godoc.org/github.com/rs/rest-layer/resource#pkg-variables">resource.ErrConflict</a> must be returned.</p>
-<p>If the operation is not immediate, the method must listen for cancellation on the passed <code>ctx</code>. If the operation is stopped due to context cancellation, the function must return the result of the <a href="https://godoc.org/golang.org/x/net/context#Context">ctx.Err()</a> method. See <a href="https://blog.golang.org/context">this blog post</a> for more information about how <code>net/context</code> works.</p>
+<p>If the operation is not immediate, the method must listen for cancellation on the passed <code>ctx</code>. If the operation is stopped due to context cancellation, the function must return the result of the <a href="https://godoc.org/golang.org/x/net/context#Context">ctx.Err()</a> method. See <a href="https://blog.golang.org/context">this blog post</a> for more information about how <code>context</code> works.</p>
 <p>If the backend storage is able to efficiently fetch multiple document by their id, it can implement the optional <a href="https://godoc.org/github.com/rs/rest-layer/resource#MultiGetter">resource.MultiGetter</a> interface. REST Layer will automatically use it whenever possible.</p>
 <p>See <a href="https://godoc.org/github.com/rs/rest-layer/resource#Storer">resource.Storer</a> documentation for more information on resource storage handler implementation details.</p>
 <h2 id="custom-response-formatter-sender">Custom Response Formatter / Sender</h2>
@@ -1389,11 +1407,11 @@ api.ResponseSender = &amp;myResponseSender{}
 
 // Add a wrapper around the list with pagination info
 func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
-    ctx, data := r.DefaultResponseSender.FormatList(ctx, headers, l, skipBody)
+    ctx, data := r.DefaultResponseFormatter.FormatList(ctx, headers, l, skipBody)
     return ctx, map[string]interface{}{
         &quot;meta&quot;: map[string]int{
-            &quot;total&quot;: l.Total,
-            &quot;page&quot;:  l.Page,
+            &quot;offset&quot;: l.Offset,
+            &quot;total&quot;:  l.Total,
         },
         &quot;list&quot;: data,
     }
@@ -1401,7 +1419,7 @@ func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header
 </code></pre>
 <h2 id="graphql">GraphQL</h2>
 <p>In parallel of the REST API handler, REST Layer is also able to handle GraphQL queries (mutation will come later). GraphQL is a query language created by Facebook which provides a common interface fetch and manipulate data. REST Layer&#39;s GraphQL handler is able to read a <a href="https://godoc.org/github.com/rs/rest-layer/resource#Index">resource.Index</a> and create a corresponding GraphQL schema.</p>
-<p>GraphQL doesn&#39;t expose resources directly, but queries. REST Layer take all the resources defined at the root of the <code>resource.Index</code> and create two GraphQL queries for each one. On query is just the name of the endpoint, so <code>/users</code> would result in <code>users</code> and another is the name of the endpoint suffixed with <code>List</code>, as <code>usersList</code>. The item queries takes an <code>id</code> parameter and the list queries take <code>page</code>, <code>limit</code>, <code>filter</code> and <code>sort</code> parameters. All sub-resources are accessible using GraphQL sub-selection syntax.</p>
+<p>GraphQL doesn&#39;t expose resources directly, but queries. REST Layer take all the resources defined at the root of the <code>resource.Index</code> and create two GraphQL queries for each one. On query is just the name of the endpoint, so <code>/users</code> would result in <code>users</code> and another is the name of the endpoint suffixed with <code>List</code>, as <code>usersList</code>. The item queries takes an <code>id</code> parameter and the list queries take <code>skip</code>, <code>page</code>, <code>limit</code>, <code>filter</code> and <code>sort</code> parameters. All sub-resources are accessible using GraphQL sub-selection syntax.</p>
 <p>If you resource defines aliases, some additional GraphQL queris are exposes with their name constructed as the name of the resource suffixed with the name of the alias with a capital. So for <code>users</code> with an alias <code>admin</code>, the query would be <code>usersAdmin</code>.</p>
 <p>You can bind the GraphQL endpoint wherever you want as follow:</p>
 <pre><code class="lang-go">index := resource.NewIndex()
@@ -1432,6 +1450,36 @@ index.Bind(&quot;posts&quot;, post, restrix.Wrap(&quot;posts&quot;, mongo.NewHan
 </ul>
 <p>Once enabled, you must configure Hystrix for each command and start the Hystrix metrics stream handler.</p>
 <p>See <a href="https://godoc.org/github.com/afex/hystrix-go/hystrix">Hystrix godoc</a> for more info and <a href="https://github.com/rs/rest-layer/blob/master/examples/hystrix/main.go">examples/hystrix</a> for a complete usage example with REST layer.</p>
+<h2 id="jsonschema">JSONSchema</h2>
+<p>An incomplete but stil useful JSONSchema implementation that covers many common use cases for Schema. Goal is to try and match the draft-04 spec. Patches welcome.</p>
+<pre><code class="lang-go">import &quot;github.com/rs/rest-layer/schema/jsonschema&quot;
+
+b := new(bytes.Buffer)
+enc := jsonschema.NewEncoder(b)
+if err := enc.Encode(myschema); err != nil {
+  return err
+}
+fmt.Println(b.String()) // Valid JSON Document describing the schema
+</code></pre>
+<h3 id="supported-fieldvalidators">Supported FieldValidators</h3>
+<ul>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Schema</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Bool</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.Null</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Float</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Integer</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.String</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Time</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.URL</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.IP</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.Password</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Array</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Object</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.Dict</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.AllOf</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.AnyOf</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Custom validators</li>
+</ul>
 <h2 id="licenses">Licenses</h2>
 <p>All source code is licensed under the <a href="https://raw.github.com/rs/rest-layer/master/LICENSE">MIT License</a>.</p>
 
