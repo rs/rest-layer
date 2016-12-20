@@ -47,6 +47,7 @@ The REST Layer framework is composed of several sub-packages:
 	- [Field Parameters](#field-parameters)
 	- [Embedding](#embedding)
 - [Pagination](#pagination)
+- [Skipping](#skipping)
 - [Authentication & Authorization](#authentication-and-authorization)
 - [Conditional Requests](#conditional-requests)
 - [Data Integrity & Concurrency Control](#data-integrity-and-concurrency-control)
@@ -854,21 +855,6 @@ Here we sort the result by ascending quantity and descending date:
 
 	/posts?sort=quantity,-created
 
-## Skipping
-
-Skipping of resource items is defined through the `skip` query-string parameter. The `skip` value is a positive integer defining the number of items to skip when querying for items.
-
-To use a resource field with the `skip` parameter, the field must be defined on the resource.
-
-Skip the first 10 items of the result:
-
-    /posts?skip=10
-
-Return the first 2 items after skipping the first 10 of the result:
-
-    /posts?skip=10&limit=2
-Note that `skip` can't be used with pagination.
-
 ## Field Selection
 
 REST APIs tend to grow over time. Resources get more and more fields to fulfill the needs for new features. But each time fields are added, all existing API clients automatically gets the additional cost. This tend to lead to huge wast of bandwidth and added latency due to the transfer of unnecessary data.
@@ -1018,9 +1004,33 @@ Such request can quickly generate a lot of queries on the storage handler. To en
 
 ## Pagination
 
-Pagination is supported on collection URLs using `skip`, `page` and `limit` query-string parameters. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated until you provide the `limit` query-string parameter.
+Pagination is supported on collection URLs using `page` and `limit` query-string parameters. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated until you provide the `limit` query-string parameter.
 
 If your collections are large enough, failing to define a reasonable `PaginationDefaultLimit` parameter may quickly render your API unusable.
+
+## Skipping
+
+Skipping of resource items is defined through the `skip` query-string parameter. The `skip` value is a positive integer defining the number of items to skip when querying for items.
+
+To use a resource field with the `skip` parameter, the field must be defined on the resource.
+
+Skip the first 10 items of the result:
+
+    /posts?skip=10
+
+Return the first 2 items after skipping the first 10 of the result:
+
+    /posts?skip=10&limit=2
+
+The `skip` parameter can be used in conjunction with the `page` parameter. You may want them both when for instance, you show the first N elements of a list and then allow to paginate the remaining items:
+
+Show the first 2 elements:
+
+    /posts?limit=2
+
+Paginate the rest of the list:
+
+	/posts?skip=2&page=1&limit=10
 
 ## Authentication and Authorization
 
