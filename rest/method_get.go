@@ -2,7 +2,9 @@ package rest
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -18,31 +20,28 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			// Default value on non HEAD request for limit is -1 (pagination disabled)
 			limit = -1
 		}
-		if l := route.Params.Get("limit"); l != "" {
-			i, err := strconv.ParseUint(l, 10, 32)
+		if l, found, err := getUintParam(route.Params, "limit"); found {
 			if err != nil {
-				return 422, nil, &Error{422, "Invalid `limit` parameter", nil}
+				return 422, nil, err
 			}
-			limit = int(i)
+			limit = l
 		}
 		skip := 0
-		if o := route.Params.Get("skip"); o != "" {
-			i, err := strconv.ParseUint(o, 10, 32)
+		if s, found, err := getUintParam(route.Params, "skip"); found {
 			if err != nil {
-				return 422, nil, &Error{422, "Invalid `skip` parameter", nil}
+				return 422, nil, err
 			}
-			skip = int(i)
+			skip = s
 		}
 		page := 1
-		if p := route.Params.Get("page"); p != "" {
-			i, err := strconv.ParseUint(p, 10, 32)
+		if p, found, err := getUintParam(route.Params, "page"); found {
 			if err != nil {
-				return 422, nil, &Error{422, "Invalid `page` parameter", nil}
+				return 422, nil, err
 			}
-			page = int(i)
-			if limit <= 0 {
-				return 422, nil, &Error{422, "Cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size", nil}
-			}
+			page = p
+		}
+		if page > 1 && limit <= 0 {
+			return 422, nil, &Error{422, "Cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size", nil}
 		}
 		offset = (page-1)*limit + skip
 	}
@@ -64,4 +63,15 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		}
 	}
 	return 200, nil, list
+}
+
+func getUintParam(params url.Values, name string) (int, bool, error) {
+	if v := params.Get(name); v != "" {
+		i, err := strconv.ParseUint(v, 10, 32)
+		if err != nil {
+			return 0, true, &Error{422, fmt.Sprintf("Invalid `%s` parameter", name), nil}
+		}
+		return int(i), true, nil
+	}
+	return 0, false, nil
 }
