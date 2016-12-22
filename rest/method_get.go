@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/rs/rest-layer/resource"
 )
 
 // listGet handles GET resquests on a resource URL
@@ -45,11 +47,28 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		}
 		offset = (page-1)*limit + skip
 	}
+	forceTotal := false
+	switch rsrc.Conf().ForceTotal {
+	case resource.TotalOptIn:
+		forceTotal = route.Params.Get("total") == "1"
+	case resource.TotalAlways:
+		forceTotal = true
+	case resource.TotalDenied:
+		if route.Params.Get("total") == "1" {
+			return 422, nil, &Error{422, "Cannot use `total' parameter: denied by configuration", nil}
+		}
+	}
 	lookup, e := route.Lookup()
 	if e != nil {
 		return e.Code, nil, e
 	}
-	list, err := rsrc.Find(ctx, lookup, offset, limit)
+	var list *resource.ItemList
+	var err error
+	if forceTotal {
+		list, err = rsrc.FindWithTotal(ctx, lookup, offset, limit)
+	} else {
+		list, err = rsrc.Find(ctx, lookup, offset, limit)
+	}
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

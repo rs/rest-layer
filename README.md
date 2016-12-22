@@ -655,6 +655,7 @@ The `resource.Conf` type has the following customizable properties:
 | ------------------------ | -------------
 | `AllowedModes`           | A list of `resource.Mode` allowed for the resource.
 | `PaginationDefaultLimit` | If set, pagination is enabled by default with a number of item per page defined here.
+| `ForceTotal`			   | Control the behavior of the computation of `X-Total` header and the `total` query-string parameter. See `resource.ForceTotalMode` for available options.
 
 ### Modes
 
