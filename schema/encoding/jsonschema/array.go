@@ -20,7 +20,7 @@ func encodeArray(w io.Writer, v *schema.Array) error {
 	if v.ValuesValidator != nil {
 		ew.writeString(`, "items": {`)
 		if ew.err == nil {
-			ew.err = validatorToJSONSchema(w, v.ValuesValidator)
+			ew.err = encodeValidator(w, v.ValuesValidator)
 		}
 		ew.writeString("}")
 	}

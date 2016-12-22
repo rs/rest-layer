@@ -18,8 +18,8 @@ var (
 	ErrNotImplemented = errors.New("not implemented")
 )
 
-// SchemaToJSONSchema writes JSON Schema keys and values based on s, without the outer curly braces, to w.
-func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
+// encodeSchema writes JSON Schema keys and values based on s, without the outer curly braces, to w.
+func encodeSchema(w io.Writer, s *schema.Schema) (err error) {
 	if s == nil {
 		return
 	}
@@ -42,7 +42,7 @@ func schemaToJSONSchema(w io.Writer, s *schema.Schema) (err error) {
 		if field.Required {
 			required = append(required, fmt.Sprintf("%q", key))
 		}
-		ew.err = serializeField(ew, key, field)
+		ew.err = encodeField(ew, key, field)
 		if ew.err != nil {
 			return ew.err
 		}
@@ -89,7 +89,7 @@ func sortedFieldNames(v schema.Fields) []string {
 	return keys
 }
 
-func serializeField(ew errWriter, key string, field schema.Field) error {
+func encodeField(ew errWriter, key string, field schema.Field) error {
 	fw := fieldWriter{ew, 0}
 	fw.writeFormat("%q: {", key)
 	if field.Description != "" {
@@ -104,7 +104,7 @@ func serializeField(ew errWriter, key string, field schema.Field) error {
 		// FIXME: This breaks if there are any Validators that may write nothing. E.g. a schema.Object with
 		// Schema set to nil. A better solution should be found before adding support for custom validators.
 		fw.comma()
-		fw.err = validatorToJSONSchema(ew, field.Validator)
+		fw.err = encodeValidator(ew, field.Validator)
 	}
 	if field.Default != nil {
 		b, err := json.Marshal(field.Default)
@@ -120,9 +120,9 @@ func serializeField(ew errWriter, key string, field schema.Field) error {
 	return fw.err
 }
 
-// validatorToJSONSchema writes JSON Schema keys and values based on v, without the outer curly braces, to w. Note
+// encodeValidator writes JSON Schema keys and values based on v, without the outer curly braces, to w. Note
 // that not all FieldValidator types are supported at the moment.
-func validatorToJSONSchema(w io.Writer, v schema.FieldValidator) (err error) {
+func encodeValidator(w io.Writer, v schema.FieldValidator) (err error) {
 	if v == nil {
 		return nil
 	}

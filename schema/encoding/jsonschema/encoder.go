@@ -24,7 +24,7 @@ func (e *Encoder) Encode(s *schema.Schema) error {
 	ew := errWriter{w: e.Writer}
 	ew.writeString("{")
 	if ew.err == nil {
-		ew.err = schemaToJSONSchema(e.Writer, s)
+		ew.err = encodeSchema(e.Writer, s)
 	}
 	ew.writeString("}\n")
 	return ew.err
