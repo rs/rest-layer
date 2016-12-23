@@ -88,24 +88,23 @@ func (v dummyValidator) Validate(value interface{}) (interface{}, error) {
 	return value, nil
 }
 
-func TestErrNotImplemented(t *testing.T) {
-	s := schema.Schema{
-		Fields: schema.Fields{
-			"i": {
-				Validator: &dummyValidator{},
-			},
-		},
-	}
-	enc := jsonschema.NewEncoder(new(bytes.Buffer))
-	assert.Equal(t, jsonschema.ErrNotImplemented, enc.Encode(&s))
+type dummyBuilder struct {
+	dummyValidator
+}
+
+func (f dummyBuilder) BuildJSONSchema() (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"type": "string",
+		"enum": []string{"this", "is", "a", "test"},
+	}, nil
 }
 
 // encoderTestCase is used to test the Encoder.Encode() function.
 type encoderTestCase struct {
-	name           string
-	schema         schema.Schema
-	expect         string
-	customValidate encoderValidator
+	name                string
+	schema              schema.Schema
+	expect, expectError string
+	customValidate      encoderValidator
 }
 
 func (tc *encoderTestCase) Run(t *testing.T) {
@@ -114,13 +113,18 @@ func (tc *encoderTestCase) Run(t *testing.T) {
 
 		b := new(bytes.Buffer)
 		enc := jsonschema.NewEncoder(b)
-		assert.NoError(t, enc.Encode(&tc.schema))
 
-		if tc.customValidate == nil {
-			assert.JSONEq(t, tc.expect, b.String())
+		if tc.expectError == "" {
+			assert.NoError(t, enc.Encode(&tc.schema))
+			if tc.customValidate == nil {
+				assert.JSONEq(t, tc.expect, b.String())
+			} else if tc.expect != "" {
+				tc.customValidate(t, b.Bytes())
+			}
 		} else {
-			tc.customValidate(t, b.Bytes())
+			assert.EqualError(t, enc.Encode(&tc.schema), tc.expectError)
 		}
+
 	})
 }
 
@@ -144,6 +148,37 @@ func fieldValidator(fieldName, expected string) encoderValidator {
 
 func TestEncoder(t *testing.T) {
 	testCases := []encoderTestCase{
+		{
+			name: "Validator=&dummyValidator{}",
+			schema: schema.Schema{
+				Fields: schema.Fields{
+					"i": {
+						Validator: &dummyValidator{},
+					},
+				},
+			},
+			expectError: "not implemented",
+		},
+		{
+			name: "Validator=&dummyBuilder{}",
+			schema: schema.Schema{
+				Fields: schema.Fields{
+					"i": {
+						Validator: &dummyBuilder{},
+					},
+				},
+			},
+			expect: `{
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"i": {
+						"type": "string",
+						"enum": ["this", "is", "a", "test"]
+					}
+				}
+			}`,
+		},
 		// readOnly is a custom extension to JSON Schema, also defined by the Swagger 2.0 Schema Object
 		// specification. See http://swagger.io/specification/#schemaObject.
 		{
@@ -385,8 +420,7 @@ func TestEncoder(t *testing.T) {
 				assert.Contains(t, v["required"], "age", `Unexpected "required" value`)
 			},
 		},
-		// Documenting the current behavior, but unsure what's the best approach. schema.Object with no schema
-		// appears to be invalid and will cause an error if used.
+
 		{
 			name: "Validator=Array,ValuesValidator=Object{Schema:nil}",
 			schema: schema.Schema{
@@ -398,16 +432,7 @@ func TestEncoder(t *testing.T) {
 					},
 				},
 			},
-			expect: `{
-				"type": "object",
-				"additionalProperties": false,
-				"properties": {
-					"students": {
-						"type": "array",
-						"items": {}
-					}
-				}
-			}`,
+			expectError: "no schema defined for object",
 		},
 		{
 			name:   "Validator=Array,ValuesValidator=Object{Schema:Student}",
