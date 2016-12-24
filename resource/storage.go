@@ -12,8 +12,9 @@ type Storer interface {
 	// pagination argument must be respected. If no items are found, an empty list
 	// should be returned with no error.
 	//
-	// If the total number of item can't be easily computed, ItemList.Total should
-	// be set to -1. The requested page should be set to ItemList.Page.
+	// If the total number of item can't be computed for free, ItemList.Total must
+	// be set to -1. Your Storer may implement the Counter interface to let the user
+	// explicitely request the total.
 	//
 	// The whole lookup query must be treated. If a query operation is not implemented
 	// by the storage handler, a resource.ErrNotImplemented must be returned.
@@ -81,9 +82,20 @@ type MultiGetter interface {
 	MultiGet(ctx context.Context, ids []interface{}) ([]*Item, error)
 }
 
+// Counter is an optional interface a Storer can implement to provide a way to explicitely
+// count the total number of elements a given lookup would return with no pagination
+// provided. This method is called by REST Layer when the storage handler returned -1
+// as ItemList.Total and the user (or configuration) explicitely request the total.
+type Counter interface {
+	// Count returns the total number of item in the collection given the provided
+	// lookup filter.
+	Count(ctx context.Context, lookup *Lookup) (int, error)
+}
+
 type storageHandler interface {
 	Storer
 	MultiGetter
+	Counter
 	Get(ctx context.Context, id interface{}) (item *Item, err error)
 }
 
@@ -227,4 +239,17 @@ func (s storageWrapper) Clear(ctx context.Context, lookup *Lookup) (deleted int,
 		return 0, ctx.Err()
 	}
 	return s.Storer.Clear(ctx, lookup)
+}
+
+func (s storageWrapper) Count(ctx context.Context, lookup *Lookup) (total int, err error) {
+	if s.Storer == nil {
+		return -1, ErrNoStorage
+	}
+	if ctx.Err() != nil {
+		return -1, ctx.Err()
+	}
+	if c, ok := s.Storer.(Counter); ok {
+		return c.Count(ctx, lookup)
+	}
+	return -1, ErrNotImplemented
 }

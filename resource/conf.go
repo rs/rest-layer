@@ -8,7 +8,35 @@ type Conf struct {
 	// no default page size is set resulting in no pagination if no `limit` parameter
 	// is provided.
 	PaginationDefaultLimit int
+	// ForceTotal controls how total number of items on list request is computed.
+	// By default (TotalOptIn), if the total cannot be computed by the storage
+	// handler for free, no total metadata is returned until the user explicitely
+	// request it using the total=1 query-string parameter. Note that if the
+	// storage cannot compute the total and does not implement the resource.Counter
+	// interface, a "not implemented" error is returned.
+	//
+	// The TotalAlways mode always force the computation of the total (make sure the
+	// storage either compute the total on Find or implement the resource.Counter
+	// interface.
+	//
+	// TotalDenied prevents the user from requesting the total.
+	ForceTotal ForceTotalMode
 }
+
+// ForceTotalMode defines Conf.ForceTotal modes
+type ForceTotalMode int
+
+const (
+	// TotalOptIn allows the end-user to opt-in to forcing the total count by
+	// adding the total=1 query-string parameter.
+	TotalOptIn ForceTotalMode = iota
+	// TotalAlways always force the total number of items on list requests
+	TotalAlways
+	// TotalDenied disallows forcing of the total count, and returns an error
+	// if total=1 is supplied, and the total count is not provided by the
+	// Storer's Find method.
+	TotalDenied
+)
 
 // Mode defines CRUDL modes to be used with Conf.AllowedModes.
 type Mode int

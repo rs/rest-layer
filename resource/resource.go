@@ -310,8 +310,20 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 	return
 }
 
-// Find implements Storer interface
+// Find calls the Find method on the storage handler with the corresponding pre/post hooks.
 func (r *Resource) Find(ctx context.Context, lookup *Lookup, offset, limit int) (list *ItemList, err error) {
+	return r.find(ctx, lookup, offset, limit, false)
+}
+
+// FindWithTotal calls the Find method on the storage handler with the corresponding pre/post hooks.
+// If the storage is not able to compute the total, this method will call the Count method on the
+// storage. If the storage Find does not compute the total and the Counter interface is not implemented,
+// an ErrNotImpemented error is returned.
+func (r *Resource) FindWithTotal(ctx context.Context, lookup *Lookup, offset, limit int) (list *ItemList, err error) {
+	return r.find(ctx, lookup, offset, limit, true)
+}
+
+func (r *Resource) find(ctx context.Context, lookup *Lookup, offset, limit int, forceTotal bool) (list *ItemList, err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {
 			found := -1
@@ -327,6 +339,9 @@ func (r *Resource) Find(ctx context.Context, lookup *Lookup, offset, limit int) 
 	}
 	if err = r.hooks.onFind(ctx, lookup, offset, limit); err == nil {
 		list, err = r.storage.Find(ctx, lookup, offset, limit)
+		if err == nil && list.Total == -1 && forceTotal {
+			list.Total, err = r.storage.Count(ctx, lookup)
+		}
 	}
 	r.hooks.onFound(ctx, lookup, &list, &err)
 	return
