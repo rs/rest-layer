@@ -123,7 +123,11 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 				return nil, errors.New("$regex can only get strings as value")
 			}
 			if regex != "" {
-				queries = append(queries, Regex{Field: parentKey, Value: regexp.MustCompile(regex)})
+				v, err := regexp.Compile(regex)
+				if err != nil {
+					return nil, err
+				}
+				queries = append(queries, Regex{Field: parentKey, Value: v})
 			}
 		case "$exists":
 			if parentKey == "" {
