@@ -3,6 +3,8 @@ package schema
 import (
 	"testing"
 
+	"regexp"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,7 +90,7 @@ func TestParseQuery(t *testing.T) {
 	assert.Equal(t, Query{Or{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}}, q)
 	q, err = ParseQuery("{\"foo\": {\"$regex\": \"regex-is-awesome\"}}", s)
 	assert.NoError(t, err)
-	assert.Equal(t, Query{Regex{Field: "foo", Value: "regex-is-awesome"}}, q)
+	assert.Equal(t, Query{Regex{Field: "foo", Value: regexp.MustCompile("regex-is-awesome")}}, q)
 	q, err = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
 	assert.NoError(t, err)
 	assert.Equal(t, Query{And{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}}, q)

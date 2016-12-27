@@ -88,7 +88,7 @@ type LowerOrEqual struct {
 // Regex matches values that match to a specified regular expression.
 type Regex struct {
 	Field string
-	Value string
+	Value *regexp.Regexp
 }
 
 // NewQuery returns a new query with the provided key/value validated against validator
@@ -123,7 +123,7 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 				return nil, errors.New("$regex can only get strings as value")
 			}
 			if regex != "" {
-				queries = append(queries, Regex{Field: parentKey, Value: regex})
+				queries = append(queries, Regex{Field: parentKey, Value: regexp.MustCompile(regex)})
 			}
 		case "$exists":
 			if parentKey == "" {
@@ -377,6 +377,5 @@ func (e LowerOrEqual) Match(payload map[string]interface{}) bool {
 
 // Match implements Expression interface
 func (e Regex) Match(payload map[string]interface{}) bool {
-	var regexpedValue = regexp.MustCompile(e.Value)
-	return regexpedValue.MatchString(e.Field)
+	return e.Value.MatchString(e.Field)
 }
