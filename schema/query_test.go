@@ -180,11 +180,11 @@ func TestQueryInvalidType(t *testing.T) {
 	_, err = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"bar\": \"baz\"}]}", s)
 	assert.EqualError(t, err, "invalid query expression for field `bar': not an integer")
 	_, err = ParseQuery("{\"foo\": {\"$regex\": \"b[..?r\"}}", s)
-	assert.EqualError(t, err, "error parsing regexp: missing closing ]: `[..?r`")
+	assert.EqualError(t, err, "$regex: invalid regex: error parsing regexp: missing closing ]: `[..?r`")
 	_, err = ParseQuery("{\"foo\": {\"$regex\": \"b[a-z)r\"}}", s)
-	assert.EqualError(t, err, "error parsing regexp: missing closing ]: `[a-z)r`")
+	assert.EqualError(t, err, "$regex: invalid regex: error parsing regexp: missing closing ]: `[a-z)r`")
 	_, err = ParseQuery("{\"foo\": {\"$regex\": \"b(?=a)r\"}}", s)
-	assert.EqualError(t, err, "error parsing regexp: invalid or unsupported Perl syntax: `(?=`")
+	assert.EqualError(t, err, "$regex: invalid regex: error parsing regexp: invalid or unsupported Perl syntax: `(?=`")
 
 }
 
