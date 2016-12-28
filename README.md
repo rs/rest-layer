@@ -831,7 +831,7 @@ The `$exists` operator matches documents containing the field, even if this fiel
 
 You can invert the operator by passing `false`.
 
-There is also a `$regex` operator that matches documents containing the field given as a regular expression. The syntax of the regular expressions accepted is the same general syntax used by Perl, Python, and other languages.
+There is also a `$regex` operator that matches documents containing the field given as a regular expression. In general, the syntax of the regular expressions accepted is the same general syntax used by Perl, Python, and other languages.
 More precisely, it is the syntax accepted by RE2 and described at https://golang.org/s/re2syntax, except for \C.
 
 For example the following regular expression would match any document with a field `type` and its value `rest-layer`.
@@ -840,7 +840,8 @@ For example the following regular expression would match any document with a fie
 {"type": {"$regex": "re[s]{1}t-la.+r"}}
 ```
 
-However, keep in mind that Storers have to support regular expression. An error of `ErrNotImplemented` will be returned for those storage backends which do not support the `$regex` operator.
+However, keep in mind that Storers have to support regular expression and depending on the implementation of the storage handler the accepted syntax may vary.
+An error of `ErrNotImplemented` will be returned for those storage backends which do not support the `$regex` operator.
 
 ### Filter operators
 
