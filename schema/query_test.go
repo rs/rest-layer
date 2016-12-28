@@ -129,6 +129,8 @@ func TestParseQueryUnknownField(t *testing.T) {
 	assert.EqualError(t, err, "unknown query field: unknown")
 	_, err = ParseQuery("{\"unknown\": {\"$in\": [1, 2, 3]}}", s)
 	assert.EqualError(t, err, "unknown query field: unknown")
+	_, err = ParseQuery("{\"unknown\": {\"$regex\": \"ba.+\"}}", s)
+	assert.EqualError(t, err, "unknown query field: unknown")
 }
 
 func TestQueryInvalidType(t *testing.T) {
@@ -177,6 +179,12 @@ func TestQueryInvalidType(t *testing.T) {
 	assert.EqualError(t, err, "value for $and must be an array of dicts")
 	_, err = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"bar\": \"baz\"}]}", s)
 	assert.EqualError(t, err, "invalid query expression for field `bar': not an integer")
+	_, err = ParseQuery("{\"foo\": {\"$regex\": \"b[..?r\"}}", s)
+	assert.EqualError(t, err, "error parsing regexp: missing closing ]: `[..?r`")
+	_, err = ParseQuery("{\"foo\": {\"$regex\": \"b[a-z)r\"}}", s)
+	assert.EqualError(t, err, "error parsing regexp: missing closing ]: `[a-z)r`")
+	_, err = ParseQuery("{\"foo\": {\"$regex\": \"b(?=a)r\"}}", s)
+	assert.EqualError(t, err, "error parsing regexp: invalid or unsupported Perl syntax: `(?=`")
 
 }
 
