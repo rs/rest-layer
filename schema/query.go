@@ -125,7 +125,7 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 			if regex != "" {
 				v, err := regexp.Compile(regex)
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("$regex: invalid regex: %v", err)
 				}
 				queries = append(queries, Regex{Field: parentKey, Value: v})
 			}
