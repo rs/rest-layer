@@ -38,15 +38,25 @@ func BenchmarkEncoder(b *testing.B) {
 			},
 		},
 		{
-			Name:   `Schema=Student`,
+			Name:   `Schema=Simple`,
 			Schema: studentSchema,
+		},
+		{
+			Name:   `Schema=Complex1`,
+			Schema: getComplexSchema1(),
+		},
+		{
+			Name:   `Schema=Complex2`,
+			Schema: getComplexSchema2(),
 		},
 	}
 	for i := range testCases {
+		buf := bytes.NewBuffer(make([]byte, 2<<19))
 		tc := testCases[i]
 		b.Run(tc.Name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				enc := jsonschema.NewEncoder(new(bytes.Buffer))
+				buf.Truncate(0)
+				enc := jsonschema.NewEncoder(buf)
 				enc.Encode(&tc.Schema)
 			}
 		})
