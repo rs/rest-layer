@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"strings"
 )
 
 // Query defines an expression against a schema to perform a match on schema's data.
@@ -19,12 +18,6 @@ type Expression interface {
 
 // Value represents any kind of value to use in query
 type Value interface{}
-
-// RegexValue represents a regular expression to use in query
-type RegexValue struct {
-	RegValue   *regexp.Regexp
-	RegOptions string
-}
 
 // And joins query clauses with a logical AND, returns all documents
 // that match the conditions of both clauses.
@@ -95,7 +88,7 @@ type LowerOrEqual struct {
 // Regex matches values that match to a specified regular expression.
 type Regex struct {
 	Field string
-	Value RegexValue
+	Value *regexp.Regexp
 }
 
 // NewQuery returns a new query with the provided key/value validated against validator
@@ -125,51 +118,12 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 			if parentKey == "" {
 				return nil, errors.New("$regex can't be at first level")
 			}
-
-			switch exp.(type) {
-			case string:
-				regex := exp.(string)
+			if regex, ok := exp.(string); ok {
 				v, err := regexp.Compile(regex)
 				if err != nil {
 					return nil, fmt.Errorf("$regex: invalid regex: %v", err)
 				}
-
-				value := RegexValue{
-					RegValue:   v,
-					RegOptions: "",
-				}
-
-				queries = append(queries, Regex{Field: parentKey, Value: value})
-			case []interface{}:
-				regex := exp.([]interface{})
-
-				var (
-					v   *regexp.Regexp
-					err error
-				)
-				// Control regex options behavour.
-				// First check if we find any options of the regexp package
-				// Supported options (flags):
-				// i              case-insensitive (default false)
-				// m              multi-line mode: ^ and $ match begin/end line in addition to begin/end text (default false)
-				// s              let . match \n (default false)
-				// U              ungreedy: swap meaning of x* and x*?, x+ and x+?, etc (default false)
-				if strings.ContainsAny(regex[1].(string), "imsU") {
-					v, err = regexp.Compile("(?" + regex[1].(string) + ")" + regex[0].(string))
-				} else {
-					v, err = regexp.Compile(regex[0].(string))
-				}
-				if err != nil {
-					return nil, fmt.Errorf("$regex: invalid regex: %v", err)
-				}
-
-				value := RegexValue{
-					RegValue:   v,
-					RegOptions: regex[1].(string),
-				}
-				queries = append(queries, Regex{Field: parentKey, Value: value})
-			default:
-				return nil, errors.New("$regex can only get string or array as value")
+				queries = append(queries, Regex{Field: parentKey, Value: v})
 			}
 		case "$exists":
 			if parentKey == "" {
@@ -423,5 +377,5 @@ func (e LowerOrEqual) Match(payload map[string]interface{}) bool {
 
 // Match implements Expression interface
 func (e Regex) Match(payload map[string]interface{}) bool {
-	return e.Value.RegValue.MatchString(payload[e.Field].(string))
+	return e.Value.MatchString(payload[e.Field].(string))
 }
