@@ -88,9 +88,16 @@ func TestParseQuery(t *testing.T) {
 	q, err = ParseQuery("{\"$or\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
 	assert.NoError(t, err)
 	assert.Equal(t, Query{Or{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}}, q)
-	q, err = ParseQuery("{\"foo\": {\"$regex\": \"regex-is-awesome\"}}", s)
+	q, err = ParseQuery("{\"foo\": {\"$regex\": \"regex.+awesome\"}}", s)
 	assert.NoError(t, err)
-	assert.Equal(t, Query{Regex{Field: "foo", Value: regexp.MustCompile("regex-is-awesome")}}, q)
+	v, err := regexp.Compile("regex.+awesome")
+	if err == nil {
+		value := RegexValue{
+			RegValue:   v,
+			RegOptions: "",
+		}
+		assert.Equal(t, Query{Regex{Field: "foo", Value: value}}, q)
+	}
 	q, err = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
 	assert.NoError(t, err)
 	assert.Equal(t, Query{And{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}}, q)
@@ -258,7 +265,9 @@ func TestQueryMatch(t *testing.T) {
 	assert.False(t, q.Match(map[string]interface{}{"bar": float64(1)}))
 	assert.True(t, q.Match(map[string]interface{}{"foo": "bar", "bar": float64(1)}))
 	q, _ = ParseQuery("{\"foo\": {\"$regex\": \"rege[x]{1}.+some\"}}", s)
-	assert.Equal(t, q.Match(map[string]interface{}{"foo": "regex-is-awesome"}), q.Match(map[string]interface{}{"foo": "regex-is-awesome"}))
+	assert.True(t, q.Match(map[string]interface{}{"foo": "regex-is-awesome"}))
+	q, _ = ParseQuery("{\"foo\": {\"$regex\": [\"^my.+-rest.+$\", \"iasdm\"]}}", s)
+	assert.True(t, q.Match(map[string]interface{}{"foo": "myAwesome-RESTApplication"}))
 	q, _ = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
 	assert.False(t, q.Match(map[string]interface{}{"foo": "bar"}))
 	assert.False(t, q.Match(map[string]interface{}{"foo": "baz"}))
