@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 )
 
 // Query defines an expression against a schema to perform a match on schema's data.
@@ -84,6 +85,12 @@ type LowerOrEqual struct {
 	Value float64
 }
 
+// Regex matches values that match to a specified regular expression.
+type Regex struct {
+	Field string
+	Value *regexp.Regexp
+}
+
 // NewQuery returns a new query with the provided key/value validated against validator
 func NewQuery(q map[string]interface{}, validator Validator) (Query, error) {
 	return validateQuery(q, validator, "")
@@ -107,6 +114,17 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 	queries := Query{}
 	for key, exp := range q {
 		switch key {
+		case "$regex":
+			if parentKey == "" {
+				return nil, errors.New("$regex can't be at first level")
+			}
+			if regex, ok := exp.(string); ok {
+				v, err := regexp.Compile(regex)
+				if err != nil {
+					return nil, fmt.Errorf("$regex: invalid regex: %v", err)
+				}
+				queries = append(queries, Regex{Field: parentKey, Value: v})
+			}
 		case "$exists":
 			if parentKey == "" {
 				return nil, errors.New("$exists can't be at first level")
@@ -355,4 +373,9 @@ func (e LowerThan) Match(payload map[string]interface{}) bool {
 func (e LowerOrEqual) Match(payload map[string]interface{}) bool {
 	n, ok := isNumber(getField(payload, e.Field))
 	return ok && (n <= e.Value)
+}
+
+// Match implements Expression interface
+func (e Regex) Match(payload map[string]interface{}) bool {
+	return e.Value.MatchString(payload[e.Field].(string))
 }

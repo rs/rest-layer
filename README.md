@@ -823,13 +823,38 @@ The opposite `$nin` is also available.
 
 The following numeric comparisons operators are supported: `$lt`, `$lte`, `$gt`, `$gte`.
 
-The `$exists` operator matches document containing the field, even if this field is `null`
+The `$exists` operator matches documents containing the field, even if this field is `null`
 
 ```json
 {"type": {"$exists": true}}
 ```
 
 You can invert the operator by passing `false`.
+
+There is also a `$regex` operator that matches documents containing the field given as a regular expression. In general, the syntax of the regular expressions accepted is the same general syntax used by Perl, Python, and other languages.
+More precisely, it is the syntax accepted by RE2 and described at https://golang.org/s/re2syntax, except for \C.
+
+Flags are supported for more control over regular expressions. Flag syntax is xyz (set) or -xyz (clear) or xy-z (set xy, clear z).
+The flags are:
+i              case-insensitive (default false)
+m              multi-line mode: ^ and $ match begin/end line in addition to begin/end text (default false)
+s              let . match \n (default false)
+U              ungreedy: swap meaning of x* and x*?, x+ and x+?, etc (default false)
+
+For example the following regular expression would match any document with a field `type` and its value `rest-layer`.
+
+```json
+{"type": {"$regex": "re[s]{1}t-la.+r"}}
+```
+
+The same example with flags:
+
+```json
+{"type": {"$regex": "(?i)re[s]{1}t-LAYER"}}
+```
+
+However, keep in mind that Storers have to support regular expression and depending on the implementation of the storage handler the accepted syntax may vary.
+An error of `ErrNotImplemented` will be returned for those storage backends which do not support the `$regex` operator.
 
 ### Filter operators
 
@@ -843,6 +868,7 @@ You can invert the operator by passing `false`.
 | `$gt`     | `{"a": {"$gt": 10}}`                | Fields value is greater than specified number.
 | `$gte`    | `{"a": {"$gte": 10}}`               | Fields value is greater than or equal to the specified number.
 | `$exists` | `{"a": {"$exists": true}}`          | Match if the field is present (or not if set to `false`) in the item, event if `nil`.
+| `$regex`  | `{"a": {"$regex": "fo[o]{1}"}}`     | Match regular expression on a field's value.
 
 *Some storage handlers may not support all operators. Refer to the storage handler's documentation for more info.*
 

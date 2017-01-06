@@ -3,6 +3,8 @@ package schema
 import (
 	"testing"
 
+	"regexp"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,6 +88,11 @@ func TestParseQuery(t *testing.T) {
 	q, err = ParseQuery("{\"$or\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
 	assert.NoError(t, err)
 	assert.Equal(t, Query{Or{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}}, q)
+	q, err = ParseQuery("{\"foo\": {\"$regex\": \"regex.+awesome\"}}", s)
+	assert.NoError(t, err)
+	if v, err := regexp.Compile("regex.+awesome"); err == nil {
+		assert.Equal(t, Query{Regex{Field: "foo", Value: v}}, q)
+	}
 	q, err = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
 	assert.NoError(t, err)
 	assert.Equal(t, Query{And{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}}, q)
@@ -123,6 +130,8 @@ func TestParseQueryUnknownField(t *testing.T) {
 	_, err = ParseQuery("{\"unknown\": {\"$gt\": 1}}", s)
 	assert.EqualError(t, err, "unknown query field: unknown")
 	_, err = ParseQuery("{\"unknown\": {\"$in\": [1, 2, 3]}}", s)
+	assert.EqualError(t, err, "unknown query field: unknown")
+	_, err = ParseQuery("{\"unknown\": {\"$regex\": \"ba.+\"}}", s)
 	assert.EqualError(t, err, "unknown query field: unknown")
 }
 
@@ -172,6 +181,12 @@ func TestQueryInvalidType(t *testing.T) {
 	assert.EqualError(t, err, "value for $and must be an array of dicts")
 	_, err = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"bar\": \"baz\"}]}", s)
 	assert.EqualError(t, err, "invalid query expression for field `bar': not an integer")
+	_, err = ParseQuery("{\"foo\": {\"$regex\": \"b[..?r\"}}", s)
+	assert.EqualError(t, err, "$regex: invalid regex: error parsing regexp: missing closing ]: `[..?r`")
+	_, err = ParseQuery("{\"foo\": {\"$regex\": \"b[a-z)r\"}}", s)
+	assert.EqualError(t, err, "$regex: invalid regex: error parsing regexp: missing closing ]: `[a-z)r`")
+	_, err = ParseQuery("{\"foo\": {\"$regex\": \"b(?=a)r\"}}", s)
+	assert.EqualError(t, err, "$regex: invalid regex: error parsing regexp: invalid or unsupported Perl syntax: `(?=`")
 
 }
 
@@ -193,6 +208,8 @@ func TestParseQueryInvalidHierarchy(t *testing.T) {
 	assert.EqualError(t, err, "$gt can't be at first level")
 	_, err = ParseQuery("{\"$in\": [1,2]}", s)
 	assert.EqualError(t, err, "$in can't be at first level")
+	_, err = ParseQuery("{\"$regex\": \"someregexpression\"}", s)
+	assert.EqualError(t, err, "$regex can't be at first level")
 }
 
 func TestQueryMatch(t *testing.T) {
@@ -242,6 +259,10 @@ func TestQueryMatch(t *testing.T) {
 	assert.False(t, q.Match(map[string]interface{}{"foo": "bar"}))
 	assert.False(t, q.Match(map[string]interface{}{"bar": float64(1)}))
 	assert.True(t, q.Match(map[string]interface{}{"foo": "bar", "bar": float64(1)}))
+	q, _ = ParseQuery("{\"foo\": {\"$regex\": \"rege[x]{1}.+some\"}}", s)
+	assert.True(t, q.Match(map[string]interface{}{"foo": "regex-is-awesome"}))
+	q, _ = ParseQuery("{\"foo\": {\"$regex\": \"^(?i)my.+-rest.+$\"}}", s)
+	assert.True(t, q.Match(map[string]interface{}{"foo": "myAwesome-RESTApplication"}))
 	q, _ = ParseQuery("{\"$and\": [{\"foo\": \"bar\"}, {\"foo\": \"baz\"}]}", s)
 	assert.False(t, q.Match(map[string]interface{}{"foo": "bar"}))
 	assert.False(t, q.Match(map[string]interface{}{"foo": "baz"}))
