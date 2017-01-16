@@ -1,13 +1,8 @@
 package jsonschema
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"sort"
-	"strconv"
-	"strings"
 
 	"github.com/rs/rest-layer/schema"
 )
@@ -18,132 +13,95 @@ var (
 	ErrNotImplemented = errors.New("not implemented")
 )
 
-// encodeSchema writes JSON Schema keys and values based on s, without the outer curly braces, to w.
-func encodeSchema(w io.Writer, s *schema.Schema) (err error) {
+func addSchemaProperties(m map[string]interface{}, s *schema.Schema) (err error) {
 	if s == nil {
 		return
 	}
-
-	ew := errWriter{w: w}
+	m["type"] = "object"
 	if s.Description != "" {
-		ew.writeFormat(`"description": %q, `, s.Description)
+		m["description"] = s.Description
 	}
-	ew.writeString(`"type": "object", `)
-	ew.writeString(`"additionalProperties": false, `)
-	ew.writeString(`"properties": {`)
-	var required []string
-	var notFirst bool
-	for _, key := range sortedFieldNames(s.Fields) {
-		field := s.Fields[key]
-		if notFirst {
-			ew.writeString(", ")
-		}
-		notFirst = true
-		if field.Required {
-			required = append(required, fmt.Sprintf("%q", key))
-		}
-		ew.err = encodeField(ew, key, field)
-		if ew.err != nil {
-			return ew.err
-		}
-	}
-	ew.writeString("}")
+	m["additionalProperties"] = false
 	if s.MinLen > 0 {
-		ew.writeFormat(`, "minProperties": %s`, strconv.FormatInt(int64(s.MinLen), 10))
+		m["minProperties"] = s.MinLen
 	}
 	if s.MaxLen > 0 {
-		ew.writeFormat(`, "maxProperties": %s`, strconv.FormatInt(int64(s.MaxLen), 10))
+		m["maxProperties"] = s.MaxLen
+	}
+	if len(s.Fields) > 0 {
+		err = addFields(m, s.Fields)
 	}
 
-	if len(required) > 0 {
-		ew.writeFormat(`, "required": [%s]`, strings.Join(required, ", "))
-	}
-	return ew.err
+	return err
 }
 
-type fieldWriter struct {
-	errWriter
-	propertiesCount int
-}
+func addFields(m map[string]interface{}, fields schema.Fields) error {
+	props := make(map[string]interface{}, len(fields))
+	required := []string{}
 
-// comma optionally outputs a comma.  Invoke this when you're about to write a property.  Tracks how many have been
-// written and emits if not the first.
-func (fw *fieldWriter) comma() {
-	if fw.propertiesCount > 0 {
-		fw.writeString(",")
-	}
-	fw.propertiesCount++
-}
-
-func (fw *fieldWriter) resetPropertiesCount() {
-	fw.propertiesCount = 0
-}
-
-// sortedFieldNames returns a list with all field names alphabetically sorted.
-func sortedFieldNames(v schema.Fields) []string {
-	keys := make([]string, 0, len(v))
-	for k := range v {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func encodeField(ew errWriter, key string, field schema.Field) error {
-	fw := fieldWriter{ew, 0}
-	fw.writeFormat("%q: {", key)
-	if field.Description != "" {
-		fw.comma()
-		fw.writeFormat(`"description": %q`, field.Description)
-	}
-	if field.ReadOnly {
-		fw.comma()
-		fw.writeFormat(`"readOnly": %t`, field.ReadOnly)
-	}
-	if field.Validator != nil {
-		// FIXME: This breaks if there are any Validators that may write nothing. E.g. a schema.Object with
-		// Schema set to nil. A better solution should be found before adding support for custom validators.
-		fw.comma()
-		fw.err = encodeValidator(ew, field.Validator)
-	}
-	if field.Default != nil {
-		b, err := json.Marshal(field.Default)
+	for fieldName, field := range fields {
+		if field.Required {
+			required = append(required, fieldName)
+		}
+		builder, err := ValidatorBuilder(field.Validator)
 		if err != nil {
 			return err
 		}
-		fw.comma()
-		fw.writeString(`"default": `)
-		fw.writeBytes(b)
+		fieldMap, err := builder.BuildJSONSchema()
+		if err != nil {
+			return err
+		}
+		addFieldProperties(fieldMap, field)
+		props[fieldName] = fieldMap
 	}
-	fw.writeString("}")
-	fw.resetPropertiesCount()
-	return fw.err
+	m["properties"] = props
+
+	if len(required) > 0 {
+		sort.Strings(required)
+		m["required"] = required
+	}
+	return nil
 }
 
-// encodeValidator writes JSON Schema keys and values based on v, without the outer curly braces, to w. Note
-// that not all FieldValidator types are supported at the moment.
-func encodeValidator(w io.Writer, v schema.FieldValidator) (err error) {
+func addFieldProperties(m map[string]interface{}, field schema.Field) {
+	if field.Description != "" {
+		m["description"] = field.Description
+	}
+	if field.ReadOnly {
+		m["readOnly"] = field.ReadOnly
+	}
+	if field.Default != nil {
+		m["default"] = field.Default
+	}
+}
+
+// ValidatorBuilder type-casts v to a valid Builder implementation or returns an error.
+func ValidatorBuilder(v schema.FieldValidator) (Builder, error) {
 	if v == nil {
-		return nil
+		return builderFunc(nilBuilder), nil
 	}
 	switch t := v.(type) {
-	case *schema.String:
-		err = encodeString(w, t)
-	case *schema.Integer:
-		err = encodeInteger(w, t)
-	case *schema.Float:
-		err = encodeFloat(w, t)
-	case *schema.Array:
-		err = encodeArray(w, t)
-	case *schema.Object:
-		// FIXME: May break the JSON encoding atm. if t.Schema is nil.
-		err = encodeObject(w, t)
-	case *schema.Time:
-		err = encodeTime(w, t)
+	case Builder:
+		return t, nil
 	case *schema.Bool:
-		err = encodeBool(w, t)
+		return (*boolBuilder)(t), nil
+	case *schema.String:
+		return (*stringBuilder)(t), nil
+	case *schema.Time:
+		return (*timeBuilder)(t), nil
+	case *schema.Integer:
+		return (*integerBuilder)(t), nil
+	case *schema.Float:
+		return (*floatBuilder)(t), nil
+	case *schema.Array:
+		return (*arrayBuilder)(t), nil
+	case *schema.Object:
+		return (*objectBuilder)(t), nil
 	default:
-		return ErrNotImplemented
+		return nil, ErrNotImplemented
 	}
-	return err
+}
+
+func nilBuilder() (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
 }

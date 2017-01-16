@@ -1489,7 +1489,40 @@ fmt.Println(b.String()) // Valid JSON Document describing the schema
  - [ ] schema.Dict
  - [ ] schema.AllOf
  - [ ] schema.AnyOf
- - [ ] Custom validators
+ - [x] Custom FieldValidators
+
+### Custom FieldValidators
+
+For a custom `FieldValidator` to support encoding to JSON Schema, it must implement the `jsonschema.Builder` interface:
+
+```go
+// The Builder interface should be implemented by custom schema.FieldValidator implementations to allow JSON Schema
+// serialization.
+type Builder interface {
+	// BuildJSONSchema should return a map containing JSON Schema Draft 4 properties that can be set based on
+	// FieldValidator data. Application specific properties can be added as well, but should not conflict with any
+	// legal JSON Schema keys.
+	BuildJSONSchema() (map[string]interface{}, error)
+}
+```
+
+To easier extend a `FieldValidator` from the `schema` package, you can call `ValidatorBuilder` inside `BuildJSONSchem()`:
+
+```go
+type Email struct {
+	schema.String
+}
+
+func (e Email) BuildJSONSchema() (map[string]interface{}, error) {
+	parentBuilder, _ = jsonschema.ValidatorBuilder(e.String)
+	m, err := parentBuilder.BuildJSONSchema()
+	if err != nil {
+		return nil, err
+	}
+	m["format"] = "email"
+	return m, nil
+}
+```
 
 ## Licenses
 
