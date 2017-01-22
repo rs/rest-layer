@@ -1,5 +1,3 @@
-// +build go1.7
-
 package jsonschema_test
 
 import (

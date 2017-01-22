@@ -6,17 +6,20 @@ import (
 	"github.com/rs/rest-layer/schema"
 )
 
-func TestBoolValidatorEncode(t *testing.T) {
+func TestURLValidatorEncode(t *testing.T) {
 	testCase := encoderTestCase{
 		name: ``,
 		schema: schema.Schema{
 			Fields: schema.Fields{
-				"b": {
-					Validator: &schema.Bool{},
+				"url": {
+					Validator: &schema.URL{},
 				},
 			},
 		},
-		customValidate: fieldValidator("b", `{"type": "boolean"}`),
+		customValidate: fieldValidator("ip", `{
+			"type": "string",
+			"format": "uri"
+		}`),
 	}
 	testCase.Run(t)
 }
