@@ -135,9 +135,9 @@ var (
 )
 
 func init() {
-	simpleSchema.Compile()
-	nestedObjectsSchema.Compile()
-	arrayOfObjectsSchema.Compile()
+	Must(simpleSchema.Compile())
+	Must(nestedObjectsSchema.Compile())
+	Must(arrayOfObjectsSchema.Compile())
 }
 
 // JSON serialization of reusable schemas.
@@ -183,6 +183,13 @@ const (
 		}
 	}`
 )
+
+// Must panics if err is not nil.
+func Must(err error) {
+	if err != nil {
+		panic(err.Error())
+	}
+}
 
 // Default returns a copy of f with f.Default set to v.
 func Default(f schema.Field, v interface{}) schema.Field {

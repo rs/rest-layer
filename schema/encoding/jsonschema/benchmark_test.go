@@ -106,7 +106,7 @@ func complexSchema1() schema.Schema {
 			},
 		},
 	}
-	s.Compile()
+	Must(s.Compile())
 	return s
 }
 
@@ -204,6 +204,6 @@ func complexSchema2() schema.Schema {
 			},
 		},
 	}
-	s.Compile()
+	Must(s.Compile())
 	return s
 }
