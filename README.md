@@ -1474,21 +1474,21 @@ fmt.Println(b.String()) // Valid JSON Document describing the schema
 
 ### Supported FieldValidators
 
- - [x] schema.Schema
+ - [ ] schema.AllOf
+ - [ ] schema.AnyOf
+ - [x] schema.Array
  - [x] schema.Bool
- - [x] schema.Null
+ - [ ] schema.Dict
  - [x] schema.Float
+ - [x] schema.IP
  - [x] schema.Integer
+ - [x] schema.Null
+ - [x] schema.Object
+ - [x] schema.Password
+ - [ ] schema.Reference
  - [x] schema.String
  - [x] schema.Time
  - [x] schema.URL (limited support)
- - [x] schema.IP
- - [x] schema.Password
- - [x] schema.Array
- - [x] schema.Object
- - [ ] schema.Dict
- - [ ] schema.AllOf
- - [ ] schema.AnyOf
  - [x] Custom FieldValidators
 
 ### Custom FieldValidators

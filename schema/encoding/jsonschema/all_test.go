@@ -3,153 +3,17 @@
 package jsonschema_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"testing"
 
 	"github.com/rs/rest-layer/schema"
-	"github.com/rs/rest-layer/schema/encoding/jsonschema"
 	"github.com/stretchr/testify/assert"
 )
-
-// studentSchema serves as a complex nested schema example.
-var studentSchema = schema.Schema{
-	Description: "Object with array of students",
-	Fields: schema.Fields{
-		"students": {
-			Description: "Array of students",
-			Validator: &schema.Array{
-				ValuesValidator: &schema.Object{
-					Schema: &schema.Schema{
-						Description: "Student and class",
-						Fields: schema.Fields{
-							"student": {
-								Description: "The student name",
-								Required:    true,
-								Default:     "Unknown",
-								Validator: &schema.String{
-									MinLen: 1,
-									MaxLen: 10,
-								},
-							},
-							"class": {
-								Description: "The class name",
-								Default:     "Unassigned",
-								Validator: &schema.String{
-									MinLen: 0, // Default value.
-									MaxLen: 10,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	},
-}
-
-// studentSchemaJSON contains the expected JSON serialization of studentSchema.
-const studentSchemaJSON = `{
-	"type": "object",
-	"description": "Object with array of students",
-	"additionalProperties": false,
-	"properties": {
-		"students": {
-			"type": "array",
-			"description": "Array of students",
-			"items": {
-				"type": "object",
-				"description": "Student and class",
-				"additionalProperties": false,
-				"properties": {
-					"student": {
-						"type": "string",
-						"description": "The student name",
-						"default": "Unknown",
-						"minLength": 1,
-						"maxLength": 10
-					},
-					"class": {
-						"type": "string",
-						"description": "The class name",
-						"default": "Unassigned",
-						"maxLength": 10
-					}
-				},
-				"required": ["student"]
-			}
-		}
-	}
-}`
-
-type dummyValidator struct{}
-
-func (v dummyValidator) Validate(value interface{}) (interface{}, error) {
-	return value, nil
-}
-
-type dummyBuilder struct {
-	dummyValidator
-}
-
-func (f dummyBuilder) BuildJSONSchema() (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"type": "string",
-		"enum": []string{"this", "is", "a", "test"},
-	}, nil
-}
-
-// encoderTestCase is used to test the Encoder.Encode() function.
-type encoderTestCase struct {
-	name                string
-	schema              schema.Schema
-	expect, expectError string
-	customValidate      encoderValidator
-}
-
-func (tc *encoderTestCase) Run(t *testing.T) {
-	t.Run(tc.name, func(t *testing.T) {
-		t.Parallel()
-
-		b := new(bytes.Buffer)
-		enc := jsonschema.NewEncoder(b)
-
-		if tc.expectError == "" {
-			assert.NoError(t, enc.Encode(&tc.schema))
-			if tc.customValidate == nil {
-				assert.JSONEq(t, tc.expect, b.String())
-			} else if tc.expect != "" {
-				tc.customValidate(t, b.Bytes())
-			}
-		} else {
-			assert.EqualError(t, enc.Encode(&tc.schema), tc.expectError)
-		}
-
-	})
-}
-
-// encoderValidator can be used to validate encoded data.
-type encoderValidator func(t *testing.T, result []byte)
-
-// fieldValidator returns a encoderValidator that will compare the JSON of v["properties"][fieldName] only, where v is a
-// top-level JSONSchema object.
-func fieldValidator(fieldName, expected string) encoderValidator {
-	return func(t *testing.T, result []byte) {
-		v := struct {
-			Properties map[string]interface{} `json:"properties"`
-		}{}
-		err := json.Unmarshal(result, &v)
-		assert.NoError(t, err, "Input ('%s') needs to be valid JSON", result)
-		actual, err := json.Marshal(v.Properties[fieldName])
-		assert.NoError(t, err)
-		assert.JSONEq(t, expected, string(actual))
-	}
-}
 
 func TestEncoder(t *testing.T) {
 	testCases := []encoderTestCase{
 		{
-			name: "Validator=&dummyValidator{}",
+			name: "Validator=dummyValidator",
 			schema: schema.Schema{
 				Fields: schema.Fields{
 					"i": {
@@ -160,7 +24,7 @@ func TestEncoder(t *testing.T) {
 			expectError: "not implemented",
 		},
 		{
-			name: "Validator=&dummyBuilder{}",
+			name: "Validator=dummyBuilder",
 			schema: schema.Schema{
 				Fields: schema.Fields{
 					"i": {
@@ -203,7 +67,7 @@ func TestEncoder(t *testing.T) {
 			}`,
 		},
 		{
-			name: `type(Default)=string`,
+			name: `Validator=String,type(Default)==string`,
 			schema: schema.Schema{
 				Fields: schema.Fields{
 					"name": {
@@ -229,7 +93,7 @@ func TestEncoder(t *testing.T) {
 		// the Swagger 2.0 variant of JSON Schema (http://swagger.io/specification/#schemaObject), does require
 		// the default value to match the schema.
 		{
-			name: `type(Default)=int`,
+			name: `Validator=String,type(Default)==int`,
 			schema: schema.Schema{
 				Fields: schema.Fields{
 					"name": {
@@ -250,7 +114,7 @@ func TestEncoder(t *testing.T) {
 			}`,
 		},
 		{
-			name: `type(Default)=map[string]interface{}`,
+			name: `Validator=Object,type(Default)==map[string]interface{}`,
 			schema: schema.Schema{
 				Fields: schema.Fields{
 					"student": {
@@ -420,7 +284,11 @@ func TestEncoder(t *testing.T) {
 				assert.Contains(t, v["required"], "age", `Unexpected "required" value`)
 			},
 		},
-
+		{
+			name:   "Schema=simple",
+			schema: simpleSchema,
+			expect: simpleSchemaJSON,
+		},
 		{
 			name: "Validator=Array,ValuesValidator=Object{Schema:nil}",
 			schema: schema.Schema{
@@ -435,42 +303,14 @@ func TestEncoder(t *testing.T) {
 			expectError: "no schema defined for object",
 		},
 		{
-			name:   "Validator=Array,ValuesValidator=Object{Schema:Student}",
-			schema: studentSchema,
-			expect: studentSchemaJSON,
+			name:   "Schema=arrayOfObjects",
+			schema: arrayOfObjectsSchema,
+			expect: arrayOfObjectsSchemaJSON,
 		},
 		{
-			name: `Validator=Object,Fields["location"].Validator=Object`,
-			schema: schema.Schema{
-				Fields: schema.Fields{
-					"location": {
-						Validator: &schema.Object{
-							Schema: &schema.Schema{
-								Fields: schema.Fields{
-									"country": {
-										Validator: &schema.String{},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			expect: `{
-				"type": "object",
-				"additionalProperties": false,
-				"properties": {
-					"location": {
-						"type": "object",
-						"additionalProperties": false,
-						"properties": {
-							"country": {
-								"type": "string"
-							}
-						}
-					}
-				}
-			}`,
+			name:   `Schema=nestedObjects`,
+			schema: nestedObjectsSchema,
+			expect: nestedObjectsSchemaJSON,
 		},
 		{
 			name: `Incorrectly configured field`,
