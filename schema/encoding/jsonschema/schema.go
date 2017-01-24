@@ -83,10 +83,18 @@ func ValidatorBuilder(v schema.FieldValidator) (Builder, error) {
 	switch t := v.(type) {
 	case Builder:
 		return t, nil
+	case *schema.Null:
+		return (*nullBuilder)(t), nil
 	case *schema.Bool:
 		return (*boolBuilder)(t), nil
 	case *schema.String:
 		return (*stringBuilder)(t), nil
+	case *schema.Password:
+		return (*passwordBuilder)(t), nil
+	case *schema.IP:
+		return (*ipBuilder)(t), nil
+	case *schema.URL:
+		return (*urlBuilder)(t), nil
 	case *schema.Time:
 		return (*timeBuilder)(t), nil
 	case *schema.Integer:

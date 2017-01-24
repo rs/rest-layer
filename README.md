@@ -1476,14 +1476,14 @@ fmt.Println(b.String()) // Valid JSON Document describing the schema
 
  - [x] schema.Schema
  - [x] schema.Bool
- - [ ] schema.Null
+ - [x] schema.Null
  - [x] schema.Float
  - [x] schema.Integer
  - [x] schema.String
  - [x] schema.Time
- - [ ] schema.URL
- - [ ] schema.IP
- - [ ] schema.Password
+ - [x] schema.URL (limited support)
+ - [x] schema.IP
+ - [x] schema.Password
  - [x] schema.Array
  - [x] schema.Object
  - [ ] schema.Dict
