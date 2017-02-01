@@ -105,6 +105,8 @@ func ValidatorBuilder(v schema.FieldValidator) (Builder, error) {
 		return (*arrayBuilder)(t), nil
 	case *schema.Object:
 		return (*objectBuilder)(t), nil
+	case *schema.Dict:
+		return (*dictBuilder)(t), nil
 	default:
 		return nil, ErrNotImplemented
 	}

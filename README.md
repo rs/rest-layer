@@ -1459,7 +1459,7 @@ See [Hystrix godoc](https://godoc.org/github.com/afex/hystrix-go/hystrix) for mo
 
 ## JSONSchema
 
-An incomplete but stil useful JSONSchema implementation that covers many common use cases for Schema. Goal is to try and match the draft-04 spec. Patches welcome.
+An incomplete but still useful JSONSchema implementation that covers many common use cases for Schema. Goal is to try and match the draft-04 spec. Patches are welcome.
 
 ```go
 import "github.com/rs/rest-layer/schema/jsonschema"
@@ -1474,11 +1474,12 @@ fmt.Println(b.String()) // Valid JSON Document describing the schema
 
 ### Supported FieldValidators
 
+ - [x] Custom FieldValidators
  - [ ] schema.AllOf
  - [ ] schema.AnyOf
  - [x] schema.Array
  - [x] schema.Bool
- - [ ] schema.Dict
+ - [x] schema.Dict (limited support)
  - [x] schema.Float
  - [x] schema.IP
  - [x] schema.Integer
@@ -1489,7 +1490,6 @@ fmt.Println(b.String()) // Valid JSON Document describing the schema
  - [x] schema.String
  - [x] schema.Time
  - [x] schema.URL (limited support)
- - [x] Custom FieldValidators
 
 ### Custom FieldValidators
 
@@ -1523,6 +1523,18 @@ func (e Email) BuildJSONSchema() (map[string]interface{}, error) {
 	return m, nil
 }
 ```
+
+### schema.Dict Limitations
+
+`schema.Dict` only support `nil` and `schema.String` as `KeysValidator` values. Note that some less common combinations of `schema.String` attributes will lead to usage of an `allOf` construct with duplicated schemas for values. This is to avoid usage of regular expression expansions that only a subset of implementations actually support.
+
+The limitation in `KeysValidator` values arise because JSON Schema draft 4 (and draft 5) support for key validation is limited to [properties, patternProperties and additionalProperties](https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.4.4). This essentially means that there can be no JSON Schema object supplied for key validation, but that we need to rely on exact match (properties), regular expressions (patternProperties) or no key validation (additionalProperties).
+
+## schema.URL Limitations
+
+The current serialization of `schema.URL` always returns a schema `{"type": "string", "format": "uri"}`, ignoring any struct attributes that affect the actual validation within rest-layer. The JSON Schema is thus not completely accurate for this validator.
+
+Note that JSON Schema draft 5 adds (uriref)[https://tools.ietf.org/html/draft-wright-json-schema-validation-00#section-7.3.7], which could allow us to at least document whether `AllowRelative` is `true` or `false`. JSON Schema also allow application specific additional formats to be defined, but it's not practical to create a custom format for any possible struct attribute combination.
 
 ## Licenses
 
