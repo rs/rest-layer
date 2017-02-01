@@ -1,7 +1,7 @@
 package jsonschema
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/rs/rest-layer/schema"
 )
@@ -10,7 +10,7 @@ type objectBuilder schema.Object
 
 var (
 	//ErrNoSchema is returned when trying to JSON Encode a schema.Object with the Schema property set to nil.
-	ErrNoSchema = fmt.Errorf("no schema defined for object")
+	ErrNoSchema = errors.New("no schema defined for object")
 )
 
 func (v objectBuilder) BuildJSONSchema() (map[string]interface{}, error) {
