@@ -1534,7 +1534,7 @@ The limitation in `KeysValidator` values arise because JSON Schema draft 4 (and 
 
 The current serialization of `schema.URL` always returns a schema `{"type": "string", "format": "uri"}`, ignoring any struct attributes that affect the actual validation within rest-layer. The JSON Schema is thus not completely accurate for this validator.
 
-Note that JSON Schema draft 5 adds (uriref)[https://tools.ietf.org/html/draft-wright-json-schema-validation-00#section-7.3.7], which could allow us to at least document whether `AllowRelative` is `true` or `false`. JSON Schema also allow application specific additional formats to be defined, but it's not practical to create a custom format for any possible struct attribute combination.
+Note that JSON Schema draft 5 adds [uriref](https://tools.ietf.org/html/draft-wright-json-schema-validation-00#section-7.3.7), which could allow us to at least document whether `AllowRelative` is `true` or `false`. JSON Schema also allow application specific additional formats to be defined, but it's not practical to create a custom format for any possible struct attribute combination.
 
 ## Licenses
 
