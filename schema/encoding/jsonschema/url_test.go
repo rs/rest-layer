@@ -16,7 +16,7 @@ func TestURLValidatorEncode(t *testing.T) {
 				},
 			},
 		},
-		customValidate: fieldValidator("ip", `{
+		customValidate: fieldValidator("url", `{
 			"type": "string",
 			"format": "uri"
 		}`),

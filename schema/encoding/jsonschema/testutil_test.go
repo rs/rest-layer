@@ -45,17 +45,15 @@ func (tc *encoderTestCase) Run(t *testing.T) {
 		b := new(bytes.Buffer)
 		enc := jsonschema.NewEncoder(b)
 
-		if tc.expectError == "" {
-			assert.NoError(t, enc.Encode(&tc.schema))
-			if tc.customValidate == nil {
-				assert.JSONEq(t, tc.expect, b.String())
-			} else if tc.expect != "" {
-				tc.customValidate(t, b.Bytes())
-			}
-		} else {
+		if tc.expectError != "" {
 			assert.EqualError(t, enc.Encode(&tc.schema), tc.expectError)
+		} else if tc.customValidate != nil {
+			assert.NoError(t, enc.Encode(&tc.schema))
+			tc.customValidate(t, b.Bytes())
+		} else {
+			assert.NoError(t, enc.Encode(&tc.schema))
+			assert.JSONEq(t, tc.expect, b.String())
 		}
-
 	})
 }
 

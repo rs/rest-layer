@@ -14,6 +14,8 @@ var tinySchema = schema.Schema{
 }
 
 const tinySchemaJSON = `{
+	"type": "object",
+	"additionalProperties": false,
 	"properties": {
 		"name": {"type": "string"},
 		"age": {"type": "integer"}
