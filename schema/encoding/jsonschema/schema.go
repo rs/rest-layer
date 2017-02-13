@@ -107,6 +107,12 @@ func ValidatorBuilder(v schema.FieldValidator) (Builder, error) {
 		return (*objectBuilder)(t), nil
 	case *schema.Dict:
 		return (*dictBuilder)(t), nil
+	case *schema.AnyOf:
+		return (*anyOfBuilder)(t), nil
+	case *schema.AllOf:
+		return (*allOfBuilder)(t), nil
+	case *schema.Reference:
+		return builderFunc(nilBuilder), nil
 	default:
 		return nil, ErrNotImplemented
 	}
