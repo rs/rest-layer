@@ -1459,37 +1459,21 @@ See [Hystrix godoc](https://godoc.org/github.com/afex/hystrix-go/hystrix) for mo
 
 ## JSONSchema
 
-An incomplete but still useful JSONSchema implementation that covers many common use cases for Schema. Goal is to try and match the draft-04 spec. Patches are welcome.
+It is possible to convert a schema to [JSON Schema](http://json-schema.org/) with some limitations for certain schema fields. Currently, we implement JSON Schema Draft 4 [core](https://tools.ietf.org/html/draft-zyp-json-schema-04) and [validation](https://tools.ietf.org/html/draft-fge-json-schema-validation-00) specifications. In addition, we have implemented "readOnly" from the less commonly used [hyper-schema](https://tools.ietf.org/html/draft-luff-json-hyper-schema-00#section-4.4) specification.
+
+Example usage:
 
 ```go
 import "github.com/rs/rest-layer/schema/jsonschema"
 
 b := new(bytes.Buffer)
 enc := jsonschema.NewEncoder(b)
-if err := enc.Encode(myschema); err != nil {
+if err := enc.Encode(aSchema); err != nil {
   return err
 }
-fmt.Println(b.String()) // Valid JSON Document describing the schema
+fmt.Println(b.String()) // Valid JSON Document describing the schema.
 ```
 
-### Supported FieldValidators
-
- - [x] Custom FieldValidators
- - [ ] schema.AllOf
- - [ ] schema.AnyOf
- - [x] schema.Array
- - [x] schema.Bool
- - [x] schema.Dict (limited support)
- - [x] schema.Float
- - [x] schema.IP
- - [x] schema.Integer
- - [x] schema.Null
- - [x] schema.Object
- - [x] schema.Password
- - [ ] schema.Reference
- - [x] schema.String
- - [x] schema.Time
- - [x] schema.URL (limited support)
 
 ### Custom FieldValidators
 
@@ -1524,13 +1508,23 @@ func (e Email) BuildJSONSchema() (map[string]interface{}, error) {
 }
 ```
 
+### Sub-schema Limitation
+
+Sub-schemas only get converted to JSON Schema, if you specify a sub-schema via setting a Field's `Validator` attribute to a `schema.Object` instance. Use of the Field's `Schema` field is _not_ supported. Instead we hope [#77](https://github.com/rs/rest-layer/issues/77) will be implemented.
+
 ### schema.Dict Limitations
 
 `schema.Dict` only support `nil` and `schema.String` as `KeysValidator` values. Note that some less common combinations of `schema.String` attributes will lead to usage of an `allOf` construct with duplicated schemas for values. This is to avoid usage of regular expression expansions that only a subset of implementations actually support.
 
 The limitation in `KeysValidator` values arise because JSON Schema draft 4 (and draft 5) support for key validation is limited to [properties, patternProperties and additionalProperties](https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.4.4). This essentially means that there can be no JSON Schema object supplied for key validation, but that we need to rely on exact match (properties), regular expressions (patternProperties) or no key validation (additionalProperties).
 
-## schema.URL Limitations
+### schema.Reference Provisional Support
+
+The support for `schema.Reference` is purely provisional, and simply returns an empty object `{}`, meaning it does not give any hint as to which validation the server might use.
+
+With a potential later implantation of the [OpenAPI Specification](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md) (a.k.a. the Swagger 2.0 Specification), the goal is to refer to the ID field of the linked resource via an object `{"$ref": "#/definitions/<unique schema title>/id"}`. This is tracked via issue [#36](https://github.com/rs/rest-layer/issues/36).
+
+### schema.URL Limitations
 
 The current serialization of `schema.URL` always returns a schema `{"type": "string", "format": "uri"}`, ignoring any struct attributes that affect the actual validation within rest-layer. The JSON Schema is thus not completely accurate for this validator.
 
