@@ -163,7 +163,7 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 			if field := validator.GetField(parentKey); field != nil {
 				if field.Validator != nil {
 					switch field.Validator.(type) {
-					case Integer, Float:
+					case *Integer, *Float, Integer, Float:
 						if _, err := field.Validator.Validate(exp); err != nil {
 							return nil, fmt.Errorf("invalid query expression for field `%s': %s", parentKey, err)
 						}
