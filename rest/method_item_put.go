@@ -69,10 +69,6 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	if len(errs) > 0 {
 		return 422, nil, &Error{422, "Document contains error(s)", errs}
 	}
-	// Check that fields with the Reference validator reference an existing object.
-	if err := checkReferences(ctx, doc, rsrc.Validator()); err != nil {
-		return err.Code, nil, err
-	}
 	if original != nil {
 		if id, found := doc["id"]; found && id != original.ID {
 			return 422, nil, &Error{422, "Cannot change document ID", nil}

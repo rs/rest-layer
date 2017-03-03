@@ -14,15 +14,23 @@ import (
 type Index interface {
 	// Bind a new resource at the "name" endpoint
 	Bind(name string, s schema.Schema, h Storer, c Conf) *Resource
-	// GetResource retrives a given resource by it's path.
-	// For instance if a resource user has a sub-resource posts,
-	// a users.posts path can be use to retrieve the posts resource.
+	// GetResource retrieves a given resource by it's path. For instance if a
+	// resource "user" has a sub-resource "posts", a "users.posts" path can be
+	// use to retrieve the posts resource.
 	//
-	// If a parent is given and the path starts with a dot, the lookup is started at the
-	// parent's location instead of root's.
+	// If a parent is given and the path starts with a dot, the lookup is
+	// started at the parent's location instead of root's.
 	GetResource(path string, parent *Resource) (*Resource, bool)
-	// GetResources returns first level resources
+	// GetResources returns first level resources.
 	GetResources() []*Resource
+}
+
+// Compiler is an optional interface for Index that's task is to prepare the
+// index for usage. When the method exists, it's automatically called by
+// rest.NewHandler(). When the resource package is used without the rest
+// package, it's the user's responsibilty to call this method.
+type Compiler interface {
+	Compile() error
 }
 
 // index is the root of the resource graph.
@@ -38,26 +46,34 @@ func NewIndex() Index {
 }
 
 // Bind a resource at the specified endpoint name.
-func (r *index) Bind(name string, s schema.Schema, h Storer, c Conf) *Resource {
-	assertNotBound(name, r.resources, nil)
+func (i *index) Bind(name string, s schema.Schema, h Storer, c Conf) *Resource {
+	assertNotBound(name, i.resources, nil)
 	sr := new(name, s, h, c)
-	r.resources.add(sr)
+	i.resources.add(sr)
 	return sr
 }
 
 // Compile the resource graph and report any error.
-func (r *index) Compile() error {
-	return compileResourceGraph(r.resources)
+func (i *index) Compile() error {
+	for _, r := range i.resources {
+		if err := r.Compile(refChecker{i}); err != nil {
+			sep := "."
+			if err.Error()[0] == ':' {
+				sep = ""
+			}
+			return fmt.Errorf("%s%s%s", r.name, sep, err)
+		}
+	}
+	return nil
 }
 
-// GetResource retrives a given resource by it's path.
-// For instance if a resource user has a sub-resource posts,
-// a users.posts path can be use to retrieve the posts resource.
+// GetResource retrieves a given resource by it's path. For instance if a resource "user" has a sub-resource "posts", a
+// "users.posts" path can be use to retrieve the posts resource.
 //
 // If a parent is given and the path starts with a dot, the lookup is started at the
 // parent's location instead of root's.
-func (r *index) GetResource(path string, parent *Resource) (*Resource, bool) {
-	resources := r.resources
+func (i *index) GetResource(path string, parent *Resource) (*Resource, bool) {
+	resources := i.resources
 	if len(path) > 0 && path[0] == '.' {
 		if parent == nil {
 			// If field starts with a dot and no parent is given, fail the lookup.
@@ -83,21 +99,42 @@ func (r *index) GetResource(path string, parent *Resource) (*Resource, bool) {
 }
 
 // GetResources returns first level resources.
-func (r *index) GetResources() []*Resource {
-	return r.resources
+func (i *index) GetResources() []*Resource {
+	return i.resources
 }
 
-func compileResourceGraph(resources subResources) error {
-	for _, r := range resources {
-		if err := r.Compile(); err != nil {
-			sep := "."
-			if err.Error()[0] == ':' {
-				sep = ""
-			}
-			return fmt.Errorf("%s%s%s", r.name, sep, err)
-		}
+// resourceLookup provides a wrapper for Index that implements the  schema.ReferenceChecker interface.
+type refChecker struct {
+	index Index
+}
+
+// ReferenceChecker implements the schema.ReferenceChecker interface.
+func (rc refChecker) ReferenceChecker(path string) schema.FieldValidator {
+	rsc, exists := rc.index.GetResource(path, nil)
+	if !exists {
+		return nil
 	}
-	return nil
+	validator := rsc.Schema().Fields["id"].Validator
+
+	return schema.FieldValidatorFunc(func(value interface{}) (interface{}, error) {
+		var id interface{}
+		var err error
+
+		if validator != nil {
+			id, err = validator.Validate(value)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			id = value
+		}
+
+		_, err = rsc.Get(context.TODO(), id)
+		if err != nil {
+			return nil, err
+		}
+		return id, nil
+	})
 }
 
 // assertNotBound asserts a given resource name is not already bound.

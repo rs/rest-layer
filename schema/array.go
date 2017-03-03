@@ -15,10 +15,10 @@ type Array struct {
 	MaxLen int
 }
 
-// Compile implements Compiler interface.
-func (v *Array) Compile() (err error) {
+// Compile implements the ReferenceCompiler interface.
+func (v *Array) Compile(rc ReferenceChecker) (err error) {
 	if c, ok := v.ValuesValidator.(Compiler); ok {
-		if err = c.Compile(); err != nil {
+		if err = c.Compile(rc); err != nil {
 			return
 		}
 	}

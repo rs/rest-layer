@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema"
 )
 
 // getMethodHandler returns the method handler for a given HTTP method in item
@@ -170,45 +169,6 @@ func checkIntegrityRequest(r *http.Request, original *resource.Item) *Error {
 			} else if original.Updated.Truncate(time.Second).After(ifUnmodTime) {
 				// Item's update time is truncated to the second because RFC1123 doesn't support more
 				return ErrPreconditionFailed
-			}
-		}
-	}
-	return nil
-}
-
-// checkReferences ensures that fields with the Reference validator reference an
-// existing object.
-func checkReferences(ctx context.Context, payload map[string]interface{}, s schema.Validator) *Error {
-	for name, value := range payload {
-		field := s.GetField(name)
-		if field == nil {
-			continue
-		}
-		// Check reference if validator is of type Reference.
-		if field.Validator != nil {
-			if ref, ok := field.Validator.(*schema.Reference); ok {
-				router, ok := IndexFromContext(ctx)
-				if !ok {
-					return &Error{500, "Router not available in context", nil}
-				}
-				rsrc, found := router.GetResource(ref.Path, nil)
-				if !found {
-					return &Error{500, fmt.Sprintf("Invalid resource reference for field `%s': %s", name, ref.Path), nil}
-				}
-				_, err := rsrc.Get(ctx, value)
-				if err == resource.ErrNotFound {
-					return &Error{404, fmt.Sprintf("Resource reference not found for field `%s'", name), nil}
-				} else if err != nil {
-					return &Error{500, fmt.Sprintf("Error fetching resource reference for field `%s': %v", name, err), nil}
-				}
-			}
-		}
-		// Check sub-schema if any.
-		if field.Schema != nil && value != nil {
-			if subPayload, ok := value.(map[string]interface{}); ok {
-				if err := checkReferences(ctx, subPayload, field.Schema); err != nil {
-					return err
-				}
 			}
 		}
 	}

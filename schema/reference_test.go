@@ -1,13 +1,33 @@
-package schema
+package schema_test
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/rs/rest-layer/schema"
 )
 
 func TestReferenceValidate(t *testing.T) {
-	v, err := Reference{}.Validate("test")
-	assert.NoError(t, err)
-	assert.Equal(t, "test", v)
+	cases := []fieldValidatorTestCase{
+		{
+			Name:      `{Path:valid}.Validate(valid)`,
+			Validator: &schema.Reference{Path: "foobar"},
+			ReferenceChecker: fakeReferenceChecker{
+				"foobar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}},
+			},
+			Input:  "a",
+			Expect: "a",
+		},
+		{
+			Name:      `{Path:valid}.Validate(invalid)`,
+			Validator: &schema.Reference{Path: "foobar"},
+			ReferenceChecker: fakeReferenceChecker{
+				"foobar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}},
+			},
+			Input: "c",
+			Error: "not found",
+		},
+	}
+	for i := range cases {
+		cases[i].Run(t)
+	}
 }

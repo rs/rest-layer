@@ -1,232 +1,113 @@
-package schema
+package schema_test
 
 import (
-	"errors"
 	"testing"
 
+	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
 )
 
-type uncompilableValidator struct{}
-
-func (v uncompilableValidator) Compile() error {
-	return errors.New("compilation failed")
-}
-
-func (v uncompilableValidator) Validate(value interface{}) (interface{}, error) {
-	return value, nil
-}
-
-func TestInvalidObjectValidatorCompile(t *testing.T) {
-	v := &Object{}
-	err := v.Compile()
-	assert.Error(t, err)
-}
-
-func TestObjectValidatorCompile(t *testing.T) {
-	v := &Object{
-		Schema: &Schema{},
-	}
-	err := v.Compile()
-	assert.NoError(t, err)
-}
-
-func TestObjectWithSchemaValidatorCompile(t *testing.T) {
-	v := &Object{
-		Schema: &Schema{
-			Fields: Fields{
-				"test": Field{
-					Validator: &String{},
-				},
-			},
+func TestObjectCompile(t *testing.T) {
+	cases := []referenceCompilerTestCase{
+		{
+			Name:             "{}",
+			Compiler:         &schema.Object{},
+			ReferenceChecker: fakeReferenceChecker{},
+			Error:            "no schema defined",
+		},
+		{
+			Name:             "{Schema:{}}",
+			Compiler:         &schema.Object{Schema: &schema.Schema{}},
+			ReferenceChecker: fakeReferenceChecker{},
+		},
+		{
+			Name: `{Schema:{"foo":String}}`,
+			Compiler: &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
+				"foo": {Validator: &schema.String{}},
+			}}},
+			ReferenceChecker: fakeReferenceChecker{},
+		},
+		{
+			Name: `{Schema:{"foo":Reference{Path:valid}}}`,
+			Compiler: &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
+				"foo": {Validator: &schema.Reference{Path: "bar"}},
+			}}},
+			ReferenceChecker: fakeReferenceChecker{"bar": {}},
+		},
+		{
+			Name: `{Schema:{"foo":Reference{Path:invalid}}}`,
+			Compiler: &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
+				"foo": {Validator: &schema.Reference{Path: "foobar"}},
+			}}},
+			ReferenceChecker: fakeReferenceChecker{"bar": {}},
+			Error:            "foo: can't find resource 'foobar'",
 		},
 	}
-	err := v.Compile()
-	assert.NoError(t, err)
+	for i := range cases {
+		cases[i].Run(t)
+	}
 }
 
-func TestObjectWithSchemaValidatorCompileError(t *testing.T) {
-	v := &Object{
-		Schema: &Schema{
-			Fields: Fields{
-				"foo": Field{
-					Validator: &uncompilableValidator{},
-				},
+func TestObjectValidate(t *testing.T) {
+	cases := []fieldValidatorTestCase{
+		{
+			Name: `{Schema:{"foo":String}}.Validate(valid)`,
+			Validator: &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
+				"foo": {Validator: &schema.String{}},
+			}}},
+			Input:  map[string]interface{}{"foo": "hello"},
+			Expect: map[string]interface{}{"foo": "hello"},
+		},
+		{
+			Name: `{Schema:{"foo":String}}.Validate(invalid)`,
+			Validator: &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
+				"foo": {Validator: &schema.String{}},
+			}}},
+			Input: map[string]interface{}{"foo": 1},
+			Error: "foo is [not a string]",
+		},
+		{
+			Name: `{Schema:{"test":String,"count:Integer"}}.Validate(doubleError)`,
+			Validator: &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
+				"test":  {Validator: &schema.String{}},
+				"count": {Validator: &schema.Integer{}},
+			}}},
+			Input: map[string]interface{}{"test": 1, "count": "hello"},
+			Error: "count is [not an integer], test is [not a string]",
+		},
+		{
+			Name: `{Schema:{"foo":Reference{Path:valid}}}.Validate(valid)`,
+			Validator: &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
+				"foo": {Validator: &schema.Reference{Path: "bar"}},
+			}}},
+			ReferenceChecker: fakeReferenceChecker{
+				"bar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}},
 			},
+			Input:  map[string]interface{}{"foo": "a"},
+			Expect: map[string]interface{}{"foo": "a"},
+		},
+		{
+			Name: `{Schema:{"foo":Reference{Path:valid}}}.Validate(invalid)`,
+			Validator: &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
+				"foo": {Validator: &schema.Reference{Path: "bar"}},
+			}}},
+			ReferenceChecker: fakeReferenceChecker{
+				"bar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}},
+			},
+			Input: map[string]interface{}{"foo": "c"},
+			Error: "foo is [not found]",
 		},
 	}
-	err := v.Compile()
-	assert.EqualError(t, err, "foo: compilation failed")
+	for i := range cases {
+		cases[i].Run(t)
+	}
 }
 
-func TestObjectValidator(t *testing.T) {
-	obj := make(map[string]interface{})
-	obj["test"] = "hello"
-	v := &Object{
-		Schema: &Schema{
-			Fields: Fields{
-				"test": Field{
-					Validator: &String{},
-				},
-			},
-		},
-	}
-	assert.NoError(t, v.Compile())
-	doc, err := v.Validate(obj)
-	assert.NoError(t, err)
-	assert.Equal(t, obj, doc)
-}
-
-func TestInvalidObjectValidator(t *testing.T) {
-	obj := make(map[string]interface{})
-	obj["test"] = 1
-	v := &Object{
-		Schema: &Schema{
-			Fields: Fields{
-				"test": Field{
-					Validator: &String{},
-				},
-			},
-		},
-	}
-	assert.NoError(t, v.Compile())
+func TestObjectValidatorErrorType(t *testing.T) {
+	obj := map[string]interface{}{"foo": 1}
+	v := &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
+		"foo": {Validator: &schema.String{}},
+	}}}
 	_, err := v.Validate(obj)
-	assert.Error(t, err)
-}
-
-func TestErrorObjectCast(t *testing.T) {
-	obj := make(map[string]interface{})
-	obj["test"] = 1
-	v := &Object{
-		Schema: &Schema{
-			Fields: Fields{
-				"test": Field{
-					Validator: &String{},
-				},
-			},
-		},
-	}
-	assert.NoError(t, v.Compile())
-	_, err := v.Validate(obj)
-	switch errMap := err.(type) {
-	case ErrorMap:
-		assert.True(t, true)
-		assert.Len(t, errMap, 1)
-	default:
-		assert.True(t, false)
-	}
-}
-
-func TestArrayOfObject(t *testing.T) {
-	obj := make(map[string]interface{})
-	obj["test"] = "a"
-	objb := make(map[string]interface{})
-	objb["test"] = "b"
-	value := &Object{
-		Schema: &Schema{
-			Fields: Fields{
-				"test": Field{
-					Validator: &String{},
-				},
-			},
-		},
-	}
-	array := Array{ValuesValidator: value}
-	a := []interface{}{obj, objb}
-	assert.NoError(t, array.Compile())
-	_, err := array.Validate(a)
-	assert.NoError(t, err)
-}
-
-func TestErrorArrayOfObject(t *testing.T) {
-	obj := make(map[string]interface{})
-	obj["test"] = "a"
-	objb := make(map[string]interface{})
-	objb["test"] = 1
-	value := &Object{
-		Schema: &Schema{
-			Fields: Fields{
-				"test": Field{
-					Validator: &String{},
-				},
-			},
-		},
-	}
-	array := Array{ValuesValidator: value}
-	a := []interface{}{obj, objb}
-	assert.NoError(t, array.Compile())
-	_, err := array.Validate(a)
-	assert.Error(t, err)
-}
-
-func TestErrorBasicMessage(t *testing.T) {
-	obj := make(map[string]interface{})
-	obj["test"] = 1
-	v := &Object{
-		Schema: &Schema{
-			Fields: Fields{
-				"test": Field{
-					Validator: &String{},
-				},
-			},
-		},
-	}
-	assert.NoError(t, v.Compile())
-	_, err := v.Validate(obj)
-	errMap, ok := err.(ErrorMap)
-	assert.True(t, ok)
-	assert.Len(t, errMap, 1)
-	assert.Equal(t, "test is [not a string]", errMap.Error())
-}
-
-func Test2ErrorFieldMessages(t *testing.T) {
-	obj := make(map[string]interface{})
-	obj["test"] = 1
-	obj["count"] = "blah"
-	v := &Object{
-		Schema: &Schema{
-			Fields: Fields{
-				"test": Field{
-					Validator: &String{},
-				},
-				"count": Field{
-					Validator: &Integer{},
-				},
-			},
-		},
-	}
-	assert.NoError(t, v.Compile())
-	_, err := v.Validate(obj)
-	errMap, ok := err.(ErrorMap)
-	assert.True(t, ok)
-	assert.Len(t, errMap, 2)
-	assert.Equal(t, "count is [not an integer], test is [not a string]", errMap.Error())
-}
-
-func TestErrorMessagesForObjectValidatorEmbeddedInArray(t *testing.T) {
-	obj := make(map[string]interface{})
-	obj["test"] = 1
-	obj["isUp"] = "false"
-	value := &Object{
-		Schema: &Schema{
-			Fields: Fields{
-				"test": Field{
-					Validator: &String{},
-				},
-				"isUp": Field{
-					Validator: &Bool{},
-				},
-			},
-		},
-	}
-	assert.NoError(t, value.Compile())
-
-	array := Array{ValuesValidator: value}
-
-	// Not testing multiple array values being errors because Array
-	// implementation stops validating on first error found in array.
-	a := []interface{}{obj}
-	_, err := array.Validate(a)
-	assert.Error(t, err)
-	assert.Equal(t, "invalid value at #1: isUp is [not a Boolean], test is [not a string]", err.Error())
+	assert.IsType(t, schema.ErrorMap{}, err, "Unexpected error type")
 }

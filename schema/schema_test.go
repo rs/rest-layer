@@ -8,6 +8,11 @@ import (
 )
 
 func TestSchemaValidator(t *testing.T) {
+	rc := fakeReferenceChecker{
+		"foobar": {IDs: []interface{}{1, 2, 3}, Validator: &schema.Integer{}},
+	}
+	assert.NoError(t, rc.Compile(), "rc compile error")
+
 	minLenSchema := &schema.Schema{
 		Fields: schema.Fields{
 			"foo": schema.Field{
@@ -22,7 +27,7 @@ func TestSchemaValidator(t *testing.T) {
 		},
 		MinLen: 2,
 	}
-	assert.NoError(t, minLenSchema.Compile())
+	assert.NoError(t, minLenSchema.Compile(rc), "minLenSchema compile error")
 
 	maxLenSchema := &schema.Schema{
 		Fields: schema.Fields{
@@ -38,9 +43,9 @@ func TestSchemaValidator(t *testing.T) {
 		},
 		MaxLen: 2,
 	}
-	assert.NoError(t, maxLenSchema.Compile())
+	assert.NoError(t, maxLenSchema.Compile(rc), "maxLenSchema compile error")
 
-	testCases := []struct {
+	cases := []struct {
 		Name                 string
 		Schema               *schema.Schema
 		Base, Change, Expect map[string]interface{}
@@ -72,8 +77,8 @@ func TestSchemaValidator(t *testing.T) {
 		},
 	}
 
-	for i := range testCases {
-		tc := testCases[i]
+	for i := range cases {
+		tc := cases[i]
 		t.Run(tc.Name, func(t *testing.T) {
 			t.Parallel()
 

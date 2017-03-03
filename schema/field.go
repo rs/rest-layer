@@ -73,6 +73,16 @@ type FieldValidator interface {
 	Validate(value interface{}) (interface{}, error)
 }
 
+//FieldValidatorFunc is an adapter to allow the use of ordinary functions as field validators.
+// If f is a function with the appropriate signature, FieldValidatorFunc(f) is a FieldValidator
+// that calls f.
+type FieldValidatorFunc func(value interface{}) (interface{}, error)
+
+// Validate calls f(value).
+func (f FieldValidatorFunc) Validate(value interface{}) (interface{}, error) {
+	return f(value)
+}
+
 // FieldSerializer is used to convert the value between it's representation form
 // and it internal storable form. A FieldValidator which implement this
 // interface will have its Serialize method called before marshaling.
@@ -83,19 +93,19 @@ type FieldSerializer interface {
 	Serialize(value interface{}) (interface{}, error)
 }
 
-// Compile implements Compiler interface and recursively compile sub schemas and
-// validators when they implement Compiler interface.
-func (f Field) Compile() error {
+// Compile implements the ReferenceCompiler interface and recursively compile sub schemas
+// and validators when they implement Compiler interface.
+func (f Field) Compile(rc ReferenceChecker) error {
 	// TODO check field name format (alpha num + _ and -).
 	if f.Schema != nil {
 		// Recursively compile sub schema if any.
-		if err := f.Schema.Compile(); err != nil {
+		if err := f.Schema.Compile(rc); err != nil {
 			return fmt.Errorf(".%v", err)
 		}
 	} else if f.Validator != nil {
-		// Compile validator if it implements Compiler interface.
+		// Compile validator if it implements the ReferenceCompiler or Compiler interface.
 		if c, ok := f.Validator.(Compiler); ok {
-			if err := c.Compile(); err != nil {
+			if err := c.Compile(rc); err != nil {
 				return fmt.Errorf(": %v", err)
 			}
 		}

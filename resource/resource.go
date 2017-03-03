@@ -113,15 +113,15 @@ func (r *Resource) ParentField() string {
 }
 
 // Compile the resource graph and report any error.
-func (r *Resource) Compile() error {
+func (r *Resource) Compile(rc schema.ReferenceChecker) error {
 	// Compile schema and panic on any compilation error.
 	if c, ok := r.validator.Validator.(schema.Compiler); ok {
-		if err := c.Compile(); err != nil {
+		if err := c.Compile(rc); err != nil {
 			return fmt.Errorf(": schema compilation error: %s", err)
 		}
 	}
 	for _, r := range r.resources {
-		if err := r.Compile(); err != nil {
+		if err := r.Compile(rc); err != nil {
 			if err.Error()[0] == ':' {
 				// Check if I'm the direct ancestor of the raised sub-error.
 				return fmt.Errorf("%s%s", r.name, err)

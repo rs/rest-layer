@@ -1,29 +1,69 @@
-package schema
+package schema_test
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/rs/rest-layer/schema"
 )
 
 func TestAllOfValidatorCompile(t *testing.T) {
-	v := &AllOf{&String{}}
-	err := v.Compile()
-	assert.NoError(t, err)
-	v = &AllOf{&String{Regexp: "[invalid re"}}
-	err = v.Compile()
-	assert.EqualError(t, err, "invalid regexp: error parsing regexp: missing closing ]: `[invalid re`")
-
+	cases := []referenceCompilerTestCase{
+		{
+			Name:     "{String}",
+			Compiler: &schema.AllOf{&schema.String{}},
+		},
+		{
+			Name:     "{String{Regexp:invalid}}",
+			Compiler: &schema.AllOf{&schema.String{Regexp: "[invalid re"}},
+			Error:    "invalid regexp: error parsing regexp: missing closing ]: `[invalid re`",
+		},
+	}
+	for i := range cases {
+		cases[i].Run(t)
+	}
 }
 
 func TestAllOfValidator(t *testing.T) {
-	v, err := AllOf{&Bool{}, &Bool{}}.Validate(true)
-	assert.NoError(t, err)
-	assert.Equal(t, true, v)
-	v, err = AllOf{&Bool{}, &Bool{}}.Validate("")
-	assert.EqualError(t, err, "not a Boolean")
-	assert.Equal(t, nil, v)
-	v, err = AllOf{&Bool{}, &String{}}.Validate(true)
-	assert.EqualError(t, err, "not a string")
-	assert.Equal(t, nil, v)
+	cases := []fieldValidatorTestCase{
+		{
+			Name:      "{String}.Validate(true)",
+			Validator: schema.AllOf{&schema.Bool{}, &schema.Bool{}},
+			Input:     true,
+			Expect:    true,
+		},
+		{
+			Name:      `{Bool, String}.Validate("")`,
+			Validator: schema.AllOf{&schema.Bool{}, &schema.String{}},
+			Input:     "",
+			Error:     "not a Boolean",
+		},
+		{
+			Name:      "{Bool, String}.Validate(true)",
+			Validator: schema.AllOf{&schema.Bool{}, &schema.String{}},
+			Input:     true,
+			Error:     "not a string",
+		},
+		{
+			Name: `{Reference{Path:"foo"},Reference{Path:"bar"}}.Validate(validFooReference)`,
+			Validator: schema.AllOf{
+				&schema.Reference{Path: "foo"},
+				&schema.Reference{Path: "bar"},
+			},
+			ReferenceChecker: fakeReferenceChecker{
+				"foo": {
+					IDs:       []interface{}{"foo1"},
+					Validator: &schema.String{},
+				},
+				"bar": {
+					IDs:       []interface{}{"bar1", "bar2", "bar3"},
+					Validator: &schema.String{},
+				},
+			},
+			Input: "foo1",
+			Error: "not found",
+		},
+	}
+	for i := range cases {
+		cases[i].Run(t)
+	}
 }

@@ -9,12 +9,11 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema"
 )
 
 func newRootQuery(idx resource.Index) *graphql.Object {
 	t := types{}
-	if c, ok := idx.(schema.Compiler); ok {
+	if c, ok := idx.(resource.Compiler); ok {
 		if err := c.Compile(); err != nil {
 			log.Fatal(err)
 		}

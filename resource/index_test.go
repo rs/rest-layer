@@ -30,35 +30,64 @@ func TestIndexBind(t *testing.T) {
 
 func TestIndexCompile(t *testing.T) {
 	r, ok := NewIndex().(*index)
-	if assert.True(t, ok) {
-		s := schema.Schema{Fields: schema.Fields{"f": {}}}
-		r.Bind("foo", s, nil, DefaultConf)
-		assert.NoError(t, r.Compile())
+	if !assert.True(t, ok) {
+		return
 	}
+	s := schema.Schema{Fields: schema.Fields{"f": {}}}
+	r.Bind("foo", s, nil, DefaultConf)
+	assert.NoError(t, r.Compile())
 }
 
 func TestIndexCompileError(t *testing.T) {
 	r, ok := NewIndex().(*index)
-	if assert.True(t, ok) {
-		s := schema.Schema{
-			Fields: schema.Fields{
-				"f": {Validator: schema.String{Regexp: "["}},
-			},
-		}
-		r.Bind("foo", s, nil, DefaultConf)
-		assert.Error(t, r.Compile())
+	if !assert.True(t, ok) {
+		return
 	}
+	s := schema.Schema{
+		Fields: schema.Fields{
+			"f": {Validator: schema.String{Regexp: "["}},
+		},
+	}
+	r.Bind("foo", s, nil, DefaultConf)
+	assert.Error(t, r.Compile())
 }
 
 func TestIndexCompileSubError(t *testing.T) {
 	r, ok := NewIndex().(*index)
-	if assert.True(t, ok) {
-		foo := r.Bind("foo", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
-		bar := foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
-		s := schema.Schema{Fields: schema.Fields{"f": {Validator: &schema.String{Regexp: "["}}}}
-		bar.Bind("baz", "f", s, nil, DefaultConf)
-		assert.EqualError(t, r.Compile(), "foo.bar.baz: schema compilation error: f: invalid regexp: error parsing regexp: missing closing ]: `[`")
+	if !assert.True(t, ok) {
+		return
 	}
+	foo := r.Bind("foo", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
+	bar := foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
+	s := schema.Schema{Fields: schema.Fields{"f": {Validator: &schema.String{Regexp: "["}}}}
+	bar.Bind("baz", "f", s, nil, DefaultConf)
+	assert.EqualError(t, r.Compile(), "foo.bar.baz: schema compilation error: f: invalid regexp: error parsing regexp: missing closing ]: `[`")
+}
+
+func TestIndexCompileReferenceChecker(t *testing.T) {
+	i, ok := NewIndex().(*index)
+	if !assert.True(t, ok) {
+		return
+	}
+
+	i.Bind("b", schema.Schema{Fields: schema.Fields{"id": {}}}, nil, DefaultConf)
+	i.Bind("a", schema.Schema{Fields: schema.Fields{"ref": {
+		Validator: &schema.Reference{Path: "b"},
+	}}}, nil, DefaultConf)
+	assert.NoError(t, i.Compile())
+}
+
+func TestIndexCompileReferenceCheckerError(t *testing.T) {
+	i, ok := NewIndex().(*index)
+	if !assert.True(t, ok) {
+		return
+	}
+
+	i.Bind("b", schema.Schema{Fields: schema.Fields{"id": {}}}, nil, DefaultConf)
+	i.Bind("a", schema.Schema{Fields: schema.Fields{"ref": {
+		Validator: &schema.Reference{Path: "c"},
+	}}}, nil, DefaultConf)
+	assert.Error(t, i.Compile())
 }
 
 func TestIndexGetResource(t *testing.T) {

@@ -9,7 +9,6 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema"
 )
 
 // Handler is a net/http compatible handler used to serve the configured GraphQL
@@ -21,7 +20,7 @@ type Handler struct {
 // NewHandler creates an new GraphQL API HTTP handler with the specified
 // resource index.
 func NewHandler(i resource.Index) (*Handler, error) {
-	if c, ok := i.(schema.Compiler); ok {
+	if c, ok := i.(resource.Compiler); ok {
 		if err := c.Compile(); err != nil {
 			return nil, err
 		}
