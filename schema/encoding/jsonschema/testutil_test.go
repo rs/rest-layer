@@ -133,9 +133,9 @@ var (
 )
 
 func init() {
-	Must(simpleSchema.Compile())
-	Must(nestedObjectsSchema.Compile())
-	Must(arrayOfObjectsSchema.Compile())
+	Must(simpleSchema.Compile(nil))
+	Must(nestedObjectsSchema.Compile(nil))
+	Must(arrayOfObjectsSchema.Compile(nil))
 }
 
 // JSON serialization of reusable schemas.

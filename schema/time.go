@@ -56,7 +56,7 @@ type Time struct {
 }
 
 // Compile the time formats.
-func (v *Time) Compile() (err error) {
+func (v *Time) Compile(rc ReferenceChecker) error {
 	if len(v.TimeLayouts) == 0 {
 		// default layouts to all formats.
 		v.layouts = formats

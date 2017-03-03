@@ -9,15 +9,17 @@ import (
 )
 
 func TestArrayValidatorCompile(t *testing.T) {
-	testCases := []compilerTestCase{
+	testCases := []referenceCompilerTestCase{
 		{
-			Name:     "ValuesValidator=&String{}",
-			Compiler: &schema.Array{ValuesValidator: &schema.String{}},
+			Name:             "ValuesValidator=&String{}",
+			Compiler:         &schema.Array{ValuesValidator: &schema.String{}},
+			ReferenceChecker: fakeReferenceChecker{},
 		},
 		{
-			Name:     "ValuesValidator=&String{Regexp:invalid}",
-			Compiler: &schema.Array{ValuesValidator: &schema.String{Regexp: "[invalid re"}},
-			Error:    "invalid regexp: error parsing regexp: missing closing ]: `[invalid re`",
+			Name:             "ValuesValidator=&String{Regexp:invalid}",
+			Compiler:         &schema.Array{ValuesValidator: &schema.String{Regexp: "[invalid re"}},
+			ReferenceChecker: fakeReferenceChecker{},
+			Error:            "invalid regexp: error parsing regexp: missing closing ]: `[invalid re`",
 		},
 	}
 	for i := range testCases {

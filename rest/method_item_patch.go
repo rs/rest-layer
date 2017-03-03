@@ -45,11 +45,6 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	if len(errs) > 0 {
 		return 422, nil, &Error{422, "Document contains error(s)", errs}
 	}
-	// Check that fields with the Reference validator reference an existing
-	// object.
-	if e = checkReferences(ctx, doc, rsrc.Validator()); e != nil {
-		return e.Code, nil, e
-	}
 	if id, found := doc["id"]; found && id != original.ID {
 		return 422, nil, &Error{422, "Cannot change document ID", nil}
 	}

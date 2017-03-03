@@ -17,7 +17,7 @@ type String struct {
 }
 
 // Compile compiles and validate regexp if any.
-func (v *String) Compile() (err error) {
+func (v *String) Compile(rc ReferenceChecker) (err error) {
 	if v.Regexp != "" {
 		// Compile and cache regexp, report any compilation error.
 		if v.re, err = regexp.Compile(v.Regexp); err != nil {
@@ -29,6 +29,11 @@ func (v *String) Compile() (err error) {
 
 // Validate validates and normalize string based value.
 func (v String) Validate(value interface{}) (interface{}, error) {
+	// Pre-check that compilation was successful.
+	if v.Regexp != "" && v.re == nil {
+		return nil, errors.New("not successfully compiled")
+	}
+
 	s, ok := value.(string)
 	if !ok {
 		return nil, errors.New("not a string")

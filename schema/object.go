@@ -12,18 +12,33 @@ type Object struct {
 	Schema *Schema
 }
 
-// Compile implements Compiler interface.
-func (v *Object) Compile() error {
+// Compile implements the ReferenceCompiler interface.
+func (v *Object) Compile(rc ReferenceChecker) error {
 	if v.Schema == nil {
-		return fmt.Errorf("No schema defined for object")
+		return errors.New("no schema defined")
 	}
 	if err := compileDependencies(*v.Schema, v.Schema); err != nil {
 		return err
 	}
-	return v.Schema.Compile()
+	return v.Schema.Compile(rc)
 }
 
-// ErrorMap to return lots of errors.
+// Validate implements FieldValidator interface.
+func (v Object) Validate(value interface{}) (interface{}, error) {
+	obj, ok := value.(map[string]interface{})
+	if !ok {
+		return nil, errors.New("not an object")
+	}
+	dest, errs := v.Schema.Validate(nil, obj)
+	if len(errs) > 0 {
+		var errMap ErrorMap
+		errMap = errs
+		return nil, errMap
+	}
+	return dest, nil
+}
+
+// ErrorMap contains a map of errors by field name.
 type ErrorMap map[string][]interface{}
 
 func (e ErrorMap) Error() string {
@@ -36,18 +51,4 @@ func (e ErrorMap) Error() string {
 		errs[i] = fmt.Sprintf("%s is %s", key, e[key])
 	}
 	return strings.Join(errs, ", ")
-}
-
-// Validate implements FieldValidator interface.
-func (v Object) Validate(value interface{}) (interface{}, error) {
-	dict, ok := value.(map[string]interface{})
-	if !ok {
-		return nil, errors.New("not a dict")
-	}
-	dest, errs := v.Schema.Validate(nil, dict)
-	if len(errs) > 0 {
-		var errMap ErrorMap = errs
-		return nil, errMap
-	}
-	return dest, nil
 }

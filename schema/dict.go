@@ -17,15 +17,15 @@ type Dict struct {
 	MaxLen int
 }
 
-// Compile implements Compiler interface.
-func (v *Dict) Compile() (err error) {
+// Compile implements the ReferenceCompiler interface.
+func (v *Dict) Compile(rc ReferenceChecker) (err error) {
 	if c, ok := v.KeysValidator.(Compiler); ok {
-		if err = c.Compile(); err != nil {
+		if err = c.Compile(rc); err != nil {
 			return
 		}
 	}
 	if c, ok := v.ValuesValidator.(Compiler); ok {
-		if err = c.Compile(); err != nil {
+		if err = c.Compile(rc); err != nil {
 			return
 		}
 	}

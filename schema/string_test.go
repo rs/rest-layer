@@ -29,15 +29,15 @@ func TestStringValidator(t *testing.T) {
 	assert.EqualError(t, err, "not one of [bar, baz]")
 	assert.Nil(t, s)
 	v := String{Regexp: "^f.o$"}
-	assert.NoError(t, v.Compile())
+	assert.NoError(t, v.Compile(nil))
 	s, err = v.Validate("foo")
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", s)
 	v = String{Regexp: "^bar$"}
-	assert.NoError(t, v.Compile())
+	assert.NoError(t, v.Compile(nil))
 	s, err = v.Validate("foo")
 	assert.EqualError(t, err, "does not match ^bar$")
 	assert.Nil(t, s)
 	v = String{Regexp: "^bar["}
-	assert.EqualError(t, v.Compile(), "invalid regexp: error parsing regexp: missing closing ]: `[`")
+	assert.EqualError(t, v.Compile(nil), "invalid regexp: error parsing regexp: missing closing ]: `[`")
 }

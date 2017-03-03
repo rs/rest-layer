@@ -29,12 +29,6 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 	if len(errs) > 0 {
 		return 422, nil, &Error{422, "Document contains error(s)", errs}
 	}
-	// Check that fields with the Reference validator reference an existing
-	// object.
-	if err := checkReferences(ctx, doc, rsrc.Validator()); err != nil {
-		e = NewError(err)
-		return e.Code, nil, e
-	}
 	item, err := resource.NewItem(doc)
 	if err != nil {
 		e = NewError(err)
