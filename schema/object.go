@@ -17,11 +17,10 @@ func (v *Object) Compile() error {
 	if v.Schema == nil {
 		return fmt.Errorf("No schema defined for object")
 	}
-
 	if err := compileDependencies(*v.Schema, v.Schema); err != nil {
 		return err
 	}
-	return nil
+	return v.Schema.Compile()
 }
 
 // ErrorMap to return lots of errors
