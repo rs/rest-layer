@@ -189,7 +189,7 @@ func (r RouteMatch) Lookup() (*resource.Lookup, *Error) {
 	// Parse query string params
 	if sort := r.Params.Get("sort"); sort != "" {
 		if err := l.SetSort(sort, r.Resource().Validator()); err != nil {
-			return nil, &Error{422, fmt.Sprintf("Invalid `sort` paramter: %s", err), nil}
+			return nil, &Error{422, fmt.Sprintf("Invalid `sort` parameter: %s", err), nil}
 		}
 	}
 	if filters, found := r.Params["filter"]; found {
@@ -202,7 +202,7 @@ func (r RouteMatch) Lookup() (*resource.Lookup, *Error) {
 	}
 	if fields := r.Params.Get("fields"); fields != "" {
 		if err := l.SetSelector(fields, r.Resource().Validator()); err != nil {
-			return nil, &Error{422, fmt.Sprintf("Invalid `fields` paramter: %s", err), nil}
+			return nil, &Error{422, fmt.Sprintf("Invalid `fields` parameter: %s", err), nil}
 		}
 	}
 	return l, nil
