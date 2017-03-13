@@ -17,7 +17,7 @@ import (
 	"github.com/rs/xlog"
 )
 
-// NOTE: this exemple demonstrates how to implement basic authentication/authorization with REST Layer.
+// NOTE: this example demonstrates how to implement basic authentication/authorization with REST Layer.
 // By no mean, we recommend to use basic authentication with your API. You can read more about auth
 // best practices with REST Layer at http://rest-layer.io#authentication-and-authorization.
 

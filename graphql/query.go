@@ -98,7 +98,7 @@ func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url
 		limit = i
 	}
 	if page != 1 && limit == -1 {
-		return nil, 0, 0, errors.New("cannot use `page' parameter with no `limit' paramter on a resource with no default pagination size")
+		return nil, 0, 0, errors.New("cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size")
 	}
 	offset = (page-1)*limit + skip
 	lookup = resource.NewLookup()

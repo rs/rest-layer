@@ -80,7 +80,7 @@ func TestHandlerPostListInvalIDLookupFields(t *testing.T) {
 	if assert.IsType(t, body, &Error{}) {
 		err := body.(*Error)
 		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `fields` paramter: invalid: unknown field", err.Message)
+		assert.Equal(t, "Invalid `fields` parameter: invalid: unknown field", err.Message)
 	}
 }
 
