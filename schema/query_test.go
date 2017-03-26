@@ -2,6 +2,7 @@ package schema
 
 import (
 	"testing"
+	"time"
 
 	"regexp"
 
@@ -35,6 +36,14 @@ func TestIsNumber(t *testing.T) {
 	_, ok = isNumber(float64(1))
 	assert.True(t, ok)
 	_, ok = isNumber("1")
+	assert.False(t, ok)
+}
+
+func TestIsTime(t *testing.T) {
+	var ok bool
+	_, ok = isTime("2003-06-13T10:23:05+00:00")
+	assert.True(t, ok)
+	_, ok = isTime("abcd")
 	assert.False(t, ok)
 }
 
@@ -102,6 +111,10 @@ func TestParseQuery(t *testing.T) {
 	q, err = ParseQuery("{\"foo\": {\"$nin\": [\"bar\", \"baz\"]}}", s)
 	assert.NoError(t, err)
 	assert.Equal(t, Query{NotIn{Field: "foo", Values: []Value{"bar", "baz"}}}, q)
+	q, err = ParseQuery("{\"foo\": {\"$gte\": \"2009-05-20T10:23:34+00:00\"}}", s)
+	d, _ := time.Parse(time.RFC3339, "2009-05-20T10:23:34+00:00")
+	assert.NoError(t, err)
+	assert.Equal(t, Query{GreaterOrEqual{Field: "foo", Value: d}}, q)
 }
 
 func TestParseQueryUnfilterableField(t *testing.T) {
@@ -158,7 +171,7 @@ func TestQueryInvalidType(t *testing.T) {
 	_, err = ParseQuery("{\"foo\": {\"$gt\": 1}}", s)
 	assert.EqualError(t, err, "foo: cannot apply $gt operation on a non numerical field")
 	_, err = ParseQuery("{\"bar\": {\"$gt\": \"1\"}}", s)
-	assert.EqualError(t, err, "bar: value for $gt must be a number")
+	assert.EqualError(t, err, "bar: value for $gt must be a number or time")
 	_, err = ParseQuery("{\"bar\": {\"$in\": [\"1\"]}}", s)
 	assert.EqualError(t, err, "invalid query expression (1) for field `bar': not an integer")
 	_, err = ParseQuery("{\"bar\": {\"$in\": \"1\"}}", s)

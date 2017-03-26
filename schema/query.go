@@ -64,25 +64,25 @@ type NotExist struct {
 // GreaterThan matches values that are greater than a specified value.
 type GreaterThan struct {
 	Field string
-	Value float64
+	Value interface{}
 }
 
 // GreaterOrEqual matches values that are greater than or equal to a specified value.
 type GreaterOrEqual struct {
 	Field string
-	Value float64
+	Value interface{}
 }
 
 // LowerThan matches values that are less than a specified value.
 type LowerThan struct {
 	Field string
-	Value float64
+	Value interface{}
 }
 
 // LowerOrEqual matches values that are less than or equal to a specified value.
 type LowerOrEqual struct {
 	Field string
-	Value float64
+	Value interface{}
 }
 
 // Regex matches values that match to a specified regular expression.
@@ -156,9 +156,13 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 			if parentKey == "" {
 				return nil, fmt.Errorf("%s can't be at first level", op)
 			}
-			n, ok := isNumber(exp)
-			if !ok {
-				return nil, fmt.Errorf("%s: value for %s must be a number", parentKey, op)
+			var v interface{}
+			if n, ok := isNumber(exp); ok {
+				v = n
+			} else if t, ok := isTime(exp); ok {
+				v = t
+			} else {
+				return nil, fmt.Errorf("%s: value for %s must be a number or time", parentKey, op)
 			}
 			if field := validator.GetField(parentKey); field != nil {
 				if field.Validator != nil {
@@ -174,13 +178,13 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 			}
 			switch op {
 			case "$gt":
-				queries = append(queries, GreaterThan{Field: parentKey, Value: n})
+				queries = append(queries, GreaterThan{Field: parentKey, Value: v})
 			case "$gte":
-				queries = append(queries, GreaterOrEqual{Field: parentKey, Value: n})
+				queries = append(queries, GreaterOrEqual{Field: parentKey, Value: v})
 			case "$lt":
-				queries = append(queries, LowerThan{Field: parentKey, Value: n})
+				queries = append(queries, LowerThan{Field: parentKey, Value: v})
 			case "$lte":
-				queries = append(queries, LowerOrEqual{Field: parentKey, Value: n})
+				queries = append(queries, LowerOrEqual{Field: parentKey, Value: v})
 			}
 		case "$in", "$nin":
 			op := key
@@ -354,25 +358,33 @@ func (e NotExist) Match(payload map[string]interface{}) bool {
 // Match implements Expression interface
 func (e GreaterThan) Match(payload map[string]interface{}) bool {
 	n, ok := isNumber(getField(payload, e.Field))
-	return ok && (n > e.Value)
+	if ok {
+		return ok && (n > e.Value.(float64))
+	}
+	t, ok := isTime(getField(payload, e.Field))
+	if ok {
+		t2, ok := isTime(e.Value)
+		return ok && (t.After(t2))
+	}
+	return false
 }
 
 // Match implements Expression interface
 func (e GreaterOrEqual) Match(payload map[string]interface{}) bool {
 	n, ok := isNumber(getField(payload, e.Field))
-	return ok && (n >= e.Value)
+	return ok && (n >= e.Value.(float64))
 }
 
 // Match implements Expression interface
 func (e LowerThan) Match(payload map[string]interface{}) bool {
 	n, ok := isNumber(getField(payload, e.Field))
-	return ok && (n < e.Value)
+	return ok && (n < e.Value.(float64))
 }
 
 // Match implements Expression interface
 func (e LowerOrEqual) Match(payload map[string]interface{}) bool {
 	n, ok := isNumber(getField(payload, e.Field))
-	return ok && (n <= e.Value)
+	return ok && (n <= e.Value.(float64))
 }
 
 // Match implements Expression interface
