@@ -381,6 +381,23 @@ func (r *Resource) Update(ctx context.Context, item *Item, original *Item) (err 
 	return
 }
 
+// Replace implements Storer interface
+func (r *Resource) Replace(ctx context.Context, item *Item, original *Item) (err error) {
+	if LoggerLevel <= LogLevelDebug && Logger != nil {
+		defer func(t time.Time) {
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Replace(%v, %v)", r.path, item.ID, original.ID), map[string]interface{}{
+				"duration": time.Since(t),
+				"error":    err,
+			})
+		}(time.Now())
+	}
+	if err = r.hooks.onUpdate(ctx, item, original); err == nil {
+		err = r.storage.Replace(ctx, item, original)
+	}
+	r.hooks.onUpdated(ctx, item, original, &err)
+	return
+}
+
 // Delete implements Storer interface
 func (r *Resource) Delete(ctx context.Context, item *Item) (err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
