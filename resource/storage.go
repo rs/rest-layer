@@ -47,6 +47,20 @@ type Storer interface {
 	// on the passed ctx. If the operation is stopped due to context cancellation, the
 	// function must return the result of the ctx.Err() method.
 	Update(ctx context.Context, item *Item, original *Item) error
+	// Replace replace an item in the backend store by a new version. The ResourceHandler must)
+	// ensure that the original item exists in the database and has the same Etag field.
+	// This check should be performed atomically. If the original item is not
+	// found, a resource.ErrNotFound must be returned. If the etags don't match, a
+	// resource.ErrConflict must be returned.
+	//
+	// The item payload must be stored together with the etag and the updated field.
+	// The item.ID and the payload["id"] is garantied to be identical, so there's not need
+	// to store both.
+	//
+	// If the storage of the data is not immediate, the method must listen for cancellation
+	// on the passed ctx. If the operation is stopped due to context cancellation, the
+	// function must return the result of the ctx.Err() method.
+	Replace(ctx context.Context, item *Item, original *Item) error
 	// Delete deletes the provided item by its ID. The Etag of the item stored in the
 	// backend store must match the Etag of the provided item or a resource.ErrConflict
 	// must be returned. This check should be performed atomically.
@@ -219,6 +233,16 @@ func (s storageWrapper) Update(ctx context.Context, item *Item, original *Item) 
 		return ctx.Err()
 	}
 	return s.Storer.Update(ctx, item, original)
+}
+
+func (s storageWrapper) Replace(ctx context.Context, item *Item, original *Item) (err error) {
+	if s.Storer == nil {
+		return ErrNoStorage
+	}
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return s.Storer.Replace(ctx, item, original)
 }
 
 func (s storageWrapper) Delete(ctx context.Context, item *Item) (err error) {
