@@ -32,7 +32,13 @@ const (
 	indexKey
 )
 
-var routePool = sync.Pool{}
+var routePool = sync.Pool{
+	New: func() interface{} {
+		return &RouteMatch{
+			ResourcePath: make(ResourcePath, 0, 2),
+		}
+	},
+}
 
 var errResourceNotFound = &Error{http.StatusNotFound, "Resource Not Found", nil}
 
@@ -58,12 +64,7 @@ func IndexFromContext(ctx context.Context) (resource.Index, bool) {
 
 // FindRoute returns the REST route for the given request
 func FindRoute(index resource.Index, req *http.Request) (*RouteMatch, error) {
-	route, ok := routePool.Get().(*RouteMatch)
-	if !ok {
-		route = &RouteMatch{
-			ResourcePath: make(ResourcePath, 0, 2),
-		}
-	}
+	route := routePool.Get().(*RouteMatch)
 	route.Method = req.Method
 	if req.URL.RawQuery != "" {
 		route.Params = req.URL.Query()
@@ -157,7 +158,7 @@ func nextPathComponent(path string) (string, string) {
 }
 
 // Resource returns the last resource path's resource
-func (r RouteMatch) Resource() *resource.Resource {
+func (r *RouteMatch) Resource() *resource.Resource {
 	l := len(r.ResourcePath)
 	if l == 0 {
 		return nil
@@ -169,7 +170,7 @@ func (r RouteMatch) Resource() *resource.Resource {
 //
 // If this method returns a non nil value, it means the route is an item request,
 // otherwise it's a collection request.
-func (r RouteMatch) ResourceID() interface{} {
+func (r *RouteMatch) ResourceID() interface{} {
 	l := len(r.ResourcePath)
 	if l == 0 {
 		return nil
@@ -178,7 +179,7 @@ func (r RouteMatch) ResourceID() interface{} {
 }
 
 // Lookup builds a Lookup object from the matched route
-func (r RouteMatch) Lookup() (*resource.Lookup, *Error) {
+func (r *RouteMatch) Lookup() (*resource.Lookup, *Error) {
 	l := resource.NewLookup()
 	// Append route fields to the query
 	for _, rp := range r.ResourcePath {
@@ -209,7 +210,7 @@ func (r RouteMatch) Lookup() (*resource.Lookup, *Error) {
 }
 
 // Release releases the route so it can be reused
-func (r RouteMatch) Release() {
+func (r *RouteMatch) Release() {
 	r.Params = nil
 	r.Method = ""
 	r.ResourcePath.clear()
