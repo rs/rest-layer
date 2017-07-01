@@ -38,22 +38,22 @@ func TestFormatResponse(t *testing.T) {
 	reset()
 	rf := FakeResponseFormatter{trace: &trace}
 
-	_, status, _ := formatResponse(nil, rf, nil, 0, nil, nil, false)
+	_, status, _ := formatResponse(context.TODO(), rf, nil, 0, nil, nil, false)
 	assert.Equal(t, 0, status)
 	assert.Equal(t, []string{}, trace)
 
 	reset()
-	_, status, _ = formatResponse(nil, rf, nil, 0, nil, errors.New("test"), false)
+	_, status, _ = formatResponse(context.TODO(), rf, nil, 0, nil, errors.New("test"), false)
 	assert.Equal(t, 500, status)
 	assert.Equal(t, []string{"SendError"}, trace)
 
 	reset()
-	_, status, _ = formatResponse(nil, rf, nil, 0, nil, &resource.Item{}, false)
+	_, status, _ = formatResponse(context.TODO(), rf, nil, 0, nil, &resource.Item{}, false)
 	assert.Equal(t, 0, status)
 	assert.Equal(t, []string{"SendItem"}, trace)
 
 	reset()
-	_, status, _ = formatResponse(nil, rf, nil, 0, nil, &resource.ItemList{Items: []*resource.Item{{}}}, false)
+	_, status, _ = formatResponse(context.TODO(), rf, nil, 0, nil, &resource.ItemList{Items: []*resource.Item{{}}}, false)
 	assert.Equal(t, 0, status)
 	assert.Equal(t, []string{"SendList"}, trace)
 }

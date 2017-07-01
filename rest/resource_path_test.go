@@ -52,6 +52,7 @@ func TestResourcePathAppend(t *testing.T) {
 	err = p.append(posts, "id", "123", "posts")
 	assert.EqualError(t, err, "not an integer")
 	err = p.append(posts, "id", 123, "posts")
+	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{"id": 123, "user": "john"}, p.Values())
 
 }
