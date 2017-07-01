@@ -63,7 +63,7 @@ func TestIndexCompileSubError(t *testing.T) {
 
 func TestIndexGetResource(t *testing.T) {
 	r := NewIndex()
-	foo := r.Bind("foo", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
+	foo := r.Bind("foo", schema.Schema{}, nil, DefaultConf)
 	foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
 	res, found := r.GetResource("foo", nil)
 	assert.True(t, found)
