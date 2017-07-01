@@ -125,6 +125,9 @@ func performRequest(h http.Handler, r *http.Request) (int, string) {
 }
 
 func TestHandler(t *testing.T) {
+	oldLogger := resource.Logger
+	resource.Logger = nil
+	defer func() { resource.Logger = oldLogger }()
 	index := resource.NewIndex()
 
 	users := index.Bind("users", user, mem.NewHandler(), resource.Conf{
