@@ -9,14 +9,14 @@ func resolveAsyncSelectors(ctx context.Context, p map[string]interface{}) error 
 			break
 		}
 		done := make(chan error, len(sr))
-		// TODO limit the number of // sub requests
+		// TODO limit the number of sub requests.
 		for _, r := range sr {
 			go r(ctx, done)
 		}
 		wait := len(sr)
 		cleanup := func() {
 			// Make sure we empty the channel of remaining future responses
-			// to prevent leaks
+			// to prevent leaks.
 			for wait > 0 {
 				<-done
 				wait--
@@ -49,8 +49,8 @@ func getSelectorResolvers(p map[string]interface{}) []asyncSelectorResolver {
 	return append(getAsyncSelectorResolvers(p), getAsyncGetResolver(p)...)
 }
 
-// getAsyncSelectorResolvers parse the payload searching for any unresolved asyncSelector
-// and build an asyncSelectorResolver for each ones.
+// getAsyncSelectorResolvers parse the payload searching for any unresolved
+// asyncSelector and build an asyncSelectorResolver for each ones.
 func getAsyncSelectorResolvers(p map[string]interface{}) []asyncSelectorResolver {
 	as := []asyncSelectorResolver{}
 	for name, val := range p {
@@ -75,14 +75,14 @@ func getAsyncSelectorResolvers(p map[string]interface{}) []asyncSelectorResolver
 	return as
 }
 
-// getAsyncGetResolver search for any unresolved asyncGet and build on asyncSelectorResolver
-// per resource with all requested ids coalesced.
+// getAsyncGetResolver search for any unresolved asyncGet and build on
+// asyncSelectorResolver per resource with all requested ids coalesced.
 func getAsyncGetResolver(p map[string]interface{}) []asyncSelectorResolver {
 	ags := findAsyncGets(p)
 	if len(ags) == 0 {
 		return nil
 	}
-	// map of resource -> []asyncGet
+	// map of resource -> []asyncGet.
 	r := map[*Resource][]asyncGet{}
 	for _, ag := range ags {
 		if _ags, found := r[ag.resource]; found {
@@ -92,28 +92,28 @@ func getAsyncGetResolver(p map[string]interface{}) []asyncSelectorResolver {
 		}
 	}
 	as := make([]asyncSelectorResolver, 0, len(r))
-	// create a resource resolver for each resource
+	// create a resource resolver for each resource.
 	for rsrc, ags := range r {
 		as = append(as, func(ctx context.Context, done chan<- error) {
-			// Gater ids for each asyncGet
+			// Gather ids for each asyncGet
 			ids := make([]interface{}, len(ags))
 			for i, ag := range ags {
 				ids[i] = ag.id
 			}
-			// Perform the mget
+			// Perform the mget.
 			items, err := rsrc.MultiGet(ctx, ids)
 			if err != nil {
 				done <- err
 				return
 			}
-			// Route back the value to corresponding asyncGet handlers
+			// Route back the value to corresponding asyncGet handlers.
 			for i, ag := range ags {
 				val, err := ag.handler(ctx, items[i])
 				if err != nil {
 					done <- err
 					return
 				}
-				// Put the response value in place
+				// Put the response value in place.
 				ag.payload[ag.field] = val
 			}
 			done <- nil

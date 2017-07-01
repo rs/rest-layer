@@ -16,7 +16,7 @@ handles HTTP conditional requests, caching, integrity checking for you.
 
 A powerful and extensible validation engine make sure that data comes
 pre-validated to your custom storage handlers. Generic resource handlers for
-MongoDB (http://github.com/rs/rest-layer-mongo), ElastiSearch
+MongoDB (http://github.com/rs/rest-layer-mongo), ElasticSearch
 (http://github.com/rs/rest-layer-es) and other databases are also available so
 you have few to no code to write to make the whole system work.
 
@@ -29,7 +29,8 @@ REST Layer is composed of several sub-packages:
 
  - rest: Holds the `net/http` handler responsible for the implementation of the
    RESTful API.
- - graphql: Holds a `net/http` handler to expose the API using the GraphQL protocol.
+ - graphql: Holds a `net/http` handler to expose the API using the GraphQL
+   protocol.
  - schema: Provides a validation framework for the API resources.
  - resource: Defines resources, manages the resource graph and manages the
    interface with resource storage handler.

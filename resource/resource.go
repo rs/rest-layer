@@ -10,7 +10,7 @@ import (
 	"github.com/rs/rest-layer/schema"
 )
 
-// Resource holds information about a class of items exposed on the API
+// Resource holds information about a class of items exposed on the API.
 type Resource struct {
 	parentField string
 	name        string
@@ -26,7 +26,7 @@ type Resource struct {
 
 type subResources []*Resource
 
-// get gets a sub resource by its name
+// get gets a sub resource by its name.
 func (sr subResources) get(name string) *Resource {
 	i := sort.Search(len(sr), func(i int) bool {
 		return sr[i].name >= name
@@ -41,7 +41,7 @@ func (sr subResources) get(name string) *Resource {
 	return r
 }
 
-// add adds the resource to the subResources in a pre-sorted way
+// add adds the resource to the subResources in a pre-sorted way.
 func (sr *subResources) add(rsrc *Resource) {
 	for i, r := range *sr {
 		if rsrc.name < r.name {
@@ -53,7 +53,7 @@ func (sr *subResources) add(rsrc *Resource) {
 }
 
 // validatorFallback wraps a validator and fallback on given schema if the GetField
-// returns nil on a given name
+// returns nil on a given name.
 type validatorFallback struct {
 	schema.Validator
 	fallback schema.Schema
@@ -78,7 +78,7 @@ func (v connection) Validate(value interface{}) (interface{}, error) {
 	return value, nil
 }
 
-// new creates a new resource with provided spec, handler and config
+// new creates a new resource with provided spec, handler and config.
 func new(name string, s schema.Schema, h Storer, c Conf) *Resource {
 	return &Resource{
 		name:   name,
@@ -101,19 +101,20 @@ func (r *Resource) Name() string {
 }
 
 // Path returns the full path of the resource composed of names of each
-// intermediate resources separated by dots (i.e.: res1.res2.res3)
+// intermediate resources separated by dots (i.e.: res1.res2.res3).
 func (r *Resource) Path() string {
 	return r.path
 }
 
-// ParentField returns the name of the field on which the resource is bound to its parent if any.
+// ParentField returns the name of the field on which the resource is bound to
+// its parent if any.
 func (r *Resource) ParentField() string {
 	return r.parentField
 }
 
-// Compile the resource graph and report any error
+// Compile the resource graph and report any error.
 func (r *Resource) Compile() error {
-	// Compile schema and panic on any compilation error
+	// Compile schema and panic on any compilation error.
 	if c, ok := r.validator.Validator.(schema.Compiler); ok {
 		if err := c.Compile(); err != nil {
 			return fmt.Errorf(": schema compilation error: %s", err)
@@ -122,7 +123,7 @@ func (r *Resource) Compile() error {
 	for _, r := range r.resources {
 		if err := r.Compile(); err != nil {
 			if err.Error()[0] == ':' {
-				// Check if I'm the direct ancestor of the raised sub-error
+				// Check if I'm the direct ancestor of the raised sub-error.
 				return fmt.Errorf("%s%s", r.name, err)
 			}
 			return fmt.Errorf("%s.%s", r.name, err)
@@ -187,7 +188,7 @@ func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *
 	return sr
 }
 
-// GetResources returns first level resources
+// GetResources returns first level resources.
 func (r *Resource) GetResources() []*Resource {
 	return r.resources
 }
@@ -198,19 +199,19 @@ func (r *Resource) GetResources() []*Resource {
 //     // (equivalent to /users/:user_id/posts?filter={"public":true})
 //     posts.Alias("public", url.Values{"where": []string{"{\"public\":true}"}})
 //
-// This method will panic an alias or a resource with the same name is already bound
+// This method will panic an alias or a resource with the same name is already bound.
 func (r *Resource) Alias(name string, v url.Values) {
 	assertNotBound(name, r.resources, r.aliases)
 	r.aliases[name] = v
 }
 
-// GetAlias returns the alias set for the name if any
+// GetAlias returns the alias set for the name if any.
 func (r *Resource) GetAlias(name string) (url.Values, bool) {
 	a, found := r.aliases[name]
 	return a, found
 }
 
-// GetAliases returns all the alias names set on the resource
+// GetAliases returns all the alias names set on the resource.
 func (r *Resource) GetAliases() []string {
 	n := make([]string, 0, len(r.aliases))
 	for a := range r.aliases {
@@ -219,29 +220,30 @@ func (r *Resource) GetAliases() []string {
 	return n
 }
 
-// Schema returns the resource's schema
+// Schema returns the resource's schema.
 func (r *Resource) Schema() schema.Schema {
 	return r.schema
 }
 
-// Validator returns the resource's validator
+// Validator returns the resource's validator.
 func (r *Resource) Validator() schema.Validator {
 	return r.validator
 }
 
-// Conf returns the resource's configuration
+// Conf returns the resource's configuration.
 func (r *Resource) Conf() Conf {
 	return r.conf
 }
 
-// Use attaches an event handler to the resource. This event
-// handler must implement on of the resource.*EventHandler interface
-// or this method returns an error.
+// Use attaches an event handler to the resource. This event handler must
+// implement on of the resource.*EventHandler interface or this method returns
+// an error.
 func (r *Resource) Use(e interface{}) error {
 	return r.hooks.use(e)
 }
 
-// Get get one item by its id. If item is not found, ErrNotFound error is returned
+// Get get one item by its id. If item is not found, ErrNotFound error is
+// returned.
 func (r *Resource) Get(ctx context.Context, id interface{}) (item *Item, err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {
@@ -258,8 +260,8 @@ func (r *Resource) Get(ctx context.Context, id interface{}) (item *Item, err err
 	return
 }
 
-// MultiGet get some items by their id and return them in the same order. If one or more item(s)
-// is not found, their slot in the response is set to nil.
+// MultiGet get some items by their id and return them in the same order. If one
+// or more item(s) is not found, their slot in the response is set to nil.
 func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*Item, err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {
@@ -274,11 +276,11 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 	for i, id := range ids {
 		errs[i] = r.hooks.onGet(ctx, id)
 		if err == nil && errs[i] != nil {
-			// first pre-hook error is the global error
+			// first pre-hook error is the global error.
 			err = errs[i]
 		}
 	}
-	// Perform the storage request if none of the pre-hook returned an err
+	// Perform the storage request if none of the pre-hook returned an err.
 	if err == nil {
 		items, err = r.storage.MultiGet(ctx, ids)
 	}
@@ -288,17 +290,17 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 		if len(items) > i {
 			_item = items[i]
 		}
-		// Give the pre-hook error for this id or global otherwise
+		// Give the pre-hook error for this id or global otherwise.
 		_err := errs[i]
 		if _err == nil {
 			_err = err
 		}
 		r.hooks.onGot(ctx, &_item, &_err)
 		if errOverwrite == nil && _err != errs[i] {
-			errOverwrite = _err // apply change done on the first error
+			errOverwrite = _err // apply change done on the first error.
 		}
 		if _err == nil && len(items) > i && _item != items[i] {
-			items[i] = _item // apply changes done by hooks if any
+			items[i] = _item // apply changes done by hooks if any.
 		}
 	}
 	if errOverwrite != nil {
@@ -315,10 +317,11 @@ func (r *Resource) Find(ctx context.Context, lookup *Lookup, offset, limit int) 
 	return r.find(ctx, lookup, offset, limit, false)
 }
 
-// FindWithTotal calls the Find method on the storage handler with the corresponding pre/post hooks.
-// If the storage is not able to compute the total, this method will call the Count method on the
-// storage. If the storage Find does not compute the total and the Counter interface is not implemented,
-// an ErrNotImpemented error is returned.
+// FindWithTotal calls the Find method on the storage handler with the
+// corresponding pre/post hooks. If the storage is not able to compute the
+// total, this method will call the Count method on the storage. If the storage
+// Find does not compute the total and the Counter interface is not implemented,
+// an ErrNotImplemented error is returned.
 func (r *Resource) FindWithTotal(ctx context.Context, lookup *Lookup, offset, limit int) (list *ItemList, err error) {
 	return r.find(ctx, lookup, offset, limit, true)
 }
@@ -347,7 +350,7 @@ func (r *Resource) find(ctx context.Context, lookup *Lookup, offset, limit int, 
 	return
 }
 
-// Insert implements Storer interface
+// Insert implements Storer interface.
 func (r *Resource) Insert(ctx context.Context, items []*Item) (err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {
@@ -364,7 +367,7 @@ func (r *Resource) Insert(ctx context.Context, items []*Item) (err error) {
 	return
 }
 
-// Update implements Storer interface
+// Update implements Storer interface.
 func (r *Resource) Update(ctx context.Context, item *Item, original *Item) (err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {
@@ -381,7 +384,7 @@ func (r *Resource) Update(ctx context.Context, item *Item, original *Item) (err 
 	return
 }
 
-// Delete implements Storer interface
+// Delete implements Storer interface.
 func (r *Resource) Delete(ctx context.Context, item *Item) (err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {
@@ -398,7 +401,7 @@ func (r *Resource) Delete(ctx context.Context, item *Item) (err error) {
 	return
 }
 
-// Clear implements Storer interface
+// Clear implements Storer interface.
 func (r *Resource) Clear(ctx context.Context, lookup *Lookup) (deleted int, err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {

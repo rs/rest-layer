@@ -9,7 +9,8 @@ import (
 type allOfBuilder schema.AllOf
 
 var (
-	//ErrNoSchemaList is returned when trying to JSON Encode an empty schema.AnyOf or schema.AllOf slice.
+	//ErrNoSchemaList is returned when trying to JSON Encode an empty
+	//schema.AnyOf or schema.AllOf slice.
 	ErrNoSchemaList = errors.New("at least one schema must be specified")
 )
 

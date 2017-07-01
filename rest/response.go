@@ -11,7 +11,8 @@ import (
 	"github.com/rs/rest-layer/resource"
 )
 
-// ResponseFormatter defines an interface responsible for formatting a the different types of response objects
+// ResponseFormatter defines an interface responsible for formatting a the
+// different types of response objects.
 type ResponseFormatter interface {
 	// FormatItem formats a single item in a format ready to be serialized by the ResponseSender
 	FormatItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{})
@@ -21,26 +22,27 @@ type ResponseFormatter interface {
 	FormatError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{})
 }
 
-// ResponseSender defines an interface responsible for serializing and sending the response
-// to the http.ResponseWriter.
+// ResponseSender defines an interface responsible for serializing and sending
+// the response to the http.ResponseWriter.
 type ResponseSender interface {
-	// Send serialize the body, sets the given headers and write everything to the provided response writer
+	// Send serialize the body, sets the given headers and write everything to
+	// the provided response writer.
 	Send(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, body interface{})
 }
 
-// DefaultResponseFormatter provides a base response formatter to be used by default. This formatter can
-// easily be extended or replaced by implementing ResponseFormatter interface and setting it on
-// Handler.ResponseFormatter.
+// DefaultResponseFormatter provides a base response formatter to be used by
+// default. This formatter can easily be extended or replaced by implementing
+// ResponseFormatter interface and setting it on Handler.ResponseFormatter.
 type DefaultResponseFormatter struct {
 }
 
-// DefaultResponseSender provides a base response sender to be used by default. This sender can
-// easily be extended or replaced by implementing ResponseSender interface and setting it on
-// Handler.ResponseSender.
+// DefaultResponseSender provides a base response sender to be used by default.
+// This sender can easily be extended or replaced by implementing ResponseSender
+// interface and setting it on Handler.ResponseSender.
 type DefaultResponseSender struct {
 }
 
-// Send sends headers with the given status and marshal the data in JSON
+// Send sends headers with the given status and marshal the data in JSON.
 func (s DefaultResponseSender) Send(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, body interface{}) {
 	headers.Set("Content-Type", "application/json")
 	// Apply headers to the response
@@ -66,7 +68,7 @@ func (s DefaultResponseSender) Send(ctx context.Context, w http.ResponseWriter, 
 	}
 }
 
-// FormatItem implements ResponseFormatter
+// FormatItem implements ResponseFormatter.
 func (f DefaultResponseFormatter) FormatItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{}) {
 	if i.ETag != "" {
 		headers.Set("Etag", `"`+i.ETag+`"`)
@@ -80,18 +82,18 @@ func (f DefaultResponseFormatter) FormatItem(ctx context.Context, headers http.H
 	return ctx, i.Payload
 }
 
-// FormatList implements ResponseFormatter
+// FormatList implements ResponseFormatter.
 func (f DefaultResponseFormatter) FormatList(ctx context.Context, headers http.Header, l *resource.ItemList, skipBody bool) (context.Context, interface{}) {
 	if l.Total >= 0 {
-		headers.Set("X-Total", strconv.FormatInt(int64(l.Total), 10))
+		headers.Set("X-Total", strconv.Itoa(l.Total))
 	}
 	if l.Offset > 0 {
-		headers.Set("X-Offset", strconv.FormatInt(int64(l.Offset), 10))
+		headers.Set("X-Offset", strconv.Itoa(l.Offset))
 	}
 	if !skipBody {
 		payload := make([]map[string]interface{}, len(l.Items))
 		for i, item := range l.Items {
-			// Clone item payload to add the etag to the items in the list
+			// Clone item payload to add the etag to the items in the list.
 			d := map[string]interface{}{}
 			for k, v := range item.Payload {
 				d[k] = v
@@ -106,7 +108,7 @@ func (f DefaultResponseFormatter) FormatList(ctx context.Context, headers http.H
 	return ctx, nil
 }
 
-// FormatError implements ResponseFormatter
+// FormatError implements ResponseFormatter.
 func (f DefaultResponseFormatter) FormatError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{}) {
 	oldLogger := resource.Logger
 	resource.Logger = nil

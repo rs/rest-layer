@@ -109,15 +109,15 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 		if p[i].Value == nil {
 			continue
 		}
-		// Create a lookup with the parent path fields + the current path id
+		// Create a lookup with the parent path fields + the current path id.
 		l := resource.NewLookup()
 		lq := append(q[:], schema.Equal{Field: "id", Value: p[i].Value})
 		l.AddQuery(lq)
-		// Execute all intermediate checkes in concurence
+		// Execute all intermediate checks concurrently
 		wait.Add(1)
 		go func(index int) {
 			defer wait.Done()
-			// Check if the resource exists
+			// Check if the resource exists.
 			list, err := p[index].Resource.Find(ctx, l, 0, 1)
 			if err != nil {
 				c <- err
@@ -127,10 +127,10 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 				c <- nil
 			}
 		}(i)
-		// Push the resource field=value for the next hops
+		// Push the resource field=value for the next hops.
 		q = append(q, schema.Equal{Field: p[i].Field, Value: p[i].Value})
 	}
-	// Fail on first error
+	// Fail on first error.
 	for i := 0; i < parents; i++ {
 		if err := <-c; err != nil {
 			return err
@@ -139,7 +139,7 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 	return nil
 }
 
-// Path returns the path to the resource to be used with resource.Root.GetResource
+// Path returns the path to the resource to be used with resource.Root.GetResource.
 func (p ResourcePath) Path() string {
 	path := []string{}
 	for _, c := range p {
@@ -150,7 +150,7 @@ func (p ResourcePath) Path() string {
 	return strings.Join(path, ".")
 }
 
-// Values returns all the key=value pairs defined by the resource path
+// Values returns all the key=value pairs defined by the resource path.
 func (p ResourcePath) Values() map[string]interface{} {
 	v := map[string]interface{}{}
 	for _, rp := range p {

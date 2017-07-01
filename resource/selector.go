@@ -106,8 +106,9 @@ func applySelector(ctx context.Context, s []Field, v schema.Validator, p map[str
 					if err != nil {
 						return nil, fmt.Errorf("%s: error linking sub-field resource: %v", f.Name, err)
 					}
-					// Do not execute the sub-request right away, store a asyncSelector type of
-					// lambda that will be executed later with concurrency control
+					// Do not execute the sub-request right away, store a
+					// asyncSelector type of lambda that will be executed later
+					// with concurrency control
 					res[name] = asyncGet{
 						payload:  res,
 						field:    name,
@@ -132,8 +133,9 @@ func applySelector(ctx context.Context, s []Field, v schema.Validator, p map[str
 				if err != nil {
 					return nil, fmt.Errorf("%s: error linking sub-resource: %v", f.Name, err)
 				}
-				// Do not execute the sub-request right away, store a asyncSelector type of
-				// lambda that will be executed later with concurrency control
+				// Do not execute the sub-request right away, store a
+				// asyncSelector type of lambda that will be executed later with
+				// concurrency control
 				res[name] = asyncSelector(subResourceHandler(f, def, rsrc, resolver))
 			}
 		}

@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	// ErrNotImplemented is returned when the JSON schema encoding logic for a schema.FieldValidator has not (yet)
-	// been implemented.
+	// ErrNotImplemented is returned when the JSON schema encoding logic for a
+	// schema.FieldValidator has not (yet) been implemented.
 	ErrNotImplemented = errors.New("not implemented")
 )
 
@@ -75,7 +75,8 @@ func addFieldProperties(m map[string]interface{}, field schema.Field) {
 	}
 }
 
-// ValidatorBuilder type-casts v to a valid Builder implementation or returns an error.
+// ValidatorBuilder type-casts v to a valid Builder implementation or returns an
+// error.
 func ValidatorBuilder(v schema.FieldValidator) (Builder, error) {
 	if v == nil {
 		return builderFunc(nilBuilder), nil

@@ -11,9 +11,11 @@ import (
 
 type types map[string]*graphql.Object
 
-// getObjectType returns a graphql object type definition from a REST layer schema
+// getObjectType returns a graphql object type definition from a REST layer
+// schema.
 func (t types) getObjectType(idx resource.Index, r *resource.Resource) *graphql.Object {
-	// Memoize types by their name so we don't create several instance of the same resource
+	// Memoize types by their name so we don't create several instance of the
+	// same resource.
 	name := r.Name()
 	o := t[name]
 	if o == nil {
@@ -28,9 +30,10 @@ func (t types) getObjectType(idx resource.Index, r *resource.Resource) *graphql.
 	return o
 }
 
-// addConnections adds connections fields to the object afterward to prevent from dead loops
+// addConnections adds connections fields to the object afterward to prevent
+// from dead loops.
 func (t types) addConnections(o *graphql.Object, idx resource.Index, r *resource.Resource) {
-	// Add sub field references
+	// Add sub field references.
 	for name, def := range r.Schema().Fields {
 		if ref, ok := def.Validator.(*schema.Reference); ok {
 			sr, found := idx.GetResource(ref.Path, nil)
@@ -45,7 +48,7 @@ func (t types) addConnections(o *graphql.Object, idx resource.Index, r *resource
 			})
 		}
 	}
-	// Add sub resources
+	// Add sub resources.
 	for _, sr := range r.GetResources() {
 		name := sr.Name()
 		o.AddFieldConfig(name, &graphql.Field{
@@ -65,7 +68,7 @@ func getSubFieldResolver(parentField string, r *resource.Resource, f schema.Fiel
 			return nil, nil
 		}
 		var item *resource.Item
-		// Get sub field resource
+		// Get sub field resource.
 		item, err = r.Get(p.Context, parent[parentField])
 		if err != nil {
 			return nil, err
@@ -91,7 +94,7 @@ func getSubResourceResolver(r *resource.Resource) graphql.FieldResolveFn {
 		if err != nil {
 			return nil, err
 		}
-		// Limit the connection to parent's owned
+		// Limit the connection to parent's owned.
 		lookup.AddQuery(schema.Query{
 			schema.Equal{
 				Field: r.ParentField(),
@@ -118,7 +121,7 @@ func getFields(idx resource.Index, s schema.Schema) graphql.Fields {
 			continue
 		}
 		if _, ok := def.Validator.(*schema.Reference); ok {
-			// Handled by addConnections to prevent dead loops
+			// Handled by addConnections to prevent dead loops.
 		}
 		var typ graphql.Output
 		if def.Schema != nil {
@@ -153,7 +156,7 @@ func getFArgs(p schema.Params) graphql.FieldConfigArgument {
 	return args
 }
 
-// getFResolver returns a GraphQL field resolver for REST layer field handler
+// getFResolver returns a GraphQL field resolver for REST layer field handler.
 func getFResolver(fieldName string, f schema.Field) graphql.FieldResolveFn {
 	s, serialize := f.Validator.(schema.FieldSerializer)
 	if !serialize && f.Handler == nil {
@@ -176,7 +179,7 @@ func getFResolver(fieldName string, f schema.Field) graphql.FieldResolveFn {
 	}
 }
 
-// getFType translates a REST layer field type into GraphQL type
+// getFType translates a REST layer field type into GraphQL type.
 func getFType(v schema.FieldValidator) graphql.Output {
 	switch v.(type) {
 	case *schema.String, schema.String:

@@ -2,14 +2,14 @@ package schema
 
 import "fmt"
 
-// PreQuery stores a query as string so it can be parsed/validated later
+// PreQuery stores a query as string so it can be parsed/validated later.
 type PreQuery struct {
 	s string
 	q Query
 }
 
 // Q is like ParseQuery, but returns an intermediate object which can
-// be stored before behing parsed.
+// be stored before being parsed.
 func Q(q string) *PreQuery {
 	return &PreQuery{s: q}
 }
@@ -25,8 +25,8 @@ func (q *PreQuery) compile(v Validator) error {
 	return nil
 }
 
-// compileDependencies recusively compiles all field.Dependency against the validator
-// and report any error
+// compileDependencies recursively compiles all field.Dependency against the
+// validator and report any error.
 func compileDependencies(s Schema, v Validator) error {
 	for _, def := range s.Fields {
 		if def.Dependency != nil {

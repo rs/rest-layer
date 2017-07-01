@@ -1,9 +1,9 @@
 package schema
 
-// AllOf validates that all the sub field validators validates
+// AllOf validates that all the sub field validators validates.
 type AllOf []FieldValidator
 
-// Compile implements Compiler interface
+// Compile implements Compiler interface.
 func (v *AllOf) Compile() (err error) {
 	for _, sv := range *v {
 		if c, ok := sv.(Compiler); ok {
@@ -15,7 +15,7 @@ func (v *AllOf) Compile() (err error) {
 	return
 }
 
-// Validate ensures that all sub-validators validates
+// Validate ensures that all sub-validators validates.
 func (v AllOf) Validate(value interface{}) (interface{}, error) {
 	for _, validator := range v {
 		var err error

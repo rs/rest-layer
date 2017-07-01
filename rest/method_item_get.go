@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// itemGet handles GET and HEAD resquests on an item URL
+// itemGet handles GET and HEAD resquests on an item URL.
 func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	lookup, e := route.Lookup()
 	if e != nil {
@@ -21,16 +21,17 @@ func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		return ErrNotFound.Code, nil, ErrNotFound
 	}
 	item := list.Items[0]
-	// Handle conditional request: If-None-Match
+	// Handle conditional request: If-None-Match.
 	if compareEtag(r.Header.Get("If-None-Match"), item.ETag) {
 		return 304, nil, nil
 	}
-	// Handle conditional request: If-Modified-Since
+	// Handle conditional request: If-Modified-Since.
 	if r.Header.Get("If-Modified-Since") != "" {
 		if ifModTime, err := time.Parse(time.RFC1123, r.Header.Get("If-Modified-Since")); err != nil {
 			return 400, nil, &Error{400, "Invalid If-Modified-Since header", nil}
 		} else if u := item.Updated.Truncate(time.Second); u.Equal(ifModTime) || u.Before(ifModTime) {
-			// Item's update time is truncated to the second because RFC1123 doesn't support more
+			// Item's update time is truncated to the second because RFC1123
+			// doesn't support more.
 			return 304, nil, nil
 		}
 	}

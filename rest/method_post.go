@@ -8,7 +8,7 @@ import (
 	"github.com/rs/rest-layer/resource"
 )
 
-// listPost handles POST resquests on a resource URL
+// listPost handles POST resquests on a resource URL.
 func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	lookup, e := route.Lookup()
 	if e != nil {
@@ -21,7 +21,7 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 	rsrc := route.Resource()
 	changes, base := rsrc.Validator().Prepare(ctx, payload, nil, false)
 	// Append lookup fields to base payload so it isn't caught by ReadOnly
-	// (i.e.: contains id and parent resource refs if any)
+	// (i.e.: contains id and parent resource refs if any).
 	for k, v := range route.ResourcePath.Values() {
 		base[k] = v
 	}
@@ -29,7 +29,8 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 	if len(errs) > 0 {
 		return 422, nil, &Error{422, "Document contains error(s)", errs}
 	}
-	// Check that fields with the Reference validator reference an existing object
+	// Check that fields with the Reference validator reference an existing
+	// object.
 	if err := checkReferences(ctx, doc, rsrc.Validator()); err != nil {
 		e = NewError(err)
 		return e.Code, nil, e
@@ -44,7 +45,7 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 		e = NewError(err)
 		return e.Code, nil, e
 	}
-	// Apply selector so response gets the same format as read requests
+	// Apply selector so response gets the same format as read requests.
 	item.Payload, err = lookup.ApplySelector(ctx, rsrc.Validator(), item.Payload, getReferenceResolver(ctx, rsrc))
 	if err != nil {
 		e = NewError(err)

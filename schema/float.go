@@ -5,19 +5,19 @@ import (
 	"fmt"
 )
 
-// Boundaries defines min/max for an integer
+// Boundaries defines min/max for an integer.
 type Boundaries struct {
 	Min float64
 	Max float64
 }
 
-// Float validates float based values
+// Float validates float based values.
 type Float struct {
 	Allowed    []float64
 	Boundaries *Boundaries
 }
 
-// Validate validates and normalize float based value
+// Validate validates and normalize float based value.
 func (v Float) Validate(value interface{}) (interface{}, error) {
 	f, ok := value.(float64)
 	if !ok {
@@ -40,7 +40,7 @@ func (v Float) Validate(value interface{}) (interface{}, error) {
 			}
 		}
 		if !found {
-			// TODO: build the list of allowed values
+			// TODO: build the list of allowed values.
 			return nil, fmt.Errorf("not one of the allowed values")
 		}
 	}

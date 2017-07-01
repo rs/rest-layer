@@ -2,10 +2,10 @@ package schema
 
 import "errors"
 
-// AnyOf validates if any of the sub field validators validates
+// AnyOf validates if any of the sub field validators validates.
 type AnyOf []FieldValidator
 
-// Compile implements Compiler interface
+// Compile implements Compiler interface.
 func (v *AnyOf) Compile() (err error) {
 	for _, sv := range *v {
 		if c, ok := sv.(Compiler); ok {
@@ -17,7 +17,7 @@ func (v *AnyOf) Compile() (err error) {
 	return
 }
 
-// Validate ensures that at least one sub-validator validates
+// Validate ensures that at least one sub-validator validates.
 func (v AnyOf) Validate(value interface{}) (interface{}, error) {
 	for _, validator := range v {
 		var err error
@@ -25,6 +25,6 @@ func (v AnyOf) Validate(value interface{}) (interface{}, error) {
 			return value, nil
 		}
 	}
-	// TODO: combine errors
+	// TODO: combine errors.
 	return nil, errors.New("invalid")
 }

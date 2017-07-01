@@ -9,7 +9,8 @@ import (
 type objectBuilder schema.Object
 
 var (
-	//ErrNoSchema is returned when trying to JSON Encode a schema.Object with the Schema property set to nil.
+	//ErrNoSchema is returned when trying to JSON Encode a schema.Object with
+	//the Schema property set to nil.
 	ErrNoSchema = errors.New("no schema defined for object")
 )
 

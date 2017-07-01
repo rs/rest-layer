@@ -12,19 +12,21 @@ import (
 	"github.com/rs/rest-layer/schema"
 )
 
-// Handler is a net/http compatible handler used to serve the configured GraphQL API
+// Handler is a net/http compatible handler used to serve the configured GraphQL
+// API.
 type Handler struct {
 	schema graphql.Schema
 }
 
-// NewHandler creates an new GraphQL API HTTP handler with the specified resource index
+// NewHandler creates an new GraphQL API HTTP handler with the specified
+// resource index.
 func NewHandler(i resource.Index) (*Handler, error) {
 	if c, ok := i.(schema.Compiler); ok {
 		if err := c.Compile(); err != nil {
 			return nil, err
 		}
 	}
-	// define schema, with our rootQuery and rootMutation
+	// define schema, with our rootQuery and rootMutation.
 	s, err := graphql.NewSchema(graphql.SchemaConfig{
 		Query: newRootQuery(i),
 	})
@@ -40,7 +42,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.ServeHTTPC(ctx, w, r)
 }
 
-// ServeHTTPC handles requests as a xhandler.HandlerC
+// ServeHTTPC handles requests as a xhandler.HandlerC (deprecated).
 func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	var query string
 	switch r.Method {

@@ -10,7 +10,7 @@ import (
 	"github.com/rs/rest-layer/resource"
 )
 
-// listGet handles GET resquests on a resource URL
+// listGet handles GET resquests on a resource URL.
 func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	offset := 0
 	limit := 0
@@ -19,7 +19,7 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		if l := rsrc.Conf().PaginationDefaultLimit; l > 0 {
 			limit = l
 		} else {
-			// Default value on non HEAD request for limit is -1 (pagination disabled)
+			// Default value on non HEAD request for limit is -1 (pagination disabled).
 			limit = -1
 		}
 		if l, found, err := getUintParam(route.Params, "limit"); found {

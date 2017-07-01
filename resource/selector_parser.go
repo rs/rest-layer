@@ -6,25 +6,25 @@ import (
 )
 
 /*
-parseSelectorExpression recursively parses a selector expression. The exp variable is
-the expression buffer, pos the current position of the parser and ln the total length
-of the expression to parse.
+parseSelectorExpression recursively parses a selector expression. The exp
+variable is the expression buffer, pos the current position of the parser and ln
+the total length of the expression to parse.
 
-Selector expression syntax allows to list fields that must be kept in the response
-hierarchically.
+Selector expression syntax allows to list fields that must be kept in the
+response hierarchically.
 
 A field is an alphanum + - and _ separated by comas:
 
 field1,field2
 
-When a document has sub-fields, sub-resources or sub-connections, the sub-element's
-fields can be specified as well by enclosing them between braces:
+When a document has sub-fields, sub-resources or sub-connections, the
+sub-element's fields can be specified as well by enclosing them between braces:
 
 field1{sub-field1,sub-field2},field2
 
-Fields can get some some parameters which can be passed to field filters to transform
-the value. Parameters are passed as key:value pairs enclosed in parenthezies, with value
-being either a quotted string or a numerical value:
+Fields can get some some parameters which can be passed to field filters to
+transform the value. Parameters are passed as key:value pairs enclosed in
+parenthesizes, with value being either a quotted string or a numerical value:
 
 field1(param1:"value", param2:123),field2
 
@@ -36,9 +36,9 @@ Or pass params to sub-fields:
 
 field1{sub-field1(param1:"value"),sub-field2},field2
 
-Fields can also be renamed (aliased). This is useful when you want to have several times
-the same fields with different sets of parameters. To define aliases, prepend the field
-definition by the alias name and a colon (:):
+Fields can also be renamed (aliased). This is useful when you want to have
+several times the same fields with different sets of parameters. To define
+aliases, prepend the field definition by the alias name and a colon (:):
 
 field:alias
 
@@ -95,7 +95,7 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 			field = nil
 			expectField = true
 		case ' ', '\n', '\r', '\t':
-			// ignore witespaces
+			// ignore whitespace
 		default:
 			return nil, fmt.Errorf("invalid char `%c` at %d", c, *pos)
 		}
@@ -113,8 +113,9 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 	return selector, nil
 }
 
-// scanSelectorFieldParams parses fields params until it finds a closing parenthesis.
-// If the max length is reached before or a syntax error is found, an error is returned.
+// scanSelectorFieldParams parses fields params until it finds a closing
+// parenthesis. If the max length is reached before or a syntax error is found,
+// an error is returned.
 //
 // It gets the expression buffer as "exp", the current position after an opening
 // parenthesis as as "pos" and the max length to parse as ln.
@@ -162,8 +163,8 @@ func scanSelectorFieldParams(exp []byte, pos *int, ln int) (map[string]interface
 	return params, nil
 }
 
-// scanSelectorFieldName captures a field name at current position and avance the
-// cursor position "pos" at the next character following the field name.
+// scanSelectorFieldName captures a field name at current position and advance
+// the cursor position "pos" at the next character following the field name.
 func scanSelectorFieldName(exp []byte, pos *int, ln int) string {
 	ignoreWhitespaces(exp, pos, ln)
 	field := []byte{}
@@ -179,9 +180,9 @@ func scanSelectorFieldName(exp []byte, pos *int, ln int) string {
 	return string(field)
 }
 
-// scanSelectorFieldNameWithAlias parses a field optional alias followed by it's name
-// separated by a column at current position and advance the cursor position "pos" at the
-// next character following the field name.
+// scanSelectorFieldNameWithAlias parses a field optional alias followed by it's
+// name separated by a column at current position and advance the cursor
+// position "pos" at the next character following the field name.
 func scanSelectorFieldNameWithAlias(exp []byte, pos *int, ln int) (name string, alias string) {
 	name = scanSelectorFieldName(exp, pos, ln)
 	ignoreWhitespaces(exp, pos, ln)
@@ -254,7 +255,8 @@ func scanSelectorParamValue(exp []byte, pos *int, ln int) (interface{}, error) {
 	}
 }
 
-// ignoreWhitespaces advance the cursor position pos until non pritable characters are met.
+// ignoreWhitespaces advance the cursor position pos until non printable
+// characters are met.
 func ignoreWhitespaces(exp []byte, pos *int, ln int) {
 	for *pos < ln {
 		c := exp[*pos]

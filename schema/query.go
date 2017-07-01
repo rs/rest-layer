@@ -8,15 +8,17 @@ import (
 	"regexp"
 )
 
-// Query defines an expression against a schema to perform a match on schema's data.
+// Query defines an expression against a schema to perform a match on schema's
+// data.
 type Query []Expression
 
-// Expression is a query or query component that can be matched against a payoad.
+// Expression is a query or query component that can be matched against a
+// payload.
 type Expression interface {
 	Match(payload map[string]interface{}) bool
 }
 
-// Value represents any kind of value to use in query
+// Value represents any kind of value to use in query.
 type Value interface{}
 
 // And joins query clauses with a logical AND, returns all documents
@@ -27,7 +29,7 @@ type And []Expression
 // match the conditions of either clause.
 type Or []Expression
 
-// In natches any of the values specified in an array.
+// In matches any of the values specified in an array.
 type In struct {
 	Field  string
 	Values []Value
@@ -51,12 +53,12 @@ type NotEqual struct {
 	Value Value
 }
 
-// Exist matches all values which are present, even if nil
+// Exist matches all values which are present, even if nil.
 type Exist struct {
 	Field string
 }
 
-// NotExist matches all values which are absent
+// NotExist matches all values which are absent.
 type NotExist struct {
 	Field string
 }
@@ -67,7 +69,8 @@ type GreaterThan struct {
 	Value float64
 }
 
-// GreaterOrEqual matches values that are greater than or equal to a specified value.
+// GreaterOrEqual matches values that are greater than or equal to a specified
+// value.
 type GreaterOrEqual struct {
 	Field string
 	Value float64
@@ -91,12 +94,13 @@ type Regex struct {
 	Value *regexp.Regexp
 }
 
-// NewQuery returns a new query with the provided key/value validated against validator
+// NewQuery returns a new query with the provided key/value validated against
+// validator.
 func NewQuery(q map[string]interface{}, validator Validator) (Query, error) {
 	return validateQuery(q, validator, "")
 }
 
-// ParseQuery parses and validate a query as string
+// ParseQuery parses and validate a query as string.
 func ParseQuery(query string, validator Validator) (Query, error) {
 	var j interface{}
 	if err := json.Unmarshal([]byte(query), &j); err != nil {
@@ -109,7 +113,7 @@ func ParseQuery(query string, validator Validator) (Query, error) {
 	return validateQuery(q, validator, "")
 }
 
-// validateQuery recursively validates and cast a query
+// validateQuery recursively validates and cast a query.
 func validateQuery(q map[string]interface{}, validator Validator, parentKey string) (Query, error) {
 	queries := Query{}
 	for key, exp := range q {
@@ -274,9 +278,9 @@ func validateQuery(q map[string]interface{}, validator Validator, parentKey stri
 	return queries, nil
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e Query) Match(payload map[string]interface{}) bool {
-	// Run each sub queries like a root query, stop/pass on first match
+	// Run each sub queries like a root query, stop/pass on first match.
 	for _, subQuery := range e {
 		if !subQuery.Match(payload) {
 			return false
@@ -285,9 +289,9 @@ func (e Query) Match(payload map[string]interface{}) bool {
 	return true
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e And) Match(payload map[string]interface{}) bool {
-	// Run each sub queries like a root query, stop/pass on first match
+	// Run each sub queries like a root query, stop/pass on first match.
 	for _, subQuery := range e {
 		if !subQuery.Match(payload) {
 			return false
@@ -298,7 +302,7 @@ func (e And) Match(payload map[string]interface{}) bool {
 
 // Match implements Expression interface
 func (e Or) Match(payload map[string]interface{}) bool {
-	// Run each sub queries like a root query, stop/pass on first match
+	// Run each sub queries like a root query, stop/pass on first match.
 	for _, subQuery := range e {
 		if subQuery.Match(payload) {
 			return true
@@ -307,7 +311,7 @@ func (e Or) Match(payload map[string]interface{}) bool {
 	return false
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e In) Match(payload map[string]interface{}) bool {
 	value := getField(payload, e.Field)
 	for _, v := range e.Values {
@@ -318,7 +322,7 @@ func (e In) Match(payload map[string]interface{}) bool {
 	return false
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e NotIn) Match(payload map[string]interface{}) bool {
 	value := getField(payload, e.Field)
 	for _, v := range e.Values {
@@ -334,48 +338,48 @@ func (e Equal) Match(payload map[string]interface{}) bool {
 	return reflect.DeepEqual(getField(payload, e.Field), e.Value)
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e NotEqual) Match(payload map[string]interface{}) bool {
 	return !reflect.DeepEqual(getField(payload, e.Field), e.Value)
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e Exist) Match(payload map[string]interface{}) bool {
 	_, found := getFieldExist(payload, e.Field)
 	return found
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e NotExist) Match(payload map[string]interface{}) bool {
 	_, found := getFieldExist(payload, e.Field)
 	return !found
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e GreaterThan) Match(payload map[string]interface{}) bool {
 	n, ok := isNumber(getField(payload, e.Field))
 	return ok && (n > e.Value)
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e GreaterOrEqual) Match(payload map[string]interface{}) bool {
 	n, ok := isNumber(getField(payload, e.Field))
 	return ok && (n >= e.Value)
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e LowerThan) Match(payload map[string]interface{}) bool {
 	n, ok := isNumber(getField(payload, e.Field))
 	return ok && (n < e.Value)
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e LowerOrEqual) Match(payload map[string]interface{}) bool {
 	n, ok := isNumber(getField(payload, e.Field))
 	return ok && (n <= e.Value)
 }
 
-// Match implements Expression interface
+// Match implements Expression interface.
 func (e Regex) Match(payload map[string]interface{}) bool {
 	return e.Value.MatchString(payload[e.Field].(string))
 }

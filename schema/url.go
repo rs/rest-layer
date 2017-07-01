@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// URL validates URLs values
+// URL validates URLs values.
 type URL struct {
 	AllowRelative  bool
 	AllowLocale    bool
@@ -15,7 +15,7 @@ type URL struct {
 	AllowedSchemes []string
 }
 
-// Validate validates URL values
+// Validate validates URL values.
 func (v URL) Validate(value interface{}) (interface{}, error) {
 	str, ok := value.(string)
 	if !ok {
