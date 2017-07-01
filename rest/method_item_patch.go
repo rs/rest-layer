@@ -46,7 +46,7 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 		return 422, nil, &Error{422, "Document contains error(s)", errs}
 	}
 	// Check that fields with the Reference validator reference an existing object
-	if e := checkReferences(ctx, doc, rsrc.Validator()); e != nil {
+	if e = checkReferences(ctx, doc, rsrc.Validator()); e != nil {
 		return e.Code, nil, e
 	}
 	if id, found := doc["id"]; found && id != original.ID {
@@ -61,7 +61,7 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	// handler to ensure the stored document didn't change between in the
 	// interval. An ErrPreconditionFailed will be thrown in case of race condition
 	// (i.e.: another thread modified the document between the Find() and the Store())
-	if err := rsrc.Update(ctx, item, original); err != nil {
+	if err = rsrc.Update(ctx, item, original); err != nil {
 		e = NewError(err)
 		return e.Code, nil, e
 	}

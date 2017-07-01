@@ -87,12 +87,12 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	// supposed check the original etag before storing when an original object
 	// is provided.
 	if original != nil {
-		if err := rsrc.Update(ctx, item, original); err != nil {
+		if err = rsrc.Update(ctx, item, original); err != nil {
 			e = NewError(err)
 			return e.Code, nil, e
 		}
 	} else {
-		if err := rsrc.Insert(ctx, []*resource.Item{item}); err != nil {
+		if err = rsrc.Insert(ctx, []*resource.Item{item}); err != nil {
 			e = NewError(err)
 			return e.Code, nil, e
 		}

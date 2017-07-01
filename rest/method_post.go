@@ -15,7 +15,7 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 		return e.Code, nil, e
 	}
 	var payload map[string]interface{}
-	if e := decodePayload(r, &payload); e != nil {
+	if e = decodePayload(r, &payload); e != nil {
 		return e.Code, nil, e
 	}
 	rsrc := route.Resource()
@@ -31,17 +31,17 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 	}
 	// Check that fields with the Reference validator reference an existing object
 	if err := checkReferences(ctx, doc, rsrc.Validator()); err != nil {
-		e := NewError(err)
+		e = NewError(err)
 		return e.Code, nil, e
 	}
 	item, err := resource.NewItem(doc)
 	if err != nil {
-		e := NewError(err)
+		e = NewError(err)
 		return e.Code, nil, e
 	}
 	// TODO: add support for batch insert
-	if err := rsrc.Insert(ctx, []*resource.Item{item}); err != nil {
-		e := NewError(err)
+	if err = rsrc.Insert(ctx, []*resource.Item{item}); err != nil {
+		e = NewError(err)
 		return e.Code, nil, e
 	}
 	// Apply selector so response gets the same format as read requests
