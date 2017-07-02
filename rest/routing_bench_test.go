@@ -33,6 +33,7 @@ func BenchmarkFindRoute(b *testing.B) {
 		"NotFound": "/notfound",
 	}
 	for name, path := range tests {
+		path := path // capture in context
 		b.Run(name, func(b *testing.B) {
 			r, _ := http.NewRequest("GET", path, nil)
 			for i := 0; i < b.N; i++ {

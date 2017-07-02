@@ -19,6 +19,7 @@ func BenchmarkGetResource(b *testing.B) {
 		"NotFound": "notfound",
 	}
 	for name, rsrc := range tests {
+		rsrc := rsrc // capture in context
 		b.Run(name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				index.GetResource(rsrc, nil)
@@ -38,19 +39,17 @@ func BenchmarkGetResourceDepth(b *testing.B) {
 			b.Errorf("path %q cannot be found", p)
 		}
 	}
-	b.Run("OneLevel", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_, _ = r.GetResource("foo", nil)
-		}
-	})
-	b.Run("TwoLevels", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_, _ = r.GetResource("foo.bar", nil)
-		}
-	})
-	b.Run("ThreeLevels", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_, _ = r.GetResource("foo.bar.baz", nil)
-		}
-	})
+	tests := map[string]string{
+		"OneLevel":    "foo",
+		"TwoLevels":   "foo.bar",
+		"ThreeLevels": "foo.bar.baz",
+	}
+	for name, rsrc := range tests {
+		rsrc := rsrc // capture in context
+		b.Run(name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_, _ = r.GetResource(rsrc, nil)
+			}
+		})
+	}
 }

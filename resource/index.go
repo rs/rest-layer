@@ -55,31 +55,30 @@ func (r *index) Compile() error {
 //
 // If a parent is given and the path starts with a dot, the lookup is started at the
 // parent's location instead of root's.
-func (r *index) GetResource(path string, parent *Resource) (sr *Resource, found bool) {
+func (r *index) GetResource(path string, parent *Resource) (*Resource, bool) {
 	resources := r.resources
 	if len(path) > 0 && path[0] == '.' {
 		if parent == nil {
 			// If field starts with a dot and no parent is given, fail the lookup
-			return
+			return nil, false
 		}
 		path = path[1:]
 		resources = parent.resources
 	}
+	var sr *Resource
 	if strings.IndexByte(path, '.') == -1 {
-		if sr = resources.get(path); sr != nil {
-			found = true
+		if sr = resources.get(path); sr == nil {
+			return nil, false
 		}
 	} else {
-		found = true
 		for _, comp := range strings.Split(path, ".") {
 			if sr = resources.get(comp); sr == nil {
-				found = false
-				break
+				return nil, false
 			}
 			resources = sr.resources
 		}
 	}
-	return
+	return sr, true
 }
 
 // GetResources returns first level resources
