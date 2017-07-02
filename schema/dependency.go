@@ -40,7 +40,7 @@ func (s Schema) validateDependencies(changes map[string]interface{}, doc map[str
 		field := s.GetField(path)
 		if field != nil && field.Dependency != nil {
 			if !field.Dependency.Match(doc) {
-				addFieldError(errs, name, fmt.Sprintf("does not match dependency: %v", field.Dependency))
+				addFieldError(errs, name, fmt.Sprintf("does not match dependency: %+v", field.Dependency))
 			}
 		}
 		if subChanges, ok := value.(map[string]interface{}); ok {

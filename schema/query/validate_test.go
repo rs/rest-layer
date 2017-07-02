@@ -38,11 +38,19 @@ func TestValidateErrors(t *testing.T) {
 			errors.New("foo: cannot apply $gt operation on a non numerical field"),
 		},
 		{
-			`{"bar": {"$in": ["1"]}}`,
-			errors.New("bar: invalid query expression `\"1\"': not an integer"),
+			`{"foo": {"$gte": 1}}`,
+			errors.New("foo: cannot apply $gte operation on a non numerical field"),
 		},
 		{
-			`{"bar": {"$in": "1"}}`,
+			`{"foo": {"$lt": 1}}`,
+			errors.New("foo: cannot apply $lt operation on a non numerical field"),
+		},
+		{
+			`{"foo": {"$lte": 1}}`,
+			errors.New("foo: cannot apply $lte operation on a non numerical field"),
+		},
+		{
+			`{"bar": {"$in": ["1"]}}`,
 			errors.New("bar: invalid query expression `\"1\"': not an integer"),
 		},
 		{
@@ -91,7 +99,7 @@ func TestValidateErrors(t *testing.T) {
 			continue
 		}
 		if err = q.Validate(s); !reflect.DeepEqual(err, tt.want) {
-			t.Errorf("Unexpected error for %q:\ngot:  %v\nwant: %v", tt.query, err, tt.want)
+			t.Errorf("Unexpected error for `%v`:\ngot:  %v\nwant: %v", tt.query, err, tt.want)
 		}
 	}
 }

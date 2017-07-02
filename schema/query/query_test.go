@@ -1,6 +1,7 @@
 package query
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -106,15 +107,50 @@ func TestMatch(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
-		q, err := Parse(tt.query)
-		if err != nil {
-			t.Errorf("unexpected error for query `%v`: %v", tt.query, err)
-		}
-		for _, ttt := range tt.tests {
-			if got := q.Match(ttt.payload); got != ttt.want {
-				t.Errorf("Unexpected Match for result for query `%v` with payload %v, got %v, want %v", tt.query, ttt.payload, got, ttt.want)
+	for i := range tests {
+		tt := tests[i]
+		t.Run(strings.Replace(tt.query, " ", "", -1), func(t *testing.T) {
+			t.Parallel()
+			q, err := Parse(tt.query)
+			if err != nil {
+				t.Errorf("Unexpected error for query `%v`: %v", tt.query, err)
 			}
+			for _, ttt := range tt.tests {
+				if got := q.Match(ttt.payload); got != ttt.want {
+					t.Errorf("Unexpected Match for result for query `%v` with payload %v, got %v, want %v", tt.query, ttt.payload, got, ttt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestString(t *testing.T) {
+	tests := map[string]string{
+		`{"foo": "bar"}`:                                          `{foo: "bar"}`,
+		`{"foo": {"$ne": "bar"}}`:                                 `{foo: {$ne: "bar"}}`,
+		`{"foo": {"$exists": true}}`:                              `{foo: {$exists: true}}`,
+		`{"foo": {"$exists": false}}`:                             `{foo: {$exists: false}}`,
+		`{"bar": {"$gt": 1}}`:                                     `{bar: {$gt: 1}}`,
+		`{"bar": {"$gte": 2}}`:                                    `{bar: {$gte: 2}}`,
+		`{"bar": {"$lt": 2}}`:                                     `{bar: {$lt: 2}}`,
+		`{"bar": {"$lte": 1}}`:                                    `{bar: {$lte: 1}}`,
+		`{"foo": {"$in": ["bar", "baz"]}}`:                        `{foo: {$in: ["bar", "baz"]}}`,
+		`{"foo": {"$nin": ["bar", "baz"]}}`:                       `{foo: {$nin: ["bar", "baz"]}}`,
+		`{"$or": [{"foo": "bar"}, {"bar": 1}]}`:                   `{$or: [{foo: "bar"}, {bar: 1}]}`,
+		`{"$and": [{"foo": "bar"}, {"bar": 1}]}`:                  `{foo: "bar", bar: 1}`,
+		`{"foo": {"$regex": "rege[x]{1}.+some"}}`:                 `{foo: {$regex: "rege[x]{1}.+some"}}`,
+		`{"foo": {"$regex": "^(?i)my.+-rest.+$"}}`:                `{foo: {$regex: "^(?i)my.+-rest.+$"}}`,
+		`{"$and": [{"foo": "bar"}, {"foo": "baz"}]}`:              `{foo: "bar", foo: "baz"}`,
+		`{"foo": "bar", "$or": [{"bar": "baz"}, {"bar": "foo"}]}`: `{foo: "bar", $or: [{bar: "baz"}, {bar: "foo"}]}`,
+		`{"foo": ["bar", "baz"]}`:                                 `{foo: ["bar","baz"]}`,
+	}
+	for query, want := range tests {
+		q, err := Parse(query)
+		if err != nil {
+			t.Errorf("Unexpected error for query `%v`: %v", query, err)
+		}
+		if got := q.String(); got != want {
+			t.Errorf("Unexpected String result for `%v`\ngot:  `%v`\nwant: `%v`", query, got, want)
 		}
 	}
 }

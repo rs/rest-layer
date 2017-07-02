@@ -1,38 +1,29 @@
 package query
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
 
 	"github.com/rs/rest-layer/schema"
 )
 
+const (
+	opAnd            = "$and"
+	opOr             = "$or"
+	opExists         = "$exists"
+	opIn             = "$in"
+	opNotIn          = "$nin"
+	opNotEqual       = "$ne"
+	opLowerThan      = "$lt"
+	opLowerOrEqual   = "$lte"
+	opGreaterThan    = "$gt"
+	opGreaterOrEqual = "$gte"
+	opRegex          = "$regex"
+)
+
 // Query defines an expression against a schema to perform a match on schema's data.
 type Query []Expression
-
-// Parse parses a query.
-func Parse(query string) (Query, error) {
-	var j interface{}
-	if err := json.Unmarshal([]byte(query), &j); err != nil {
-		return nil, errors.New("must be valid JSON")
-	}
-	q, ok := j.(map[string]interface{})
-	if !ok {
-		return nil, errors.New("must be a JSON object")
-	}
-	return parse(q, "")
-}
-
-func MustParse(query string) Query {
-	q, err := Parse(query)
-	if err != nil {
-		panic(fmt.Sprintf("query: Parse(%q): %v", query, err))
-	}
-	return q
-}
 
 // Match implements Expression interface.
 func (e Query) Match(payload map[string]interface{}) bool {
@@ -45,6 +36,18 @@ func (e Query) Match(payload map[string]interface{}) bool {
 	return true
 }
 
+// String implements Expression interface.
+func (e Query) String() string {
+	if len(e) == 0 {
+		return "{}"
+	}
+	s := make([]string, 0, len(e))
+	for _, subQuery := range e {
+		s = append(s, subQuery.String())
+	}
+	return "{" + strings.Join(s, ", ") + "}"
+}
+
 // Validate implements Expression interface.
 func (e Query) Validate(validator schema.Validator) error {
 	return validateExpressions(e, validator)
@@ -54,6 +57,7 @@ func (e Query) Validate(validator schema.Validator) error {
 type Expression interface {
 	Match(payload map[string]interface{}) bool
 	Validate(validator schema.Validator) error
+	String() string
 }
 
 // Value represents any kind of value to use in query.
@@ -79,6 +83,18 @@ func (e And) Validate(validator schema.Validator) error {
 	return validateExpressions(e, validator)
 }
 
+// String implements Expression interface.
+func (e And) String() string {
+	if len(e) == 0 {
+		return ""
+	}
+	s := make([]string, 0, len(e))
+	for _, subQuery := range e {
+		s = append(s, subQuery.String())
+	}
+	return strings.Join(s, ", ")
+}
+
 // Or joins query clauses with a logical OR, returns all documents that
 // match the conditions of either clause.
 type Or []Expression
@@ -99,7 +115,19 @@ func (e Or) Validate(validator schema.Validator) error {
 	return validateExpressions(e, validator)
 }
 
-// In matches any of the values specified in an array.
+// String implements Expression interface.
+func (e Or) String() string {
+	if len(e) == 0 {
+		return opOr + ": []"
+	}
+	s := make([]string, 0, len(e))
+	for _, subQuery := range e {
+		s = append(s, "{"+subQuery.String()+"}")
+	}
+	return opOr + ": [" + strings.Join(s, ", ") + "]"
+}
+
+// In natches any of the values specified in an array.
 type In struct {
 	Field  string
 	Values []Value
@@ -121,6 +149,15 @@ func (e In) Validate(validator schema.Validator) error {
 	return validateValues(e.Field, e.Values, validator)
 }
 
+// String implements Expression interface.
+func (e In) String() string {
+	s := make([]string, 0, len(e.Values))
+	for _, v := range e.Values {
+		s = append(s, valueString(v))
+	}
+	return quoteField(e.Field) + ": {" + opIn + ": [" + strings.Join(s, ", ") + "]}"
+}
+
 // NotIn matches none of the values specified in an array.
 type NotIn struct {
 	Field  string
@@ -138,7 +175,16 @@ func (e NotIn) Match(payload map[string]interface{}) bool {
 	return true
 }
 
-// Validate implements Expression interface..
+// String implements Expression interface.
+func (e NotIn) String() string {
+	s := make([]string, 0, len(e.Values))
+	for _, v := range e.Values {
+		s = append(s, valueString(v))
+	}
+	return quoteField(e.Field) + ": {" + opNotIn + ": [" + strings.Join(s, ", ") + "]}"
+}
+
+// Validate implements Expression interface.
 func (e NotIn) Validate(validator schema.Validator) error {
 	return validateValues(e.Field, e.Values, validator)
 }
@@ -159,6 +205,11 @@ func (e Equal) Validate(validator schema.Validator) error {
 	return validateValue(e.Field, e.Value, validator)
 }
 
+// String implements Expression interface.
+func (e Equal) String() string {
+	return quoteField(e.Field) + ": " + valueString(e.Value)
+}
+
 // NotEqual matches all values that are not equal to a specified value.
 type NotEqual struct {
 	Field string
@@ -175,7 +226,12 @@ func (e NotEqual) Validate(validator schema.Validator) error {
 	return validateValue(e.Field, e.Value, validator)
 }
 
-// Exist matches all values which are present, even if nil.
+// String implements Expression interface.
+func (e NotEqual) String() string {
+	return quoteField(e.Field) + ": {" + opNotEqual + ": " + valueString(e.Value) + "}"
+}
+
+// Exist matches all values which are present, even if nil
 type Exist struct {
 	Field string
 }
@@ -191,7 +247,12 @@ func (e Exist) Validate(validator schema.Validator) error {
 	return validateField(e.Field, validator)
 }
 
-// NotExist matches all values which are absent.
+// String implements Expression interface.
+func (e Exist) String() string {
+	return quoteField(e.Field) + ": {" + opExists + ": true}"
+}
+
+// NotExist matches all values which are absent
 type NotExist struct {
 	Field string
 }
@@ -205,6 +266,11 @@ func (e NotExist) Match(payload map[string]interface{}) bool {
 // Validate implements Expression interface.
 func (e NotExist) Validate(validator schema.Validator) error {
 	return validateField(e.Field, validator)
+}
+
+// String implements Expression interface.
+func (e NotExist) String() string {
+	return quoteField(e.Field) + ": {" + opExists + ": false}"
 }
 
 // GreaterThan matches values that are greater than a specified value.
@@ -221,7 +287,12 @@ func (e GreaterThan) Match(payload map[string]interface{}) bool {
 
 // Validate implements Expression interface.
 func (e GreaterThan) Validate(validator schema.Validator) error {
-	return validateNumericValue(e.Field, e.Value, "$gt", validator)
+	return validateNumericValue(e.Field, e.Value, opGreaterThan, validator)
+}
+
+// String implements Expression interface.
+func (e GreaterThan) String() string {
+	return quoteField(e.Field) + ": {" + opGreaterThan + ": " + valueString(e.Value) + "}"
 }
 
 // GreaterOrEqual matches values that are greater than or equal to a specified value.
@@ -238,7 +309,12 @@ func (e GreaterOrEqual) Match(payload map[string]interface{}) bool {
 
 // Validate implements Expression interface.
 func (e GreaterOrEqual) Validate(validator schema.Validator) error {
-	return validateNumericValue(e.Field, e.Value, "$ge", validator)
+	return validateNumericValue(e.Field, e.Value, opGreaterOrEqual, validator)
+}
+
+// String implements Expression interface.
+func (e GreaterOrEqual) String() string {
+	return quoteField(e.Field) + ": {" + opGreaterOrEqual + ": " + valueString(e.Value) + "}"
 }
 
 // LowerThan matches values that are less than a specified value.
@@ -255,7 +331,12 @@ func (e LowerThan) Match(payload map[string]interface{}) bool {
 
 // Validate implements Expression interface.
 func (e LowerThan) Validate(validator schema.Validator) error {
-	return validateNumericValue(e.Field, e.Value, "$lt", validator)
+	return validateNumericValue(e.Field, e.Value, opLowerThan, validator)
+}
+
+// String implements Expression interface.
+func (e LowerThan) String() string {
+	return quoteField(e.Field) + ": {" + opLowerThan + ": " + valueString(e.Value) + "}"
 }
 
 // LowerOrEqual matches values that are less than or equal to a specified value.
@@ -272,7 +353,12 @@ func (e LowerOrEqual) Match(payload map[string]interface{}) bool {
 
 // Validate implements Expression interface.
 func (e LowerOrEqual) Validate(validator schema.Validator) error {
-	return validateNumericValue(e.Field, e.Value, "$le", validator)
+	return validateNumericValue(e.Field, e.Value, opLowerOrEqual, validator)
+}
+
+// String implements Expression interface.
+func (e LowerOrEqual) String() string {
+	return quoteField(e.Field) + ": {" + opLowerOrEqual + ": " + valueString(e.Value) + "}"
 }
 
 // Regex matches values that match to a specified regular expression.
@@ -289,4 +375,9 @@ func (e Regex) Match(payload map[string]interface{}) bool {
 // Validate implements Expression interface.
 func (e Regex) Validate(validator schema.Validator) error {
 	return validateValue(e.Field, e.Value, validator)
+}
+
+// String implements Expression interface.
+func (e Regex) String() string {
+	return quoteField(e.Field) + ": {" + opRegex + ": " + valueString(e.Value) + "}"
 }

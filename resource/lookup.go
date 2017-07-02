@@ -124,7 +124,7 @@ func (l *Lookup) AddFilter(filter string, v schema.Validator) error {
 	return nil
 }
 
-// AddQuery add an existing query.Query to the lookup's filters
+// AddQuery add an existing schema.Query to the lookup's filters.
 func (l *Lookup) AddQuery(query query.Query) {
 	if l.filter == nil {
 		l.filter = query
