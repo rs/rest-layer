@@ -67,18 +67,15 @@ func (r *index) GetResource(path string, parent *Resource) (*Resource, bool) {
 	}
 	var sr *Resource
 	if strings.IndexByte(path, '.') == -1 {
-		if sr = resources.get(path); sr != nil {
-			resources = sr.resources
-		} else {
+		if sr = resources.get(path); sr == nil {
 			return nil, false
 		}
 	} else {
 		for _, comp := range strings.Split(path, ".") {
-			if sr = resources.get(comp); sr != nil {
-				resources = sr.resources
-			} else {
+			if sr = resources.get(comp); sr == nil {
 				return nil, false
 			}
+			resources = sr.resources
 		}
 	}
 	return sr, true
