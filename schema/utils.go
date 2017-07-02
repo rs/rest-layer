@@ -1,6 +1,9 @@
 package schema
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 // isNumber takes an interface as input, and returns a float64 if the type is
 // compatible (int* or float*)
@@ -33,6 +36,23 @@ func isNumber(n interface{}) (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+// isTime takes an interface as input, and returns a time.Time if the type is
+// a string and is formatted with RFC3339
+func isTime(t interface{}) (time.Time, bool) {
+	var t2 time.Time
+	var isTime bool
+	if tStr, ok := t.(string); ok {
+		t2, err := time.Parse(time.RFC3339, tStr)
+		if err != nil {
+			isTime = false
+		} else {
+			isTime = true
+		}
+		return t2, isTime
+	}
+	return t2, false
 }
 
 // getField gets the value of a given field by supporting sub-field path.
