@@ -16,6 +16,7 @@ import (
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 	"github.com/rs/xaccess"
 	"github.com/rs/xlog"
 )
@@ -100,8 +101,8 @@ func (a AuthResourceHook) OnFind(ctx context.Context, lookup *resource.Lookup, o
 		return resource.ErrUnauthorized
 	}
 	// Add a lookup condition to restrict to result on objects owned by this user
-	lookup.AddQuery(schema.Query{
-		schema.Equal{Field: a.UserField, Value: user.ID},
+	lookup.AddQuery(query.Query{
+		query.Equal{Field: a.UserField, Value: user.ID},
 	})
 	return nil
 }
@@ -186,8 +187,8 @@ func (a AuthResourceHook) OnClear(ctx context.Context, lookup *resource.Lookup) 
 		return resource.ErrUnauthorized
 	}
 	// Add a lookup condition to restrict to impact of the clear on objects owned by this user
-	lookup.AddQuery(schema.Query{
-		schema.Equal{Field: a.UserField, Value: user.ID},
+	lookup.AddQuery(query.Query{
+		query.Equal{Field: a.UserField, Value: user.ID},
 	})
 	return nil
 }

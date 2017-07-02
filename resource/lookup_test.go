@@ -5,20 +5,21 @@ import (
 	"testing"
 
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewLookup(t *testing.T) {
 	l := NewLookup()
-	assert.Equal(t, schema.Query{}, l.filter)
-	assert.Equal(t, schema.Query{}, l.Filter())
+	assert.Equal(t, query.Query{}, l.filter)
+	assert.Equal(t, query.Query{}, l.Filter())
 	assert.Equal(t, []string{}, l.sort)
 	assert.Equal(t, []string{}, l.Sort())
 }
 
 func TestNewLookupQuery(t *testing.T) {
-	l := NewLookupWithQuery(schema.Query{schema.Equal{Field: "foo", Value: "bar"}})
-	assert.Equal(t, schema.Query{schema.Equal{Field: "foo", Value: "bar"}}, l.filter)
+	l := NewLookupWithQuery(query.Query{query.Equal{Field: "foo", Value: "bar"}})
+	assert.Equal(t, query.Query{query.Equal{Field: "foo", Value: "bar"}}, l.filter)
 }
 
 func TestLookupSetSort(t *testing.T) {
@@ -101,25 +102,25 @@ func TestLookupAddFilter(t *testing.T) {
 	assert.Error(t, err)
 	err = l.AddFilter("{\"foo\": \"bar\"}", v)
 	assert.NoError(t, err)
-	assert.Equal(t, schema.Query{schema.Equal{Field: "foo", Value: "bar"}}, l.filter)
+	assert.Equal(t, query.Query{query.Equal{Field: "foo", Value: "bar"}}, l.filter)
 	err = l.AddFilter("{\"baz\": 1}", v)
 	assert.NoError(t, err)
-	assert.Equal(t, schema.Query{schema.Equal{Field: "foo", Value: "bar"}, schema.Equal{Field: "baz", Value: float64(1)}}, l.filter)
+	assert.Equal(t, query.Query{query.Equal{Field: "foo", Value: "bar"}, query.Equal{Field: "baz", Value: float64(1)}}, l.filter)
 	err = l.AddFilter("{\"baz\": 2}", v)
 	assert.NoError(t, err)
-	assert.Equal(t, schema.Query{schema.Equal{Field: "foo", Value: "bar"}, schema.Equal{Field: "baz", Value: float64(1)}, schema.Equal{Field: "baz", Value: float64(2)}}, l.filter)
+	assert.Equal(t, query.Query{query.Equal{Field: "foo", Value: "bar"}, query.Equal{Field: "baz", Value: float64(1)}, query.Equal{Field: "baz", Value: float64(2)}}, l.filter)
 }
 
 func TestLookupAddQuery(t *testing.T) {
 	l := Lookup{}
-	l.AddQuery(schema.Query{schema.Equal{Field: "foo", Value: "bar"}})
-	assert.Equal(t, schema.Query{
-		schema.Equal{Field: "foo", Value: "bar"},
+	l.AddQuery(query.Query{query.Equal{Field: "foo", Value: "bar"}})
+	assert.Equal(t, query.Query{
+		query.Equal{Field: "foo", Value: "bar"},
 	}, l.filter)
-	l.AddQuery(schema.Query{schema.Equal{Field: "bar", Value: "baz"}})
-	assert.Equal(t, schema.Query{
-		schema.Equal{Field: "foo", Value: "bar"},
-		schema.Equal{Field: "bar", Value: "baz"},
+	l.AddQuery(query.Query{query.Equal{Field: "bar", Value: "baz"}})
+	assert.Equal(t, query.Query{
+		query.Equal{Field: "foo", Value: "bar"},
+		query.Equal{Field: "bar", Value: "baz"},
 	}, l.filter)
 }
 

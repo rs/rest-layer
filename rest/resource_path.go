@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 )
 
 // ResourcePath is the list of ResourcePathComponent leading to the requested resource
@@ -100,7 +100,7 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 	if parents <= 0 {
 		return nil
 	}
-	q := schema.Query{}
+	q := query.Query{}
 	wait := sync.WaitGroup{}
 
 	defer wait.Wait()
@@ -111,7 +111,7 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 		}
 		// Create a lookup with the parent path fields + the current path id.
 		l := resource.NewLookup()
-		lq := append(q[:], schema.Equal{Field: "id", Value: p[i].Value})
+		lq := append(q[:], query.Equal{Field: "id", Value: p[i].Value})
 		l.AddQuery(lq)
 		// Execute all intermediate checks concurrently
 		wait.Add(1)
@@ -128,7 +128,7 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 			}
 		}(i)
 		// Push the resource field=value for the next hops.
-		q = append(q, schema.Equal{Field: p[i].Field, Value: p[i].Value})
+		q = append(q, query.Equal{Field: p[i].Field, Value: p[i].Value})
 	}
 	// Fail on first error.
 	for i := 0; i < parents; i++ {

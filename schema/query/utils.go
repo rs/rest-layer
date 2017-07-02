@@ -1,4 +1,4 @@
-package schema
+package query
 
 import "strings"
 

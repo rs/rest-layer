@@ -137,7 +137,7 @@ func TestHandlerServeHTTPParentNotFound(t *testing.T) {
 	assert.Equal(t, "{\"code\":404,\"message\":\"Parent Resource Not Found\"}", string(b))
 }
 
-func TestHandlerServeHTTPGetEmtpyResource(t *testing.T) {
+func TestHandlerServeHTTPGetEmptyResource(t *testing.T) {
 	i := resource.NewIndex()
 	i.Bind("foo", schema.Schema{}, mem.NewHandler(), resource.DefaultConf)
 	h, _ := NewHandler(i)

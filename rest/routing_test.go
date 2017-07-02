@@ -9,6 +9,7 @@ import (
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,7 @@ import (
 type mockHandler struct {
 	items   []*resource.Item
 	err     error
-	queries []schema.Query
+	queries []query.Query
 	lock    sync.Mutex
 }
 
@@ -56,7 +57,7 @@ func TestFindRoute(t *testing.T) {
 	var err error
 	index := resource.NewIndex()
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
-	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
+	h := &mockHandler{[]*resource.Item{i}, nil, []query.Query{}, sync.Mutex{}}
 	foo := index.Bind("foo", schema.Schema{}, h, resource.DefaultConf)
 	bar := foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": {}}}, h, resource.DefaultConf)
 	barbar := bar.Bind("bar", "b", schema.Schema{Fields: schema.Fields{"b": {}}}, h, resource.DefaultConf)
@@ -193,7 +194,7 @@ func TestRoutePathParentsExists(t *testing.T) {
 	var err error
 	index := resource.NewIndex()
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
-	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
+	h := &mockHandler{[]*resource.Item{i}, nil, []query.Query{}, sync.Mutex{}}
 	foo := index.Bind("foo", schema.Schema{}, h, resource.DefaultConf)
 	bar := foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": {}}}, h, resource.DefaultConf)
 	bar.Bind("baz", "b", schema.Schema{Fields: schema.Fields{"f": {}, "b": {}}}, h, resource.DefaultConf)
@@ -207,9 +208,9 @@ func TestRoutePathParentsExists(t *testing.T) {
 		// There's 3 components in the path but only 2 are parents
 		assert.Len(t, h.queries, 2)
 		// query on /foo/1234
-		assert.Contains(t, h.queries, schema.Query{schema.Equal{Field: "id", Value: "1234"}})
+		assert.Contains(t, h.queries, query.Query{query.Equal{Field: "id", Value: "1234"}})
 		// query on /bar/5678 with foo/1234 context
-		assert.Contains(t, h.queries, schema.Query{schema.Equal{Field: "f", Value: "1234"}, schema.Equal{Field: "id", Value: "5678"}})
+		assert.Contains(t, h.queries, query.Query{query.Equal{Field: "f", Value: "1234"}, query.Equal{Field: "id", Value: "5678"}})
 	}
 
 	route = newRoute("GET")
@@ -234,8 +235,8 @@ func TestRoutePathParentsExists(t *testing.T) {
 func TestRoutePathParentsNotExists(t *testing.T) {
 	index := resource.NewIndex()
 	i, _ := resource.NewItem(map[string]interface{}{"id": "1234"})
-	h := &mockHandler{[]*resource.Item{i}, nil, []schema.Query{}, sync.Mutex{}}
-	empty := &mockHandler{[]*resource.Item{}, nil, []schema.Query{}, sync.Mutex{}}
+	h := &mockHandler{[]*resource.Item{i}, nil, []query.Query{}, sync.Mutex{}}
+	empty := &mockHandler{[]*resource.Item{}, nil, []query.Query{}, sync.Mutex{}}
 	foo := index.Bind("foo", schema.Schema{}, empty, resource.DefaultConf)
 	foo.Bind("bar", "f", schema.Schema{Fields: schema.Fields{"f": {}}}, h, resource.DefaultConf)
 	ctx := context.Background()

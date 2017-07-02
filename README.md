@@ -227,7 +227,7 @@ var (
 			"body": {
 				// Dependency defines that body field can't be changed if
 				// the published field is not "false".
-				Dependency: schema.Q(`{"published": false}`),
+				Dependency: schema.MustParse(`{"published": false}`),
 				Validator: &schema.String{
 					MaxLen: 100000,
 				},
@@ -540,7 +540,7 @@ The field definitions contains the following properties:
 | `Params`     | Params defines the list of parameters allowed for this field. See [Field Parameters](#field-parameters) section for some examples.
 | `Handler`    | Handler defines a function able to change the field's value depending on the passed parameters. See [Field Parameters](#field-parameters) section for some examples.
 | `Validator`  | A `schema.FieldValidator` to validate the content of the field.
-| `Dependency` | A query using `filter` format created with ``schema.Q(`{"field": "value"}`)``. If the query doesn't match the document, the field generates a dependency error.
+| `Dependency` | A query using `filter` format created with ``schema.MustParse(`{"field": "value"}`)``. If the query doesn't match the document, the field generates a dependency error.
 | `Filterable` | If `true`, the field can be used with the `filter` parameter. You may want to ensure the backend database has this field indexed when enabled. Some storage handlers may not support all the operators of the filter parameter, see their documentation for more information.
 | `Sortable`   | If `true`, the field can be used with the `sort` parameter. You may want to ensure the backend database has this field indexed when enabled.
 | `Schema`     | An optional sub schema to validate hierarchical documents.
@@ -772,7 +772,7 @@ See [embedding](#embedding) for more information.
 
 ### Dependency
 
-Fields can depends on other fields in order to be changed. To configure dependency, set a filter on the `Dependency` property of the field using the [schema.Q()](https://godoc.org/github.com/rs/rest-layer/schema#Q) method.
+Fields can depends on other fields in order to be changed. To configure dependency, set a filter on the `Dependency` property of the field using the [schema.MustParse()](https://godoc.org/github.com/rs/rest-layer/schema#Q) method.
 
 In this example, the `body` field can't be changed if the `published` field is not set to `true`:
 
@@ -783,7 +783,7 @@ post = schema.Schema{
 			Validator:  &schema.Bool{},
 		},
 		"body": {
-			Dependency: schema.Q(`{"published": true}`),
+			Dependency: schema.MustParse(`{"published": true}`),
 			Validator:  &schema.String{},
 		},
 	},

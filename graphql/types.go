@@ -7,6 +7,7 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 )
 
 type types map[string]*graphql.Object
@@ -95,8 +96,8 @@ func getSubResourceResolver(r *resource.Resource) graphql.FieldResolveFn {
 			return nil, err
 		}
 		// Limit the connection to parent's owned.
-		lookup.AddQuery(schema.Query{
-			schema.Equal{
+		lookup.AddQuery(query.Query{
+			query.Equal{
 				Field: r.ParentField(),
 				Value: parent["id"],
 			},
