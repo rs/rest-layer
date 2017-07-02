@@ -8,7 +8,7 @@ import (
 
 func parseSelector(s string) ([]Field, error) {
 	pos := 0
-	return parseSelectorExpression([]byte(s), &pos, len(s), false)
+	return parseSelectorExpression(s, &pos, len(s), false)
 }
 
 func TestParseSelectorExpression(t *testing.T) {

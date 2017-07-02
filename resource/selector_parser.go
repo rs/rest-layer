@@ -54,7 +54,7 @@ With this example, the resulted document would be:
   }
 
 */
-func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field, error) {
+func parseSelectorExpression(exp string, pos *int, ln int, opened bool) ([]Field, error) {
 	expectField := false
 	selector := []Field{}
 	var field *Field
@@ -118,7 +118,7 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 //
 // It gets the expression buffer as "exp", the current position after an opening
 // parenthesis as as "pos" and the max length to parse as ln.
-func scanSelectorFieldParams(exp []byte, pos *int, ln int) (map[string]interface{}, error) {
+func scanSelectorFieldParams(exp string, pos *int, ln int) (map[string]interface{}, error) {
 	params := map[string]interface{}{}
 	for *pos < ln {
 		name := scanSelectorFieldName(exp, pos, ln)
@@ -164,7 +164,7 @@ func scanSelectorFieldParams(exp []byte, pos *int, ln int) (map[string]interface
 
 // scanSelectorFieldName captures a field name at current position and avance the
 // cursor position "pos" at the next character following the field name.
-func scanSelectorFieldName(exp []byte, pos *int, ln int) string {
+func scanSelectorFieldName(exp string, pos *int, ln int) string {
 	ignoreWhitespaces(exp, pos, ln)
 	field := []byte{}
 	for *pos < ln {
@@ -182,7 +182,7 @@ func scanSelectorFieldName(exp []byte, pos *int, ln int) string {
 // scanSelectorFieldNameWithAlias parses a field optional alias followed by it's name
 // separated by a column at current position and advance the cursor position "pos" at the
 // next character following the field name.
-func scanSelectorFieldNameWithAlias(exp []byte, pos *int, ln int) (name string, alias string) {
+func scanSelectorFieldNameWithAlias(exp string, pos *int, ln int) (name string, alias string) {
 	name = scanSelectorFieldName(exp, pos, ln)
 	ignoreWhitespaces(exp, pos, ln)
 	if *pos < ln && exp[*pos] == ':' {
@@ -199,7 +199,7 @@ func scanSelectorFieldNameWithAlias(exp []byte, pos *int, ln int) (name string, 
 //
 // The returned value may be either a string if the value was quotted or a float
 // if not an was a valid number. In case of syntax error, an error is returned.
-func scanSelectorParamValue(exp []byte, pos *int, ln int) (interface{}, error) {
+func scanSelectorParamValue(exp string, pos *int, ln int) (interface{}, error) {
 	ignoreWhitespaces(exp, pos, ln)
 	c := exp[*pos]
 	if c == '"' || c == '\'' {
@@ -255,7 +255,7 @@ func scanSelectorParamValue(exp []byte, pos *int, ln int) (interface{}, error) {
 }
 
 // ignoreWhitespaces advance the cursor position pos until non pritable characters are met.
-func ignoreWhitespaces(exp []byte, pos *int, ln int) {
+func ignoreWhitespaces(exp string, pos *int, ln int) {
 	for *pos < ln {
 		c := exp[*pos]
 		switch c {

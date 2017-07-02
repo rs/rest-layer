@@ -131,7 +131,7 @@ func (l *Lookup) AddQuery(query schema.Query) {
 // SetSelector parses a selector expression, validates it and assign it to the current Lookup.
 func (l *Lookup) SetSelector(s string, v schema.Validator) error {
 	pos := 0
-	selector, err := parseSelectorExpression([]byte(s), &pos, len(s), false)
+	selector, err := parseSelectorExpression(s, &pos, len(s), false)
 	if err != nil {
 		return err
 	}
