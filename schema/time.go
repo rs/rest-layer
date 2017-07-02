@@ -12,8 +12,8 @@ var (
 	Now = func(ctx context.Context, value interface{}) interface{} {
 		return time.Now()
 	}
-	// CreatedField is a common schema field configuration for "created" fields. It stores
-	// the creation date of the item.
+	// CreatedField is a common schema field configuration for "created" fields.
+	// It stores the creation date of the item.
 	CreatedField = Field{
 		Description: "The time at which the item has been inserted",
 		Required:    true,
@@ -23,8 +23,8 @@ var (
 		Validator:   &Time{},
 	}
 
-	// UpdatedField is a common schema field configuration for "updated" fields. It stores
-	// the current date each time the item is modified.
+	// UpdatedField is a common schema field configuration for "updated" fields.
+	// It stores the current date each time the item is modified.
 	UpdatedField = Field{
 		Description: "The time at which the item has been last updated",
 		Required:    true,
@@ -51,25 +51,25 @@ var (
 
 // Time validates time based values
 type Time struct {
-	TimeLayouts []string // TimeLayouts is set of time layouts we want to validate
+	TimeLayouts []string // TimeLayouts is set of time layouts we want to validate.
 	layouts     []string
 }
 
-// Compile the time formats
+// Compile the time formats.
 func (v *Time) Compile() (err error) {
 	if len(v.TimeLayouts) == 0 {
-		// default layouts to all formats
+		// default layouts to all formats.
 		v.layouts = formats
 		return nil
 	}
-	// User specified list of time layouts
+	// User specified list of time layouts.
 	for _, layout := range v.TimeLayouts {
 		v.layouts = append(v.layouts, string(layout))
 	}
 	return nil
 }
 
-// Validate validates and normalize time based value
+// Validate validates and normalize time based value.
 func (v Time) Validate(value interface{}) (interface{}, error) {
 	if s, ok := value.(string); ok {
 		for _, layout := range v.layouts {

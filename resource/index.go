@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -24,19 +25,19 @@ type Index interface {
 	GetResources() []*Resource
 }
 
-// index is the root of the resource graph
+// index is the root of the resource graph.
 type index struct {
 	resources subResources
 }
 
-// NewIndex creates a new resource index
+// NewIndex creates a new resource index.
 func NewIndex() Index {
 	return &index{
 		resources: subResources{},
 	}
 }
 
-// Bind a resource at the specified endpoint name
+// Bind a resource at the specified endpoint name.
 func (r *index) Bind(name string, s schema.Schema, h Storer, c Conf) *Resource {
 	assertNotBound(name, r.resources, nil)
 	sr := new(name, s, h, c)
@@ -44,7 +45,7 @@ func (r *index) Bind(name string, s schema.Schema, h Storer, c Conf) *Resource {
 	return sr
 }
 
-// Compile the resource graph and report any error
+// Compile the resource graph and report any error.
 func (r *index) Compile() error {
 	return compileResourceGraph(r.resources)
 }
@@ -59,7 +60,7 @@ func (r *index) GetResource(path string, parent *Resource) (*Resource, bool) {
 	resources := r.resources
 	if len(path) > 0 && path[0] == '.' {
 		if parent == nil {
-			// If field starts with a dot and no parent is given, fail the lookup
+			// If field starts with a dot and no parent is given, fail the lookup.
 			return nil, false
 		}
 		path = path[1:]
@@ -81,7 +82,7 @@ func (r *index) GetResource(path string, parent *Resource) (*Resource, bool) {
 	return sr, true
 }
 
-// GetResources returns first level resources
+// GetResources returns first level resources.
 func (r *index) GetResources() []*Resource {
 	return r.resources
 }
@@ -99,14 +100,14 @@ func compileResourceGraph(resources subResources) error {
 	return nil
 }
 
-// assertNotBound asserts a given resource name is not already bound
+// assertNotBound asserts a given resource name is not already bound.
 func assertNotBound(name string, resources subResources, aliases map[string]url.Values) {
 	for _, r := range resources {
 		if r.name == name {
-			logPanicf(nil, "Cannot bind `%s': already bound as resource'", name)
+			logPanicf(context.Background(), "Cannot bind `%s': already bound as resource'", name)
 		}
 	}
 	if _, found := aliases[name]; found {
-		logPanicf(nil, "Cannot bind `%s': already bound as alias'", name)
+		logPanicf(context.Background(), "Cannot bind `%s': already bound as alias'", name)
 	}
 }

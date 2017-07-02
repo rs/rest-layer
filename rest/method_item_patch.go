@@ -7,7 +7,7 @@ import (
 	"github.com/rs/rest-layer/resource"
 )
 
-// itemPatch handles PATCH resquests on an item URL
+// itemPatch handles PATCH resquests on an item URL.
 //
 // Reference: http://tools.ietf.org/html/rfc5789
 func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
@@ -19,11 +19,11 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	if e != nil {
 		return e.Code, nil, e
 	}
-	// Get original item if any
+	// Get original item if any.
 	rsrc := route.Resource()
 	var original *resource.Item
 	if l, err := rsrc.Find(ctx, lookup, 0, 1); err != nil {
-		// If item can't be fetch, return an error
+		// If item can't be fetch, return an error.
 		e = NewError(err)
 		return e.Code, nil, e
 	} else if len(l.Items) == 0 {
@@ -31,13 +31,13 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	} else {
 		original = l.Items[0]
 	}
-	// If-Match / If-Unmodified-Since handling
+	// If-Match / If-Unmodified-Since handling.
 	if err := checkIntegrityRequest(r, original); err != nil {
 		return err.Code, nil, err
 	}
 	changes, base := rsrc.Validator().Prepare(ctx, payload, &original.Payload, false)
 	// Append lookup fields to base payload so it isn't caught by ReadOnly
-	// (i.e.: contains id and parent resource refs if any)
+	// (i.e.: contains id and parent resource refs if any).
 	for k, v := range route.ResourcePath.Values() {
 		base[k] = v
 	}
@@ -45,7 +45,8 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	if len(errs) > 0 {
 		return 422, nil, &Error{422, "Document contains error(s)", errs}
 	}
-	// Check that fields with the Reference validator reference an existing object
+	// Check that fields with the Reference validator reference an existing
+	// object.
 	if e = checkReferences(ctx, doc, rsrc.Validator()); e != nil {
 		return e.Code, nil, e
 	}
@@ -57,15 +58,16 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 		e = NewError(err)
 		return e.Code, nil, e
 	}
-	// Store the modified document by providing the orignal doc to instruct
+	// Store the modified document by providing the original doc to instruct
 	// handler to ensure the stored document didn't change between in the
-	// interval. An ErrPreconditionFailed will be thrown in case of race condition
-	// (i.e.: another thread modified the document between the Find() and the Store())
+	// interval. An ErrPreconditionFailed will be thrown in case of race
+	// condition (i.e.: another thread modified the document between the Find()
+	// and the Store()).
 	if err = rsrc.Update(ctx, item, original); err != nil {
 		e = NewError(err)
 		return e.Code, nil, e
 	}
-	// Apply selector so response gets the same format as read requests
+	// Apply selector so response gets the same format as read requests.
 	item.Payload, err = lookup.ApplySelector(ctx, rsrc.Validator(), item.Payload, getReferenceResolver(ctx, rsrc))
 	if err != nil {
 		e = NewError(err)

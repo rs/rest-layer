@@ -23,7 +23,7 @@ func (v IP) Validate(value interface{}) (interface{}, error) {
 		return nil, errors.New("invalid IP format")
 	}
 	if v.StoreBinary {
-		// If IP is a v4, store it's 4 bytes representation to save space
+		// If IP is a v4, store it's 4 bytes representation to save space.
 		if v4 := ip.To4(); v4 != nil {
 			return []byte(v4), nil
 		}
@@ -32,7 +32,7 @@ func (v IP) Validate(value interface{}) (interface{}, error) {
 	return ip.String(), nil
 }
 
-// Serialize implements FieldSerializer
+// Serialize implements FieldSerializer.
 func (v IP) Serialize(value interface{}) (interface{}, error) {
 	if !v.StoreBinary {
 		return value, nil

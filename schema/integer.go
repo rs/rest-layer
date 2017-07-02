@@ -6,16 +6,17 @@ import (
 	"math"
 )
 
-// Integer validates integer based values
+// Integer validates integer based values.
 type Integer struct {
 	Allowed    []int
 	Boundaries *Boundaries
 }
 
-// Validate validates and normalize integer based value
+// Validate validates and normalize integer based value.
 func (v Integer) Validate(value interface{}) (interface{}, error) {
 	if f, ok := value.(float64); ok {
-		// JSON unmarshaling treat all numbers as float64, try to convert it to int if not fraction
+		// JSON unmarshaling treat all numbers as float64, try to convert it to
+		// int if not fraction.
 		i, frac := math.Modf(f)
 		if frac == 0.0 {
 			v := int(i)
@@ -43,7 +44,7 @@ func (v Integer) Validate(value interface{}) (interface{}, error) {
 			}
 		}
 		if !found {
-			// TODO: build the list of allowed values
+			// TODO: build the list of allowed values.
 			return nil, fmt.Errorf("not one of the allowed values")
 		}
 	}

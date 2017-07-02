@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// itemOptions handles OPTIONS requests on a item URL
+// itemOptions handles OPTIONS requests on a item URL.
 func itemOptions(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	rsrc := route.Resource()
 	if rsrc == nil {

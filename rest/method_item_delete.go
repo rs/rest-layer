@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// itemDelete handles DELETE resquests on an item URL
+// itemDelete handles DELETE resquests on an item URL.
 func itemDelete(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	lookup, e := route.Lookup()
 	if e != nil {
@@ -20,7 +20,7 @@ func itemDelete(ctx context.Context, r *http.Request, route *RouteMatch) (status
 		return ErrNotFound.Code, nil, ErrNotFound
 	}
 	original := l.Items[0]
-	// If-Match / If-Unmodified-Since handling
+	// If-Match / If-Unmodified-Since handling.
 	if err := checkIntegrityRequest(r, original); err != nil {
 		return err.Code, nil, err
 	}

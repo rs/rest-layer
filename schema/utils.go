@@ -3,7 +3,7 @@ package schema
 import "strings"
 
 // isNumber takes an interface as input, and returns a float64 if the type is
-// compatible (int* or float*)
+// compatible (int* or float*).
 func isNumber(n interface{}) (float64, bool) {
 	switch n := n.(type) {
 	case int:
@@ -35,8 +35,8 @@ func isNumber(n interface{}) (float64, bool) {
 	}
 }
 
-// getField gets the value of a given field by supporting sub-field path.
-// A get on field.subfield is equivalent to payload["field"]["subfield].
+// getField gets the value of a given field by supporting sub-field path. A get
+// on field.subfield is equivalent to payload["field"]["subfield].
 func getField(payload map[string]interface{}, name string) interface{} {
 	val, found := getFieldExist(payload, name)
 	if !found {
@@ -46,20 +46,20 @@ func getField(payload map[string]interface{}, name string) interface{} {
 }
 
 func getFieldExist(payload map[string]interface{}, name string) (interface{}, bool) {
-	// Split the name to get the current level name on first element and
-	// the rest of the path as second element if dot notation is used
-	// (i.e.: field.subfield.subsubfield -> field, subfield.subsubfield)
+	// Split the name to get the current level name on first element and the
+	// rest of the path as second element if dot notation is used (i.e.:
+	// field.subfield.subsubfield -> field, subfield.subsubfield).
 	path := strings.SplitN(name, ".", 2)
 	if value, found := payload[path[0]]; found {
 		if len(path) == 2 {
 			if subPayload, ok := value.(map[string]interface{}); ok {
-				// Check next level
+				// Check next level.
 				return getFieldExist(subPayload, path[1])
 			}
-			// The requested depth does not exist
+			// The requested depth does not exist.
 			return nil, false
 		}
-		// Full path has been found
+		// Full path has been found.
 		return value, true
 	}
 	return nil, false

@@ -8,7 +8,7 @@ import (
 	"github.com/rs/rest-layer/schema"
 )
 
-// itemPut handles PUT resquests on an item URL
+// itemPut handles PUT resquests on an item URL.
 //
 // Reference: http://tools.ietf.org/html/rfc2616#section-9.6
 func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
@@ -21,7 +21,8 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		return e.Code, nil, e
 	}
 	rsrc := route.Resource()
-	// Fetch original item if exist (PUT can be used to create a document with a manual id)
+	// Fetch original item if exist (PUT can be used to create a document with a
+	// manual id).
 	var original *resource.Item
 	if l, err := rsrc.Find(ctx, lookup, 0, 1); err != nil && err != ErrNotFound {
 		e = NewError(err)
@@ -34,13 +35,13 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	// - PUT on existing item = replace
 	mode := resource.Create
 	if original != nil {
-		// If original is found, the mode is replace rather than create
+		// If original is found, the mode is replace rather than create.
 		mode = resource.Replace
 	}
 	if !rsrc.Conf().IsModeAllowed(mode) {
 		return 405, nil, &Error{405, "Invalid method", nil}
 	}
-	// If-Match / If-Unmodified-Since handling
+	// If-Match / If-Unmodified-Since handling.
 	if err := checkIntegrityRequest(r, original); err != nil {
 		return err.Code, nil, err
 	}
@@ -48,15 +49,15 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	var changes map[string]interface{}
 	var base map[string]interface{}
 	if original == nil {
-		// PUT used to create a new document
+		// PUT used to create a new document.
 		changes, base = rsrc.Validator().Prepare(ctx, payload, nil, false)
 		status = 201
 	} else {
-		// PUT used to replace an existing document
+		// PUT used to replace an existing document.
 		changes, base = rsrc.Validator().Prepare(ctx, payload, &original.Payload, true)
 	}
 	// Append lookup fields to base payload so it isn't caught by ReadOnly
-	// (i.e.: contains id and parent resource refs if any)
+	// (i.e.: contains id and parent resource refs if any).
 	for k, v := range route.ResourcePath.Values() {
 		base[k] = v
 		// Also, ensure there's no tombstone set on the field
@@ -68,7 +69,7 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	if len(errs) > 0 {
 		return 422, nil, &Error{422, "Document contains error(s)", errs}
 	}
-	// Check that fields with the Reference validator reference an existing object
+	// Check that fields with the Reference validator reference an existing object.
 	if err := checkReferences(ctx, doc, rsrc.Validator()); err != nil {
 		return err.Code, nil, err
 	}
@@ -97,7 +98,7 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			return e.Code, nil, e
 		}
 	}
-	// Apply selector so response gets the same format as read requests
+	// Apply selector so response gets the same format as read requests.
 	item.Payload, err = lookup.ApplySelector(ctx, rsrc.Validator(), item.Payload, getReferenceResolver(ctx, rsrc))
 	if err != nil {
 		e = NewError(err)

@@ -8,71 +8,82 @@ import (
 
 // Storer defines the interface of an handler able to store and retrieve resources
 type Storer interface {
-	// Find searches for items in the backend store matching the lookup argument. The
-	// pagination argument must be respected. If no items are found, an empty list
-	// should be returned with no error.
+	// Find searches for items in the backend store matching the lookup
+	// argument. The pagination argument must be respected. If no items are
+	// found, an empty list should be returned with no error.
 	//
-	// If the total number of item can't be computed for free, ItemList.Total must
-	// be set to -1. Your Storer may implement the Counter interface to let the user
-	// explicitely request the total.
+	// If the total number of item can't be computed for free, ItemList.Total
+	// must be set to -1. Your Storer may implement the Counter interface to let
+	// the user explicitly request the total.
 	//
-	// The whole lookup query must be treated. If a query operation is not implemented
-	// by the storage handler, a resource.ErrNotImplemented must be returned.
+	// The whole lookup query must be treated. If a query operation is not
+	// implemented by the storage handler, a resource.ErrNotImplemented must be
+	// returned.
 	//
-	// If the fetching of the data is not immediate, the method must listen for cancellation
-	// on the passed ctx. If the operation is stopped due to context cancellation, the
-	// function must return the result of the ctx.Err() method.
+	// If the fetching of the data is not immediate, the method must listen for
+	// cancellation on the passed ctx. If the operation is stopped due to
+	// context cancellation, the function must return the result of the
+	// ctx.Err() method.
 	Find(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error)
-	// Insert stores new items in the backend store. If any of the items does already exist,
-	// no item should be inserted and a resource.ErrConflict must be returned. The insertion
-	// of the items must be performed atomically. If more than one item is provided and the
-	// backend store doesn't support atomical insertion of several items, a
-	// resource.ErrNotImplemented must be returned.
+	// Insert stores new items in the backend store. If any of the items does
+	// already exist, no item should be inserted and a resource.ErrConflict must
+	// be returned. The insertion of the items must be performed atomically. If
+	// more than one item is provided and the backend store doesn't support
+	// atomical insertion of several items, a resource.ErrNotImplemented must be
+	// returned.
 	//
-	// If the storage of the data is not immediate, the method must listen for cancellation
-	// on the passed ctx. If the operation is stopped due to context cancellation, the
-	// function must return the result of the ctx.Err() method.
+	// If the storage of the data is not immediate, the method must listen for
+	// cancellation on the passed ctx. If the operation is stopped due to
+	// context cancellation, the function must return the result of the
+	// ctx.Err() method.
 	Insert(ctx context.Context, items []*Item) error
-	// Update replace an item in the backend store by a new version. The ResourceHandler must
-	// ensure that the original item exists in the database and has the same Etag field.
-	// This check should be performed atomically. If the original item is not
-	// found, a resource.ErrNotFound must be returned. If the etags don't match, a
-	// resource.ErrConflict must be returned.
+	// Update replace an item in the backend store by a new version. The
+	// ResourceHandler must ensure that the original item exists in the database
+	// and has the same Etag field. This check should be performed atomically.
+	// If the original item is not found, a resource.ErrNotFound must be
+	// returned. If the etags don't match, a resource.ErrConflict must be
+	// returned.
 	//
-	// The item payload must be stored together with the etag and the updated field.
-	// The item.ID and the payload["id"] is garantied to be identical, so there's not need
-	// to store both.
+	// The item payload must be stored together with the etag and the updated
+	// field. The item.ID and the payload["id"] is guarantied to be identical,
+	// so there's not need to store both.
 	//
-	// If the storage of the data is not immediate, the method must listen for cancellation
-	// on the passed ctx. If the operation is stopped due to context cancellation, the
-	// function must return the result of the ctx.Err() method.
+	// If the storage of the data is not immediate, the method must listen for
+	// cancellation on the passed ctx. If the operation is stopped due to
+	// context cancellation, the function must return the result of the
+	// ctx.Err() method.
 	Update(ctx context.Context, item *Item, original *Item) error
-	// Delete deletes the provided item by its ID. The Etag of the item stored in the
-	// backend store must match the Etag of the provided item or a resource.ErrConflict
-	// must be returned. This check should be performed atomically.
+	// Delete deletes the provided item by its ID. The Etag of the item stored
+	// in the backend store must match the Etag of the provided item or a
+	// resource.ErrConflict must be returned. This check should be performed
+	// atomically.
 	//
-	// If the provided item were not present in the backend store, a resource.ErrNotFound
-	// must be returned.
+	// If the provided item were not present in the backend store, a
+	// resource.ErrNotFound must be returned.
 	//
-	// If the removal of the data is not immediate, the method must listen for cancellation
-	// on the passed ctx. If the operation is stopped due to context cancellation, the
-	// function must return the result of the ctx.Err() method.
+	// If the removal of the data is not immediate, the method must listen for
+	// cancellation on the passed ctx. If the operation is stopped due to
+	// context cancellation, the function must return the result of the
+	// ctx.Err() method.
 	Delete(ctx context.Context, item *Item) error
-	// Clear removes all items matching the lookup. When possible, the number of items
-	// removed is returned, otherwise -1 is return as the first value.
+	// Clear removes all items matching the lookup. When possible, the number of
+	// items removed is returned, otherwise -1 is return as the first value.
 	//
-	// The whole lookup query must be treated. If a query operation is not implemented
-	// by the storage handler, a resource.ErrNotImplemented must be returned.
+	// The whole lookup query must be treated. If a query operation is not
+	// implemented by the storage handler, a resource.ErrNotImplemented must be
+	// returned.
 	//
-	// If the removal of the data is not immediate, the method must listen for cancellation
-	// on the passed ctx. If the operation is stopped due to context cancellation, the
-	// function must return the result of the ctx.Err() method.
+	// If the removal of the data is not immediate, the method must listen for
+	// cancellation on the passed ctx. If the operation is stopped due to
+	// context cancellation, the function must return the result of the
+	// ctx.Err() method.
 	Clear(ctx context.Context, lookup *Lookup) (int, error)
 }
 
-// MultiGetter is an optional interface a Storer can implement when the storage engine is
-// able to perform optimized multi gets. REST Layer will automatically use MultiGet over Find
-// whenever it's possible when a storage handler implements this interface.
+// MultiGetter is an optional interface a Storer can implement when the storage
+// engine is able to perform optimized multi gets. REST Layer will automatically
+// use MultiGet over Find whenever it's possible when a storage handler
+// implements this interface.
 type MultiGetter interface {
 	// MultiGet retrieves items by their ids and return them an a list. If one or more
 	// item(s) cannot be found, the method must not return a resource.ErrNotFound but
@@ -82,13 +93,14 @@ type MultiGetter interface {
 	MultiGet(ctx context.Context, ids []interface{}) ([]*Item, error)
 }
 
-// Counter is an optional interface a Storer can implement to provide a way to explicitely
-// count the total number of elements a given lookup would return with no pagination
-// provided. This method is called by REST Layer when the storage handler returned -1
-// as ItemList.Total and the user (or configuration) explicitely request the total.
+// Counter is an optional interface a Storer can implement to provide a way to
+// explicitly count the total number of elements a given lookup would return
+// with no pagination provided. This method is called by REST Layer when the
+// storage handler returned -1 as ItemList.Total and the user (or configuration)
+// explicitly request the total.
 type Counter interface {
-	// Count returns the total number of item in the collection given the provided
-	// lookup filter.
+	// Count returns the total number of item in the collection given the
+	// provided lookup filter.
 	Count(ctx context.Context, lookup *Lookup) (int, error)
 }
 
@@ -103,7 +115,8 @@ type storageWrapper struct {
 	Storer
 }
 
-// Get get one item by its id. If item is not found, ErrNotFound error is returned
+// Get get one item by its id. If item is not found, ErrNotFound error is
+// returned
 func (s storageWrapper) Get(ctx context.Context, id interface{}) (item *Item, err error) {
 	items, err := s.MultiGet(ctx, []interface{}{id})
 	if err == nil {
@@ -116,8 +129,8 @@ func (s storageWrapper) Get(ctx context.Context, id interface{}) (item *Item, er
 	return
 }
 
-// MultiGet get some items by their id and return them in the same order. If one or more item(s)
-// is not found, their slot in the response is set to nil.
+// MultiGet get some items by their id and return them in the same order. If one
+// or more item(s) is not found, their slot in the response is set to nil.
 func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items []*Item, err error) {
 	if s.Storer == nil {
 		return nil, ErrNoStorage
@@ -154,7 +167,7 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 	if err != nil {
 		return nil, err
 	}
-	// Sort items as requested
+	// Sort items as requested.
 	items = make([]*Item, len(ids))
 	for i, id := range ids {
 		for _, item := range tmp {
@@ -166,23 +179,25 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 	return items, nil
 }
 
-// Find tries to use storer MultiGet with some pattern or Find otherwise
+// Find tries to use storer MultiGet with some pattern or Find otherwise.
 func (s storageWrapper) Find(ctx context.Context, lookup *Lookup, offset, limit int) (list *ItemList, err error) {
 	if s.Storer == nil {
 		return nil, ErrNoStorage
 	}
 	if mg, ok := s.Storer.(MultiGetter); ok {
-		// If storage supports MultiGetter interface, detect some common find pattern that could be
-		// converted to multi get
+		// If storage supports MultiGetter interface, detect some common find
+		// pattern that could be converted to multi get.
 		if q := lookup.Filter(); len(q) == 1 && offset == 0 && len(lookup.Sort()) == 0 {
 			switch op := q[0].(type) {
 			case schema.Equal:
-				// When query pattern is a single document request by its id, use the multi get API
+				// When query pattern is a single document request by its id,
+				// use the multi get API.
 				if id, ok := op.Value.(string); ok && op.Field == "id" && (limit == 1 || limit < 0) {
 					return wrapMgetList(mg.MultiGet(ctx, []interface{}{id}))
 				}
 			case schema.In:
-				// When query pattern is a list of documents request by their ids, use the multi get API
+				// When query pattern is a list of documents request by their
+				// ids, use the multi get API.
 				if op.Field == "id" && limit < 0 || limit == len(op.Values) {
 					return wrapMgetList(mg.MultiGet(ctx, valuesToInterface(op.Values)))
 				}
@@ -192,7 +207,7 @@ func (s storageWrapper) Find(ctx context.Context, lookup *Lookup, offset, limit 
 	return s.Storer.Find(ctx, lookup, offset, limit)
 }
 
-// wrapMgetList wraps a MultiGet response into a resource.ItemList response
+// wrapMgetList wraps a MultiGet response into a resource.ItemList response.
 func wrapMgetList(items []*Item, err error) (*ItemList, error) {
 	if err != nil {
 		return nil, err

@@ -11,7 +11,8 @@ import (
 type dictBuilder schema.Dict
 
 var (
-	//ErrKeysValidatorNotSupported is returned when Dict.KeysValidator is not a *schema.String instance or nil.
+	//ErrKeysValidatorNotSupported is returned when Dict.KeysValidator is not a
+	//*schema.String instance or nil.
 	ErrKeysValidatorNotSupported = errors.New("KeysValidator type not supported")
 )
 
@@ -82,9 +83,10 @@ func (v dictBuilder) BuildJSONSchema() (map[string]interface{}, error) {
 			patterns[0]: valuesSchema,
 		}
 	default:
-		// With the lack of logical AND in O(n) regex implementations (e.g. the Go implementation), we have to
-		// build an allOff clause (with duplicated schemas for values validation) whenever multiple key patterns
-		// are found.
+		// With the lack of logical AND in O(n) regex implementations (e.g. the
+		// Go implementation), we have to build an allOff clause (with
+		// duplicated schemas for values validation) whenever multiple key
+		// patterns are found.
 		allOf := make([]map[string]map[string]interface{}, 0, len(patterns))
 		for i := range patterns {
 			allOf = append(allOf, map[string]map[string]interface{}{

@@ -7,19 +7,20 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Password cryptes a field password using bcrypt algorithm
+// Password crypts a field password using bcrypt algorithm.
 type Password struct {
-	// MinLen defines the minimum password length (default 0)
+	// MinLen defines the minimum password length (default 0).
 	MinLen int
-	// MaxLen defines the maximum password length (default no limit)
+	// MaxLen defines the maximum password length (default no limit).
 	MaxLen int
-	// Cost sets a custom bcrypt hashing cose.
+	// Cost sets a custom bcrypt hashing cost.
 	Cost int
 }
 
 var (
-	// PasswordField is a common schema field for passwords. It encrypt the password using bcrypt
-	// before storage and hide the value so the hash can't be read back.
+	// PasswordField is a common schema field for passwords. It encrypt the
+	// password using bcrypt before storage and hide the value so the hash can't
+	// be read back.
 	PasswordField = Field{
 		Description: "Write-only field storing a secret password.",
 		Required:    true,
@@ -28,12 +29,12 @@ var (
 	}
 )
 
-// Validate implements FieldValidator interface
+// Validate implements FieldValidator interface.
 func (v Password) Validate(value interface{}) (interface{}, error) {
 	s, ok := value.(string)
 	if !ok {
 		if b, ok := value.([]byte); ok {
-			// Maybe it's an already encoded version of the password
+			// Maybe it's an already encoded version of the password.
 			if _, err := bcrypt.Cost(b); err == nil {
 				return b, nil
 			}
@@ -54,8 +55,8 @@ func (v Password) Validate(value interface{}) (interface{}, error) {
 	return b, nil
 }
 
-// VerifyPassword compare a field of an item payload containig a hashed password
-// with a clear text password and return true if they match.
+// VerifyPassword compare a field of an item payload containing a hashed
+// password with a clear text password and return true if they match.
 func VerifyPassword(hash interface{}, password []byte) bool {
 	h, ok := hash.([]byte)
 	if !ok {

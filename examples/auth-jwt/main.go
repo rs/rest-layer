@@ -311,7 +311,6 @@ func main() {
 	// Setup auth middleware
 	jwtSecretBytes := []byte(*jwtSecret)
 	c = c.Append(NewJWTHandler(users, func(t *jwt.Token) (interface{}, error) {
-		println("paf")
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, jwt.ErrInvalidKey
 		}

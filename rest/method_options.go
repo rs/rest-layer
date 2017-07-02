@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// listOptions handles OPTIONS requests on a resource URL
+// listOptions handles OPTIONS requests on a resource URL.
 func listOptions(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	rsrc := route.Resource()
 	if rsrc == nil {

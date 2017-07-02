@@ -12,7 +12,7 @@ type Object struct {
 	Schema *Schema
 }
 
-// Compile implements Compiler interface
+// Compile implements Compiler interface.
 func (v *Object) Compile() error {
 	if v.Schema == nil {
 		return fmt.Errorf("No schema defined for object")
@@ -23,7 +23,7 @@ func (v *Object) Compile() error {
 	return v.Schema.Compile()
 }
 
-// ErrorMap to return lots of errors
+// ErrorMap to return lots of errors.
 type ErrorMap map[string][]interface{}
 
 func (e ErrorMap) Error() string {
@@ -38,7 +38,7 @@ func (e ErrorMap) Error() string {
 	return strings.Join(errs, ", ")
 }
 
-// Validate implements FieldValidator interface
+// Validate implements FieldValidator interface.
 func (v Object) Validate(value interface{}) (interface{}, error) {
 	dict, ok := value.(map[string]interface{})
 	if !ok {
@@ -46,8 +46,7 @@ func (v Object) Validate(value interface{}) (interface{}, error) {
 	}
 	dest, errs := v.Schema.Validate(nil, dict)
 	if len(errs) > 0 {
-		var errMap ErrorMap
-		errMap = errs
+		var errMap ErrorMap = errs
 		return nil, errMap
 	}
 	return dest, nil

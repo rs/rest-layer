@@ -21,8 +21,8 @@ func (e FindEventHandlerFunc) OnFind(ctx context.Context, lookup *Lookup, offset
 }
 
 // FoundEventHandler is an interface to be implemented by an event handler that
-// want to be called after a find has been performed on a resource. This interface is
-// to be used with resource.Use() method.
+// want to be called after a find has been performed on a resource. This
+// interface is to be used with resource.Use() method.
 type FoundEventHandler interface {
 	OnFound(ctx context.Context, lookup *Lookup, list **ItemList, err *error)
 }
@@ -51,8 +51,8 @@ func (e GetEventHandlerFunc) OnGet(ctx context.Context, id interface{}) error {
 }
 
 // GotEventHandler is an interface to be implemented by an event handler that
-// want to be called after a get has been performed on a resource. This interface is
-// to be used with resource.Use() method.
+// want to be called after a get has been performed on a resource. This
+// interface is to be used with resource.Use() method.
 type GotEventHandler interface {
 	OnGot(ctx context.Context, item **Item, err *error)
 }
@@ -80,9 +80,9 @@ func (e InsertEventHandlerFunc) OnInsert(ctx context.Context, items []*Item) err
 	return e(ctx, items)
 }
 
-// InsertedEventHandler is an interface to be implemented by an event handler that
-// want to be called before an item has been inserted on a resource. This interface is
-// to be used with resource.Use() method.
+// InsertedEventHandler is an interface to be implemented by an event handler
+// that want to be called before an item has been inserted on a resource. This
+// interface is to be used with resource.Use() method.
 type InsertedEventHandler interface {
 	OnInserted(ctx context.Context, items []*Item, err *error)
 }
@@ -110,9 +110,9 @@ func (e UpdateEventHandlerFunc) OnUpdate(ctx context.Context, item *Item, origin
 	return e(ctx, item, original)
 }
 
-// UpdatedEventHandler is an interface to be implemented by an event handler that
-// want to be called before an item has been updated for a resource. This interface is
-// to be used with resource.Use() method.
+// UpdatedEventHandler is an interface to be implemented by an event handler
+// that want to be called before an item has been updated for a resource. This
+// interface is to be used with resource.Use() method.
 type UpdatedEventHandler interface {
 	OnUpdated(ctx context.Context, item *Item, original *Item, err *error)
 }
@@ -156,8 +156,8 @@ func (e DeletedEventHandlerFunc) OnDeleted(ctx context.Context, item *Item, err 
 }
 
 // ClearEventHandler is an interface to be implemented by an event handler that
-// want to be called before a resource is cleared. This interface is
-// to be used with resource.Use() method.
+// want to be called before a resource is cleared. This interface is to be used
+// with resource.Use() method.
 type ClearEventHandler interface {
 	OnClear(ctx context.Context, lookup *Lookup) error
 }
@@ -170,8 +170,8 @@ func (e ClearEventHandlerFunc) OnClear(ctx context.Context, lookup *Lookup) erro
 	return e(ctx, lookup)
 }
 
-// ClearedEventHandler is an interface to be implemented by an event handler that
-// want to be called after a resource has been cleared. This interface is
+// ClearedEventHandler is an interface to be implemented by an event handler
+// that want to be called after a resource has been cleared. This interface is
 // to be used with resource.Use() method.
 type ClearedEventHandler interface {
 	OnCleared(ctx context.Context, lookup *Lookup, deleted *int, err *error)

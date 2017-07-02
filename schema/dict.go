@@ -7,17 +7,17 @@ import (
 
 // Dict validates array values
 type Dict struct {
-	// KeysValidator is the validator to apply on dict keys
+	// KeysValidator is the validator to apply on dict keys.
 	KeysValidator FieldValidator
-	// ValuesValidator is the validator to apply on dict values
+	// ValuesValidator is the validator to apply on dict values.
 	ValuesValidator FieldValidator
-	// MinLen defines the minimum number of fields (default 0)
+	// MinLen defines the minimum number of fields (default 0).
 	MinLen int
-	// MaxLen defines the maximum number of fields (default no limit)
+	// MaxLen defines the maximum number of fields (default no limit).
 	MaxLen int
 }
 
-// Compile implements Compiler interface
+// Compile implements Compiler interface.
 func (v *Dict) Compile() (err error) {
 	if c, ok := v.KeysValidator.(Compiler); ok {
 		if err = c.Compile(); err != nil {
@@ -32,7 +32,7 @@ func (v *Dict) Compile() (err error) {
 	return
 }
 
-// Validate implements FieldValidator interface
+// Validate implements FieldValidator interface.
 func (v Dict) Validate(value interface{}) (interface{}, error) {
 	dict, ok := value.(map[string]interface{})
 	if !ok {

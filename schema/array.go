@@ -5,17 +5,17 @@ import (
 	"fmt"
 )
 
-// Array validates array values
+// Array validates array values.
 type Array struct {
-	// ValuesValidator is the validator to apply on array items
+	// ValuesValidator is the validator to apply on array items.
 	ValuesValidator FieldValidator
-	// MinLen defines the minimum array length (default 0)
+	// MinLen defines the minimum array length (default 0).
 	MinLen int
-	// MaxLen defines the maximum array length (default no limit)
+	// MaxLen defines the maximum array length (default no limit).
 	MaxLen int
 }
 
-// Compile implements Compiler interface
+// Compile implements Compiler interface.
 func (v *Array) Compile() (err error) {
 	if c, ok := v.ValuesValidator.(Compiler); ok {
 		if err = c.Compile(); err != nil {
@@ -25,7 +25,7 @@ func (v *Array) Compile() (err error) {
 	return
 }
 
-// Validate implements FieldValidator
+// Validate implements FieldValidator.
 func (v Array) Validate(value interface{}) (interface{}, error) {
 	arr, ok := value.([]interface{})
 	if !ok {
