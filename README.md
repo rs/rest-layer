@@ -120,8 +120,9 @@ As REST Layer is a simple `net/http` handler. You can use standard middleware to
 - [x] [Memory](http://github.com/rs/rest-layer-mem) (test only)
 - [x] [MongoDB](http://github.com/rs/rest-layer-mongo)
 - [x] [ElasticSearch](http://github.com/rs/rest-layer-es)
+- [x] [SQLite3](https://github.com/jxstanford/rest-layer-sqlite3) (third party)
+- [x] [Google Datastore](https://github.com/ajcrowe/rest-layer-datastore) (third party)
 - [ ] SQL
-- [ ] Google Datastore
 - [ ] Redis
 - [ ] Google BigTable
 
