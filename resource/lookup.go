@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 )
 
 // Lookup holds filter and sort used to select items in a resource collection.
@@ -14,7 +15,7 @@ type Lookup struct {
 	// The client supplied filter. Filter is a MongoDB inspired query with a
 	// more limited set of capabilities. See
 	// https://github.com/rs/rest-layer#filtering for more info.
-	filter schema.Query
+	filter query.Query
 	// The client supplied soft. Sort is a list of resource fields or sub-fields
 	// separated by comas (,). To invert the sort, a minus (-) can be prefixed.
 	// See https://github.com/rs/rest-layer#sorting for more info.
@@ -44,13 +45,13 @@ type Field struct {
 // NewLookup creates an empty lookup object
 func NewLookup() *Lookup {
 	return &Lookup{
-		filter: schema.Query{},
+		filter: query.Query{},
 		sort:   []string{},
 	}
 }
 
 // NewLookupWithQuery creates an empty lookup object with a given query.
-func NewLookupWithQuery(q schema.Query) *Lookup {
+func NewLookupWithQuery(q query.Query) *Lookup {
 	return &Lookup{
 		filter: q,
 		sort:   []string{},
@@ -68,7 +69,7 @@ func (l *Lookup) Sort() []string {
 // Filter is a MongoDB inspired query with a more limited set of capabilities.
 //
 // See https://github.com/rs/rest-layer#filtering for more info.
-func (l *Lookup) Filter() schema.Query {
+func (l *Lookup) Filter() query.Query {
 	return l.filter
 }
 
@@ -112,8 +113,11 @@ func (l *Lookup) SetSort(sort string, v schema.Validator) error {
 // The filter query is validated against the provided validator to ensure all
 // queried fields exists and are of the right type.
 func (l *Lookup) AddFilter(filter string, v schema.Validator) error {
-	f, err := schema.ParseQuery(filter, v)
+	f, err := query.Parse(filter)
 	if err != nil {
+		return err
+	}
+	if err = f.Validate(v); err != nil {
 		return err
 	}
 	l.AddQuery(f)
@@ -121,7 +125,7 @@ func (l *Lookup) AddFilter(filter string, v schema.Validator) error {
 }
 
 // AddQuery add an existing schema.Query to the lookup's filters.
-func (l *Lookup) AddQuery(query schema.Query) {
+func (l *Lookup) AddQuery(query query.Query) {
 	if l.filter == nil {
 		l.filter = query
 		return

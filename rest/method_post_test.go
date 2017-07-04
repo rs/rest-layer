@@ -12,6 +12,7 @@ import (
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,7 +30,7 @@ func TestHandlerPostList(t *testing.T) {
 	assert.Equal(t, 201, w.Code)
 	b, _ := ioutil.ReadAll(w.Body)
 	assert.Equal(t, `{"foo":"bar","id":"1"}`, string(b))
-	lkp := resource.NewLookupWithQuery(schema.Query{schema.Equal{Field: "id", Value: "1"}})
+	lkp := resource.NewLookupWithQuery(query.Query{query.Equal{Field: "id", Value: "1"}})
 	l, err := s.Find(context.TODO(), lkp, 0, 1)
 	assert.NoError(t, err)
 	if assert.Len(t, l.Items, 1) {

@@ -170,7 +170,7 @@ func TestHandlerDeleteItemInvalidFilter(t *testing.T) {
 	if assert.IsType(t, body, &Error{}) {
 		err := body.(*Error)
 		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `filter` parameter: must be valid JSON", err.Message)
+		assert.Equal(t, "Invalid `filter` parameter: char 0: expected '{' got 'i'", err.Message)
 	}
 }
 

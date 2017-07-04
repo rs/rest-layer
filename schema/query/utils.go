@@ -1,6 +1,11 @@
-package schema
+package query
 
-import "strings"
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 // isNumber takes an interface as input, and returns a float64 if the type is
 // compatible (int* or float*).
@@ -32,6 +37,58 @@ func isNumber(n interface{}) (float64, bool) {
 		return n, true
 	default:
 		return 0, false
+	}
+}
+
+// quoteField return the field quoted if needed.
+func quoteField(field string) string {
+	for i := 0; i < len(field); i++ {
+		b := field[i]
+		if (b >= '0' && b <= '9') ||
+			(b >= 'a' && b <= 'z') ||
+			(b >= 'A' && b <= 'Z') ||
+			b == '$' || b == '.' || b == '_' || b == '-' {
+			continue
+		}
+		return strconv.Quote(field)
+	}
+	return field
+}
+
+func valueString(v Value) string {
+	switch t := v.(type) {
+	case string:
+		return strconv.Quote(t)
+	case int:
+		return strconv.Itoa(t)
+	case int8:
+		return strconv.FormatInt(int64(t), 10)
+	case int16:
+		return strconv.FormatInt(int64(t), 10)
+	case int32:
+		return strconv.FormatInt(int64(t), 10)
+	case int64:
+		return strconv.FormatInt(t, 10)
+	case uint:
+		return strconv.FormatUint(uint64(t), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(t), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(t), 10)
+	case uint32:
+		return strconv.FormatUint(uint64(t), 10)
+	case uint64:
+		return strconv.FormatUint(t, 10)
+	case float32:
+		return strconv.FormatFloat(float64(t), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(t, 'f', -1, 64)
+	default:
+		if s, ok := v.(fmt.Stringer); ok {
+			return strconv.Quote(s.String())
+		}
+		b, _ := json.Marshal(v)
+		return string(b)
 	}
 }
 

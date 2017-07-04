@@ -3,7 +3,7 @@ package resource
 import (
 	"context"
 
-	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 )
 
 // Storer defines the interface of an handler able to store and retrieve resources
@@ -146,16 +146,16 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 		// Otherwise, emulate MultiGetter with a Find query
 		l := NewLookup()
 		if len(ids) == 1 {
-			l.AddQuery(schema.Query{
-				schema.Equal{Field: "id", Value: ids[0]},
+			l.AddQuery(query.Query{
+				query.Equal{Field: "id", Value: ids[0]},
 			})
 		} else {
-			v := make([]schema.Value, len(ids))
+			v := make([]query.Value, len(ids))
 			for i, id := range ids {
-				v[i] = schema.Value(id)
+				v[i] = query.Value(id)
 			}
-			l.AddQuery(schema.Query{
-				schema.In{Field: "id", Values: v},
+			l.AddQuery(query.Query{
+				query.In{Field: "id", Values: v},
 			})
 		}
 		var list *ItemList
@@ -189,13 +189,13 @@ func (s storageWrapper) Find(ctx context.Context, lookup *Lookup, offset, limit 
 		// pattern that could be converted to multi get.
 		if q := lookup.Filter(); len(q) == 1 && offset == 0 && len(lookup.Sort()) == 0 {
 			switch op := q[0].(type) {
-			case schema.Equal:
+			case query.Equal:
 				// When query pattern is a single document request by its id,
 				// use the multi get API.
 				if id, ok := op.Value.(string); ok && op.Field == "id" && (limit == 1 || limit < 0) {
 					return wrapMgetList(mg.MultiGet(ctx, []interface{}{id}))
 				}
-			case schema.In:
+			case query.In:
 				// When query pattern is a list of documents request by their
 				// ids, use the multi get API.
 				if op.Field == "id" && limit < 0 || limit == len(op.Values) {

@@ -14,6 +14,7 @@ import (
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 	"github.com/rs/xaccess"
 	"github.com/rs/xlog"
 )
@@ -103,7 +104,7 @@ var (
 						"body": {
 							// Dependency defines that body field can't be changed if
 							// the published field is not "false".
-							Dependency: schema.Q(`{"published": false}`),
+							Dependency: query.MustParse(`{"published": false}`),
 							Validator: &schema.String{
 								MaxLen: 100000,
 							},

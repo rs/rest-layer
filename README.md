@@ -227,7 +227,7 @@ var (
 			"body": {
 				// Dependency defines that body field can't be changed if
 				// the published field is not "false".
-				Dependency: schema.Q(`{"published": false}`),
+				Dependency: schema.MustParse(`{"published": false}`),
 				Validator: &schema.String{
 					MaxLen: 100000,
 				},
@@ -540,7 +540,7 @@ The field definitions contains the following properties:
 | `Params`     | Params defines the list of parameters allowed for this field. See [Field Parameters](#field-parameters) section for some examples.
 | `Handler`    | Handler defines a function able to change the field's value depending on the passed parameters. See [Field Parameters](#field-parameters) section for some examples.
 | `Validator`  | A `schema.FieldValidator` to validate the content of the field.
-| `Dependency` | A query using `filter` format created with ``schema.Q(`{"field": "value"}`)``. If the query doesn't match the document, the field generates a dependency error.
+| `Dependency` | A query using `filter` format created with ``schema.MustParse(`{"field": "value"}`)``. If the query doesn't match the document, the field generates a dependency error.
 | `Filterable` | If `true`, the field can be used with the `filter` parameter. You may want to ensure the backend database has this field indexed when enabled. Some storage handlers may not support all the operators of the filter parameter, see their documentation for more information.
 | `Sortable`   | If `true`, the field can be used with the `sort` parameter. You may want to ensure the backend database has this field indexed when enabled.
 | `Schema`     | An optional sub schema to validate hierarchical documents.
@@ -772,7 +772,7 @@ See [embedding](#embedding) for more information.
 
 ### Dependency
 
-Fields can depends on other fields in order to be changed. To configure dependency, set a filter on the `Dependency` property of the field using the [schema.Q()](https://godoc.org/github.com/rs/rest-layer/schema#Q) method.
+Fields can depends on other fields in order to be changed. To configure dependency, set a filter on the `Dependency` property of the field using the [schema.MustParse()](https://godoc.org/github.com/rs/rest-layer/schema#Q) method.
 
 In this example, the `body` field can't be changed if the `published` field is not set to `true`:
 
@@ -783,7 +783,7 @@ post = schema.Schema{
 			Validator:  &schema.Bool{},
 		},
 		"body": {
-			Dependency: schema.Q(`{"published": true}`),
+			Dependency: schema.MustParse(`{"published": true}`),
 			Validator:  &schema.String{},
 		},
 	},
@@ -804,20 +804,20 @@ Using the the `$or` operator, you can specify a compound query that joins each c
 
 In the following example, the query document selects all items in the collection where the field `quantity` has a value greater than (`$gt`) `100` or the value of the `price` field is less than (`$lt`) `9.95`:
 
-```json
-{"$or": [{"quantity": {"$gt": 100}}, {"price": {"$lt": 9.95}}]}
+```js
+{$or: [{quantity: {$gt: 100}}, {price: {$lt: 9.95}}]}
 ```
 
 Match on sub-fields is performed throught field path separated by dots. This example shows an exact match on the subfields `country` and `city` of the `address` sub-document:
 
-```json
-{"address.country": "France", "address.city": "Paris"}
+```js
+{address.country: "France", address.city: "Paris"}
 ```
 
 Some operators can change the type of match. For instance `$in` can be used to match a field against several values. For instance, to select all items with the `type` field equal either `food` or `snacks`, use the following query:
 
-```json
-{"type": {"$in": ["food", "snacks"]}}
+```js
+{type: {$in: ["food", "snacks"]}}
 ```
 
 The opposite `$nin` is also available.
@@ -826,8 +826,8 @@ The following numeric comparisons operators are supported: `$lt`, `$lte`, `$gt`,
 
 The `$exists` operator matches documents containing the field, even if this field is `null`
 
-```json
-{"type": {"$exists": true}}
+```js
+{type: {$exists: true}}
 ```
 
 You can invert the operator by passing `false`.
@@ -844,14 +844,14 @@ U              ungreedy: swap meaning of x* and x*?, x+ and x+?, etc (default fa
 
 For example the following regular expression would match any document with a field `type` and its value `rest-layer`.
 
-```json
-{"type": {"$regex": "re[s]{1}t-la.+r"}}
+```js
+{type: {$regex: "re[s]{1}t-la.+r"}}
 ```
 
 The same example with flags:
 
-```json
-{"type": {"$regex": "(?i)re[s]{1}t-LAYER"}}
+```js
+{type: {$regex: "(?i)re[s]{1}t-LAYER"}}
 ```
 
 However, keep in mind that Storers have to support regular expression and depending on the implementation of the storage handler the accepted syntax may vary.
@@ -859,17 +859,17 @@ An error of `ErrNotImplemented` will be returned for those storage backends whic
 
 ### Filter operators
 
-| Operator  | Usage                               | Description
-| --------- | ----------------------------------- | ------------
-| `$or`     | `{"$or": [{"a": "b"}, {"a": "c"}]}` | Join two clauses with a logical `OR` conjunction.
-| `$in`     | `{"a": {"$in": ["b", "c"]}}`        | Match a field against several values.
-| `$nin`    | `{"a": {"$nin": ["b", "c"]}}`       | Opposite of `$in`.
-| `$lt`     | `{"a": {"$lt": 10}}`                | Fields value is lower than specified number.
-| `$lte`    | `{"a": {"$lte": 10}}`               | Fields value is lower than or equal to the specified number.
-| `$gt`     | `{"a": {"$gt": 10}}`                | Fields value is greater than specified number.
-| `$gte`    | `{"a": {"$gte": 10}}`               | Fields value is greater than or equal to the specified number.
-| `$exists` | `{"a": {"$exists": true}}`          | Match if the field is present (or not if set to `false`) in the item, event if `nil`.
-| `$regex`  | `{"a": {"$regex": "fo[o]{1}"}}`     | Match regular expression on a field's value.
+| Operator  | Usage                           | Description
+| --------- | ------------------------------- | ------------
+| `$or`     | `{$or: [{a: "b"}, {a: "c"}]}`   | Join two clauses with a logical `OR` conjunction.
+| `$in`     | `{a: {$in: ["b", "c"]}}`        | Match a field against several values.
+| `$nin`    | `{a: {$nin: ["b", "c"]}}`       | Opposite of `$in`.
+| `$lt`     | `{a: {$lt: 10}}`                | Fields value is lower than specified number.
+| `$lte`    | `{a: {$lte: 10}}`               | Fields value is lower than or equal to the specified number.
+| `$gt`     | `{a: {$gt: 10}}`                | Fields value is greater than specified number.
+| `$gte`    | `{a: {$gte: 10}}`               | Fields value is greater than or equal to the specified number.
+| `$exists` | `{a: {$exists: true}}`          | Match if the field is present (or not if set to `false`) in the item, event if `nil`.
+| `$regex`  | `{a: {$regex: "fo[o]{1}"}}`     | Match regular expression on a field's value.
 
 *Some storage handlers may not support all operators. Refer to the storage handler's documentation for more info.*
 

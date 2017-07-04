@@ -1,28 +1,18 @@
 package schema
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// PreQuery stores a query as string so it can be parsed/validated later.
-type PreQuery struct {
-	s string
-	q Query
+// Query is an interface matching the query.Query type.
+type Query interface {
+	Match(payload map[string]interface{}) bool
+	Validate(v Validator) error
 }
 
-// Q is like ParseQuery, but returns an intermediate object which can
-// be stored before being parsed.
-func Q(q string) *PreQuery {
-	return &PreQuery{s: q}
-}
-
-func (q *PreQuery) compile(v Validator) error {
-	if q.q == nil {
-		var err error
-		q.q, err = ParseQuery(q.s, v)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+// Q is deprecated, use query.MustParse instead.
+func Q() Query {
+	panic("schema.Q is deprecated, please use query.MustParse instead")
 }
 
 // compileDependencies recursively compiles all field.Dependency against the
@@ -30,7 +20,7 @@ func (q *PreQuery) compile(v Validator) error {
 func compileDependencies(s Schema, v Validator) error {
 	for _, def := range s.Fields {
 		if def.Dependency != nil {
-			if err := def.Dependency.compile(v); err != nil {
+			if err := def.Dependency.Validate(v); err != nil {
 				return err
 			}
 		}
@@ -49,8 +39,8 @@ func (s Schema) validateDependencies(changes map[string]interface{}, doc map[str
 		path := prefix + name
 		field := s.GetField(path)
 		if field != nil && field.Dependency != nil {
-			if !field.Dependency.q.Match(doc) {
-				addFieldError(errs, name, fmt.Sprintf("does not match dependency: %s", field.Dependency.s))
+			if !field.Dependency.Match(doc) {
+				addFieldError(errs, name, fmt.Sprintf("does not match dependency: %+v", field.Dependency))
 			}
 		}
 		if subChanges, ok := value.(map[string]interface{}); ok {
