@@ -157,8 +157,9 @@
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;<a href="http://github.com/rs/rest-layer-mem">Memory</a> (test only)</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;<a href="http://github.com/rs/rest-layer-mongo">MongoDB</a></li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;<a href="http://github.com/rs/rest-layer-es">ElasticSearch</a></li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;<a href="https://github.com/jxstanford/rest-layer-sqlite3">SQLite3</a> (third party)</li>
+<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;<a href="https://github.com/ajcrowe/rest-layer-datastore">Google Datastore</a> (third party)</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;SQL</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Google Datastore</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Redis</li>
 <li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Google BigTable</li>
 </ul>
@@ -261,7 +262,7 @@ var (
             &quot;body&quot;: {
                 // Dependency defines that body field can&#39;t be changed if
                 // the published field is not &quot;false&quot;.
-                Dependency: schema.Q(`{&quot;published&quot;: false}`),
+                Dependency: schema.MustParse(`{&quot;published&quot;: false}`),
                 Validator: &amp;schema.String{
                     MaxLen: 100000,
                 },
@@ -573,7 +574,7 @@ Vary: Origin
 </tr>
 <tr>
 <td><code>Dependency</code></td>
-<td>A query using <code>filter</code> format created with <code>schema.Q(`{&quot;field&quot;: &quot;value&quot;}`)</code>. If the query doesn&#39;t match the document, the field generates a dependency error.</td>
+<td>A query using <code>filter</code> format created with <code>schema.MustParse(`{&quot;field&quot;: &quot;value&quot;}`)</code>. If the query doesn&#39;t match the document, the field generates a dependency error.</td>
 </tr>
 <tr>
 <td><code>Filterable</code></td>
@@ -765,6 +766,10 @@ posts := index.Bind(&quot;posts&quot;, post, mem.NewHandler(), resource.DefaultC
 <td><code>PaginationDefaultLimit</code></td>
 <td>If set, pagination is enabled by default with a number of item per page defined here.</td>
 </tr>
+<tr>
+<td><code>ForceTotal</code></td>
+<td>Control the behavior of the computation of <code>X-Total</code> header and the <code>total</code> query-string parameter. See <code>resource.ForceTotalMode</code> for available options.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="modes">Modes</h3>
@@ -932,7 +937,7 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
 </code></pre>
 <p>See <a href="#embedding">embedding</a> for more information.</p>
 <h3 id="dependency">Dependency</h3>
-<p>Fields can depends on other fields in order to be changed. To configure dependency, set a filter on the <code>Dependency</code> property of the field using the <a href="https://godoc.org/github.com/rs/rest-layer/schema#Q">schema.Q()</a> method.</p>
+<p>Fields can depends on other fields in order to be changed. To configure dependency, set a filter on the <code>Dependency</code> property of the field using the <a href="https://godoc.org/github.com/rs/rest-layer/schema#Q">schema.MustParse()</a> method.</p>
 <p>In this example, the <code>body</code> field can&#39;t be changed if the <code>published</code> field is not set to <code>true</code>:</p>
 <pre><code class="lang-go">post = schema.Schema{
     Fields: schema.Fields{
@@ -940,7 +945,7 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
             Validator:  &amp;schema.Bool{},
         },
         &quot;body&quot;: {
-            Dependency: schema.Q(`{&quot;published&quot;: true}`),
+            Dependency: schema.MustParse(`{&quot;published&quot;: true}`),
             Validator:  &amp;schema.String{},
         },
     },
@@ -953,20 +958,29 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
 <p>A query can specify conditions for more than one field. Implicitly, a logical <code>AND</code> conjunction connects the clauses so that the query selects the items that match all the conditions.</p>
 <p>Using the the <code>$or</code> operator, you can specify a compound query that joins each clause with a logical <code>OR</code> conjunction so that the query selects the items that match at least one condition.</p>
 <p>In the following example, the query document selects all items in the collection where the field <code>quantity</code> has a value greater than (<code>$gt</code>) <code>100</code> or the value of the <code>price</code> field is less than (<code>$lt</code>) <code>9.95</code>:</p>
-<pre><code class="lang-json">{&quot;$or&quot;: [{&quot;quantity&quot;: {&quot;$gt&quot;: 100}}, {&quot;price&quot;: {&quot;$lt&quot;: 9.95}}]}
+<pre><code class="lang-js">{$or: [{quantity: {$gt: 100}}, {price: {$lt: 9.95}}]}
 </code></pre>
 <p>Match on sub-fields is performed throught field path separated by dots. This example shows an exact match on the subfields <code>country</code> and <code>city</code> of the <code>address</code> sub-document:</p>
-<pre><code class="lang-json">{&quot;address.country&quot;: &quot;France&quot;, &quot;address.city&quot;: &quot;Paris&quot;}
+<pre><code class="lang-js">{address.country: &quot;France&quot;, address.city: &quot;Paris&quot;}
 </code></pre>
 <p>Some operators can change the type of match. For instance <code>$in</code> can be used to match a field against several values. For instance, to select all items with the <code>type</code> field equal either <code>food</code> or <code>snacks</code>, use the following query:</p>
-<pre><code class="lang-json">{&quot;type&quot;: {&quot;$in&quot;: [&quot;food&quot;, &quot;snacks&quot;]}}
+<pre><code class="lang-js">{type: {$in: [&quot;food&quot;, &quot;snacks&quot;]}}
 </code></pre>
 <p>The opposite <code>$nin</code> is also available.</p>
 <p>The following numeric comparisons operators are supported: <code>$lt</code>, <code>$lte</code>, <code>$gt</code>, <code>$gte</code>.</p>
-<p>The <code>$exists</code> operator matches document containing the field, even if this field is <code>null</code></p>
-<pre><code class="lang-json">{&quot;type&quot;: {&quot;$exists&quot;: true}}
+<p>The <code>$exists</code> operator matches documents containing the field, even if this field is <code>null</code></p>
+<pre><code class="lang-js">{type: {$exists: true}}
 </code></pre>
 <p>You can invert the operator by passing <code>false</code>.</p>
+<p>There is also a <code>$regex</code> operator that matches documents containing the field given as a regular expression. In general, the syntax of the regular expressions accepted is the same general syntax used by Perl, Python, and other languages.<br>More precisely, it is the syntax accepted by RE2 and described at <a href="https://golang.org/s/re2syntax">https://golang.org/s/re2syntax</a>, except for \C.</p>
+<p>Flags are supported for more control over regular expressions. Flag syntax is xyz (set) or -xyz (clear) or xy-z (set xy, clear z).<br>The flags are:<br>i              case-insensitive (default false)<br>m              multi-line mode: ^ and $ match begin/end line in addition to begin/end text (default false)<br>s              let . match \n (default false)<br>U              ungreedy: swap meaning of x<em> and x</em>?, x+ and x+?, etc (default false)</p>
+<p>For example the following regular expression would match any document with a field <code>type</code> and its value <code>rest-layer</code>.</p>
+<pre><code class="lang-js">{type: {$regex: &quot;re[s]{1}t-la.+r&quot;}}
+</code></pre>
+<p>The same example with flags:</p>
+<pre><code class="lang-js">{type: {$regex: &quot;(?i)re[s]{1}t-LAYER&quot;}}
+</code></pre>
+<p>However, keep in mind that Storers have to support regular expression and depending on the implementation of the storage handler the accepted syntax may vary.<br>An error of <code>ErrNotImplemented</code> will be returned for those storage backends which do not support the <code>$regex</code> operator.</p>
 <h3 id="filter-operators">Filter operators</h3>
 <table>
 <thead>
@@ -979,43 +993,48 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
 <tbody>
 <tr>
 <td><code>$or</code></td>
-<td><code>{&quot;$or&quot;: [{&quot;a&quot;: &quot;b&quot;}, {&quot;a&quot;: &quot;c&quot;}]}</code></td>
+<td><code>{$or: [{a: &quot;b&quot;}, {a: &quot;c&quot;}]}</code></td>
 <td>Join two clauses with a logical <code>OR</code> conjunction.</td>
 </tr>
 <tr>
 <td><code>$in</code></td>
-<td><code>{&quot;a&quot;: {&quot;$in&quot;: [&quot;b&quot;, &quot;c&quot;]}}</code></td>
+<td><code>{a: {$in: [&quot;b&quot;, &quot;c&quot;]}}</code></td>
 <td>Match a field against several values.</td>
 </tr>
 <tr>
 <td><code>$nin</code></td>
-<td><code>{&quot;a&quot;: {&quot;$nin&quot;: [&quot;b&quot;, &quot;c&quot;]}}</code></td>
+<td><code>{a: {$nin: [&quot;b&quot;, &quot;c&quot;]}}</code></td>
 <td>Opposite of <code>$in</code>.</td>
 </tr>
 <tr>
 <td><code>$lt</code></td>
-<td><code>{&quot;a&quot;: {&quot;$lt&quot;: 10}}</code></td>
+<td><code>{a: {$lt: 10}}</code></td>
 <td>Fields value is lower than specified number.</td>
 </tr>
 <tr>
 <td><code>$lte</code></td>
-<td><code>{&quot;a&quot;: {&quot;$lte&quot;: 10}}</code></td>
+<td><code>{a: {$lte: 10}}</code></td>
 <td>Fields value is lower than or equal to the specified number.</td>
 </tr>
 <tr>
 <td><code>$gt</code></td>
-<td><code>{&quot;a&quot;: {&quot;$gt&quot;: 10}}</code></td>
+<td><code>{a: {$gt: 10}}</code></td>
 <td>Fields value is greater than specified number.</td>
 </tr>
 <tr>
 <td><code>$gte</code></td>
-<td><code>{&quot;a&quot;: {&quot;$gte&quot;: 10}}</code></td>
+<td><code>{a: {$gte: 10}}</code></td>
 <td>Fields value is greater than or equal to the specified number.</td>
 </tr>
 <tr>
 <td><code>$exists</code></td>
-<td><code>{&quot;a&quot;: {&quot;$exists&quot;: true}}</code></td>
+<td><code>{a: {$exists: true}}</code></td>
 <td>Match if the field is present (or not if set to <code>false</code>) in the item, event if <code>nil</code>.</td>
+</tr>
+<tr>
+<td><code>$regex</code></td>
+<td><code>{a: {$regex: &quot;fo[o]{1}&quot;}}</code></td>
+<td>Match regular expression on a field&#39;s value.</td>
 </tr>
 </tbody>
 </table>
@@ -1418,9 +1437,9 @@ func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header
 }
 </code></pre>
 <h2 id="graphql">GraphQL</h2>
-<p>In parallel of the REST API handler, REST Layer is also able to handle GraphQL queries (mutation will come later). GraphQL is a query language created by Facebook which provides a common interface fetch and manipulate data. REST Layer&#39;s GraphQL handler is able to read a <a href="https://godoc.org/github.com/rs/rest-layer/resource#Index">resource.Index</a> and create a corresponding GraphQL schema.</p>
-<p>GraphQL doesn&#39;t expose resources directly, but queries. REST Layer take all the resources defined at the root of the <code>resource.Index</code> and create two GraphQL queries for each one. On query is just the name of the endpoint, so <code>/users</code> would result in <code>users</code> and another is the name of the endpoint suffixed with <code>List</code>, as <code>usersList</code>. The item queries takes an <code>id</code> parameter and the list queries take <code>skip</code>, <code>page</code>, <code>limit</code>, <code>filter</code> and <code>sort</code> parameters. All sub-resources are accessible using GraphQL sub-selection syntax.</p>
-<p>If you resource defines aliases, some additional GraphQL queris are exposes with their name constructed as the name of the resource suffixed with the name of the alias with a capital. So for <code>users</code> with an alias <code>admin</code>, the query would be <code>usersAdmin</code>.</p>
+<p>In parallel with the REST API handler, REST Layer is also able to handle GraphQL queries (mutation will come later). GraphQL is a query language created by Facebook which provides a common interface to fetch and manipulate data. REST Layer&#39;s GraphQL handler is able to read a <a href="https://godoc.org/github.com/rs/rest-layer/resource#Index">resource.Index</a> and create a corresponding GraphQL schema.</p>
+<p>GraphQL doesn&#39;t expose resources directly, but queries. REST Layer take all the resources defined at the root of the <code>resource.Index</code> and create two GraphQL queries for each one. One query is just the name of the endpoint, so <code>/users</code> would result in <code>users</code> and another is the name of the endpoint suffixed with <code>List</code>, as <code>usersList</code>. The item queries takes an <code>id</code> parameter and the list queries take <code>skip</code>, <code>page</code>, <code>limit</code>, <code>filter</code> and <code>sort</code> parameters. All sub-resources are accessible using GraphQL sub-selection syntax.</p>
+<p>If your resource defines aliases, some additional GraphQL queries are exposed with their name constructed as the name of the resource suffixed with the name of the alias with a capital. So for <code>users</code> with an alias <code>admin</code>, the query would be <code>usersAdmin</code>.</p>
 <p>You can bind the GraphQL endpoint wherever you want as follow:</p>
 <pre><code class="lang-go">index := resource.NewIndex()
 // Bind some resources
@@ -1451,35 +1470,54 @@ index.Bind(&quot;posts&quot;, post, restrix.Wrap(&quot;posts&quot;, mongo.NewHan
 <p>Once enabled, you must configure Hystrix for each command and start the Hystrix metrics stream handler.</p>
 <p>See <a href="https://godoc.org/github.com/afex/hystrix-go/hystrix">Hystrix godoc</a> for more info and <a href="https://github.com/rs/rest-layer/blob/master/examples/hystrix/main.go">examples/hystrix</a> for a complete usage example with REST layer.</p>
 <h2 id="jsonschema">JSONSchema</h2>
-<p>An incomplete but stil useful JSONSchema implementation that covers many common use cases for Schema. Goal is to try and match the draft-04 spec. Patches welcome.</p>
+<p>It is possible to convert a schema to <a href="http://json-schema.org/">JSON Schema</a> with some limitations for certain schema fields. Currently, we implement JSON Schema Draft 4 <a href="https://tools.ietf.org/html/draft-zyp-json-schema-04">core</a> and <a href="https://tools.ietf.org/html/draft-fge-json-schema-validation-00">validation</a> specifications. In addition, we have implemented &quot;readOnly&quot; from the less commonly used <a href="https://tools.ietf.org/html/draft-luff-json-hyper-schema-00#section-4.4">hyper-schema</a> specification.</p>
+<p>Example usage:</p>
 <pre><code class="lang-go">import &quot;github.com/rs/rest-layer/schema/jsonschema&quot;
 
 b := new(bytes.Buffer)
 enc := jsonschema.NewEncoder(b)
-if err := enc.Encode(myschema); err != nil {
+if err := enc.Encode(aSchema); err != nil {
   return err
 }
-fmt.Println(b.String()) // Valid JSON Document describing the schema
+fmt.Println(b.String()) // Valid JSON Document describing the schema.
 </code></pre>
-<h3 id="supported-fieldvalidators">Supported FieldValidators</h3>
-<ul>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Schema</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Bool</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.Null</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Float</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Integer</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.String</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Time</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.URL</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.IP</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.Password</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Array</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" checked="checked" disabled="disabled">&nbsp;schema.Object</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.Dict</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.AllOf</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;schema.AnyOf</li>
-<li class="no-bullet"><input type="checkbox" class="task-list-item-checkbox" disabled="disabled">&nbsp;Custom validators</li>
-</ul>
+<h3 id="custom-fieldvalidators">Custom FieldValidators</h3>
+<p>For a custom <code>FieldValidator</code> to support encoding to JSON Schema, it must implement the <code>jsonschema.Builder</code> interface:</p>
+<pre><code class="lang-go">// The Builder interface should be implemented by custom schema.FieldValidator implementations to allow JSON Schema
+// serialization.
+type Builder interface {
+    // BuildJSONSchema should return a map containing JSON Schema Draft 4 properties that can be set based on
+    // FieldValidator data. Application specific properties can be added as well, but should not conflict with any
+    // legal JSON Schema keys.
+    BuildJSONSchema() (map[string]interface{}, error)
+}
+</code></pre>
+<p>To easier extend a <code>FieldValidator</code> from the <code>schema</code> package, you can call <code>ValidatorBuilder</code> inside <code>BuildJSONSchem()</code>:</p>
+<pre><code class="lang-go">type Email struct {
+    schema.String
+}
+
+func (e Email) BuildJSONSchema() (map[string]interface{}, error) {
+    parentBuilder, _ = jsonschema.ValidatorBuilder(e.String)
+    m, err := parentBuilder.BuildJSONSchema()
+    if err != nil {
+        return nil, err
+    }
+    m[&quot;format&quot;] = &quot;email&quot;
+    return m, nil
+}
+</code></pre>
+<h3 id="sub-schema-limitation">Sub-schema Limitation</h3>
+<p>Sub-schemas only get converted to JSON Schema, if you specify a sub-schema via setting a Field&#39;s <code>Validator</code> attribute to a <code>schema.Object</code> instance. Use of the Field&#39;s <code>Schema</code> field is <em>not</em> supported. Instead we hope <a href="https://github.com/rs/rest-layer/issues/77">#77</a> will be implemented.</p>
+<h3 id="schema-dict-limitations">schema.Dict Limitations</h3>
+<p><code>schema.Dict</code> only support <code>nil</code> and <code>schema.String</code> as <code>KeysValidator</code> values. Note that some less common combinations of <code>schema.String</code> attributes will lead to usage of an <code>allOf</code> construct with duplicated schemas for values. This is to avoid usage of regular expression expansions that only a subset of implementations actually support.</p>
+<p>The limitation in <code>KeysValidator</code> values arise because JSON Schema draft 4 (and draft 5) support for key validation is limited to <a href="https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.4.4">properties, patternProperties and additionalProperties</a>. This essentially means that there can be no JSON Schema object supplied for key validation, but that we need to rely on exact match (properties), regular expressions (patternProperties) or no key validation (additionalProperties).</p>
+<h3 id="schema-reference-provisional-support">schema.Reference Provisional Support</h3>
+<p>The support for <code>schema.Reference</code> is purely provisional, and simply returns an empty object <code>{}</code>, meaning it does not give any hint as to which validation the server might use.</p>
+<p>With a potential later implantation of the <a href="https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md">OpenAPI Specification</a> (a.k.a. the Swagger 2.0 Specification), the goal is to refer to the ID field of the linked resource via an object <code>{&quot;$ref&quot;: &quot;#/definitions/&lt;unique schema title&gt;/id&quot;}</code>. This is tracked via issue <a href="https://github.com/rs/rest-layer/issues/36">#36</a>.</p>
+<h3 id="schema-url-limitations">schema.URL Limitations</h3>
+<p>The current serialization of <code>schema.URL</code> always returns a schema <code>{&quot;type&quot;: &quot;string&quot;, &quot;format&quot;: &quot;uri&quot;}</code>, ignoring any struct attributes that affect the actual validation within rest-layer. The JSON Schema is thus not completely accurate for this validator.</p>
+<p>Note that JSON Schema draft 5 adds <a href="https://tools.ietf.org/html/draft-wright-json-schema-validation-00#section-7.3.7">uriref</a>, which could allow us to at least document whether <code>AllowRelative</code> is <code>true</code> or <code>false</code>. JSON Schema also allow application specific additional formats to be defined, but it&#39;s not practical to create a custom format for any possible struct attribute combination.</p>
 <h2 id="licenses">Licenses</h2>
 <p>All source code is licensed under the <a href="https://raw.github.com/rs/rest-layer/master/LICENSE">MIT License</a>.</p>
 
