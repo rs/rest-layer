@@ -110,9 +110,6 @@ func (f DefaultResponseFormatter) FormatList(ctx context.Context, headers http.H
 
 // FormatError implements ResponseFormatter.
 func (f DefaultResponseFormatter) FormatError(ctx context.Context, headers http.Header, err error, skipBody bool) (context.Context, interface{}) {
-	oldLogger := resource.Logger
-	resource.Logger = nil
-	defer func() { resource.Logger = oldLogger }()
 	code := 500
 	message := "Server Error"
 	if err != nil {
