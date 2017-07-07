@@ -20,8 +20,7 @@ func (v *AnyOf) Compile() (err error) {
 // Validate ensures that at least one sub-validator validates.
 func (v AnyOf) Validate(value interface{}) (interface{}, error) {
 	for _, validator := range v {
-		var err error
-		if value, err = validator.Validate(value); err == nil {
+		if value, err := validator.Validate(value); err == nil {
 			return value, nil
 		}
 	}
