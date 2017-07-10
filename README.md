@@ -1189,24 +1189,7 @@ See [schema.IP](https://godoc.org/github.com/rs/rest-layer/schema#IP) validator 
 
 ## Timeout and Request Cancellation
 
-REST Layer respects [context](https://godoc.org/context) deadline from end to end. Timeout and request cancellation are thus handled throught `context`. By default no cancellation handling or per request timeout are defined. You can easily add them using [xhandler](https://github.com/rs/xhandler) provided handlers as follow:
-
-```go
-// Init a xhandler chain (see http://github.com/rs/xhandler)
-c := xhandler.Chain{}
-
-// Add close notifier handler so context is cancelled when the client closes
-// the connection
-c.UseC(xhandler.CloseHandler)
-
-// Add timeout handler
-c.UseC(xhandler.TimeoutHandler(2 * time.Second))
-
-// Add other handlers like xlog, xaccess, cors (see examples)
-
-// Bind the API under /api/ path
-http.Handle("/api/", http.StripPrefix("/api/", c.Handler(api)))
-```
+REST Layer respects [context](https://godoc.org/context) deadline from end to end. Timeout and request cancellation are thus handled throught `context`. Since Go 1.8, context is cancelled automatically if the user closes the connection.
 
 When a request is stopped because the client closed the connection (context cancelled), the response HTTP status is set to `499 Client Closed Request` (for logging purpose). When a timeout is set and the request has reached this timeout, the response HTTP status is set to `509 Gateway Timeout`.
 
@@ -1214,47 +1197,42 @@ When a request is stopped because the client closed the connection (context canc
 
 You can customize REST Layer logger by changing the `resource.Logger` function to call any logging framework you want.
 
-We recommend using [xlog](https://github.com/rs/xlog). To configure REST Layer with `xlog`, proceed as follow:
+We recommend using [zerolog](https://github.com/rs/zerolog). To configure REST Layer with `zerolog`, proceed as follow:
 
 ```go
-resource.LoggerLevel = resource.LogLevelDebug
-resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
-	xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
-}
+// Init an alice handler chain (use your preferred one)
+c := alice.New()
 
-// Install xlog logger with a complex routing configuration
-c.UseC(xlog.NewHandler(xlog.Config{
-	// Log info level and higher
-	Level: xlog.Level(resource.LoggerLevel),
-	// Set some global env fields
-	Fields: xlog.F{
-		"role": "my-service",
-		"host": host,
-	},
-	// Output everything on console
-	Output: xlog.NewOutputChannel(xlog.MultiOutput{
-		// Send all logs with field type=mymodule to a remote syslog
-		xlog.FilterOutput{
-			Cond: func(fields map[string]interface{}) bool {
-				return fields["type"] == "mymiddleware"
-			},
-			Output: xlog.NewSyslogOutput("tcp", "1.2.3.4:1234", "mymiddleware"),
-		},
-		// Setup different output per log level
-		xlog.LevelOutput{
-			// Send errors to the console
-			Error: xlog.NewConsoleOutput(),
-			// Send syslog output for error level
-			Info: xlog.NewSyslogOutput("", "", ""),
-		},
-	}),
+// Install a logger
+c = c.Append(hlog.NewHandler(log.With().Logger()))
+
+// Log API accesses
+c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
+	hlog.FromRequest(r).Info().
+		Str("method", r.Method).
+		Str("url", r.URL.String()).
+		Int("status", status).
+		Int("size", size).
+		Dur("duration", duration).
+		Msg("")
 }))
 
-// Log API access using xlog
-c.UseC(xaccess.NewHandler())
+// Add some fields to per-request logger context
+c = c.Append(hlog.RequestHandler("req"))
+c = c.Append(hlog.RemoteAddrHandler("ip"))
+c = c.Append(hlog.UserAgentHandler("ua"))
+c = c.Append(hlog.RefererHandler("ref"))
+c = c.Append(hlog.RequestIDHandler("req_id", "Request-Id"))
+
+// Install zerolog/rest-layer adapter
+resource.LoggerLevel = resource.LogLevelDebug
+resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
+	zerolog.Ctx(ctx).WithLevel(zerolog.Level(level)).Fields(fields).Msg(msg)
+}
+
 ```
 
-See [xlog](https://github.com/rs/xlog) documentation for more info.
+See [zerolog](https://github.com/rs/zerolog) documentation for more info.
 
 ## CORS
 
