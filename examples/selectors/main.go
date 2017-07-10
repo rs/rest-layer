@@ -6,18 +6,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"time"
 
 	"github.com/justinas/alice"
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
-	"github.com/rs/xaccess"
-	"github.com/rs/xlog"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -125,16 +126,29 @@ func main() {
 	// Create API HTTP handler for the resource graph
 	api, err := rest.NewHandler(index)
 	if err != nil {
-		log.Fatalf("Invalid API configuration: %s", err)
+		log.Fatal().Err(err).Msgf("Invalid API configuration: %s")
 	}
 
 	// Setup logger
 	c := alice.New()
-	c = c.Append(xlog.NewHandler(xlog.Config{}))
-	c = c.Append(xaccess.NewHandler())
+	c = c.Append(hlog.NewHandler(log.With().Logger()))
+	c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
+		hlog.FromRequest(r).Info().
+			Str("method", r.Method).
+			Str("url", r.URL.String()).
+			Int("status", status).
+			Int("size", size).
+			Dur("duration", duration).
+			Msg("")
+	}))
+	c = c.Append(hlog.RequestHandler("req"))
+	c = c.Append(hlog.RemoteAddrHandler("ip"))
+	c = c.Append(hlog.UserAgentHandler("ua"))
+	c = c.Append(hlog.RefererHandler("ref"))
+	c = c.Append(hlog.RequestIDHandler("req_id", "Request-Id"))
 	resource.LoggerLevel = resource.LogLevelDebug
 	resource.Logger = func(ctx context.Context, level resource.LogLevel, msg string, fields map[string]interface{}) {
-		xlog.FromContext(ctx).OutputF(xlog.Level(level), 2, msg, fields)
+		zerolog.Ctx(ctx).WithLevel(zerolog.Level(level)).Fields(fields).Msg(msg)
 	}
 
 	// Bind the API under the root path
@@ -163,24 +177,24 @@ func main() {
 	for _, fixture := range fixtures {
 		req, err := http.NewRequest(fixture[0], fixture[1], strings.NewReader(fixture[2]))
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err).Msg("")
 		}
 		w := httptest.NewRecorder()
 		api.ServeHTTP(w, req)
 		if w.Code >= 400 {
-			log.Fatalf("Error returned for `%s %s`: %v", fixture[0], fixture[1], w)
+			log.Fatal().Msgf("Error returned for `%s %s`: %v", fixture[0], fixture[1], w)
 		}
 	}
 
 	// Serve it
-	log.Print("Serving API on http://localhost:8080")
-	log.Println("Play with (httpie):\n",
-		"- http :8080/posts fields=='id,thumb_s_url:thumbnail_url(height:80)'\n",
-		"- http :8080/posts fields=='i:id,m:meta{t:title,b:body},thumb_small_url:thumbnail_url(height:80)'\n",
-		"- http :8080/posts fields=='id,meta,user{id,name}'\n",
-		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0/followers fields=='post{id,meta{title}},user{id,name}'\n",
+	log.Info().Msg("Serving API on http://localhost:8080")
+	log.Info().Msg("Play with (httpie):\n" +
+		"- http :8080/posts fields=='id,thumb_s_url:thumbnail_url(height:80)'\n" +
+		"- http :8080/posts fields=='i:id,m:meta{t:title,b:body},thumb_small_url:thumbnail_url(height:80)'\n" +
+		"- http :8080/posts fields=='id,meta,user{id,name}'\n" +
+		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0/followers fields=='post{id,meta{title}},user{id,name}'\n" +
 		"- http :8080/posts/ar5qrgukj5l7a6eq2ps0 fields=='id,meta{title},followers(limit:2){user{id,name}}'")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("")
 	}
 }
