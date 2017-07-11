@@ -21,10 +21,10 @@ The REST Layer framework is composed of several sub-packages:
 
 | Package                                                         | Coverage                                                                                                                                       | Description
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------
-| [rest](https://godoc.org/github.com/rs/rest-layer/rest)         | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/rest?version=1.6)](http://gocover.io/github.com/rs/rest-layer/rest?version=1.6) | A `net/http` handler to expose a RESTful API.
-| [graphql](https://godoc.org/github.com/rs/rest-layer/graphql)   | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/graphql)](http://gocover.io/github.com/rs/rest-layer/graphql)              | A `net/http` handler to expose your API using the GraphQL protocol.
-| [schema](https://godoc.org/github.com/rs/rest-layer/schema)     | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/schema)](http://gocover.io/github.com/rs/rest-layer/schema)               | A validation framework for the API resources.
-| [resource](https://godoc.org/github.com/rs/rest-layer/resource) | [![Coverage](http://gocover.io/_badge/github.com/rs/rest-layer/resource)](http://gocover.io/github.com/rs/rest-layer/resource)             | Defines resources, manages the resource graph and manages the interface with resource storage handler.
+| [rest](https://godoc.org/github.com/rs/rest-layer/rest)         | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/rest)](https://gocover.io/github.com/rs/rest-layer/rest) | A `net/http` handler to expose a RESTful API.
+| [graphql](https://godoc.org/github.com/rs/rest-layer/graphql)   | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/graphql)](https://gocover.io/github.com/rs/rest-layer/graphql)              | A `net/http` handler to expose your API using the GraphQL protocol.
+| [schema](https://godoc.org/github.com/rs/rest-layer/schema)     | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/schema)](https://gocover.io/github.com/rs/rest-layer/schema)               | A validation framework for the API resources.
+| [resource](https://godoc.org/github.com/rs/rest-layer/resource) | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/resource)](https://gocover.io/github.com/rs/rest-layer/resource)             | Defines resources, manages the resource graph and manages the interface with resource storage handler.
 
 # Documentation
 
