@@ -22,11 +22,11 @@ const (
 	opRegex          = "$regex"
 )
 
-// Query defines an expression against a schema to perform a match on schema's data.
-type Query []Expression
+// Predicate defines an expression against a schema to perform a match on schema's data.
+type Predicate []Expression
 
 // Match implements Expression interface.
-func (e Query) Match(payload map[string]interface{}) bool {
+func (e Predicate) Match(payload map[string]interface{}) bool {
 	// Run each sub queries like a root query, stop/pass on first match
 	for _, subQuery := range e {
 		if !subQuery.Match(payload) {
@@ -37,7 +37,7 @@ func (e Query) Match(payload map[string]interface{}) bool {
 }
 
 // String implements Expression interface.
-func (e Query) String() string {
+func (e Predicate) String() string {
 	if len(e) == 0 {
 		return "{}"
 	}
@@ -49,7 +49,7 @@ func (e Query) String() string {
 }
 
 // Validate implements Expression interface.
-func (e Query) Validate(validator schema.Validator) error {
+func (e Predicate) Validate(validator schema.Validator) error {
 	return validateExpressions(e, validator)
 }
 
@@ -127,7 +127,7 @@ func (e Or) String() string {
 	return opOr + ": [" + strings.Join(s, ", ") + "]"
 }
 
-// In natches any of the values specified in an array.
+// In matches any of the values specified in an array.
 type In struct {
 	Field  string
 	Values []Value

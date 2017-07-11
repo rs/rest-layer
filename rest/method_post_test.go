@@ -33,7 +33,7 @@ func TestHandlerPostList(t *testing.T) {
 			ResponseCode: 201,
 			ResponseBody: `{"foo":"bar","id":"1"}`,
 			ExtraTest: func(t *testing.T, vars *requestTestVars) {
-				lkp := resource.NewLookupWithQuery(query.Query{query.Equal{Field: "id", Value: "1"}})
+				lkp := resource.NewLookupWithQuery(query.Predicate{query.Equal{Field: "id", Value: "1"}})
 				s, ok := vars.Storers["foo"]
 				if !assert.True(t, ok) {
 					return

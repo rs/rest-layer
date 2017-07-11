@@ -15,7 +15,7 @@ type Lookup struct {
 	// The client supplied filter. Filter is a MongoDB inspired query with a
 	// more limited set of capabilities. See
 	// https://github.com/rs/rest-layer#filtering for more info.
-	filter query.Query
+	filter query.Predicate
 	// The client supplied soft. Sort is a list of resource fields or sub-fields
 	// separated by comas (,). To invert the sort, a minus (-) can be prefixed.
 	// See https://github.com/rs/rest-layer#sorting for more info.
@@ -45,13 +45,13 @@ type Field struct {
 // NewLookup creates an empty lookup object
 func NewLookup() *Lookup {
 	return &Lookup{
-		filter: query.Query{},
+		filter: query.Predicate{},
 		sort:   []string{},
 	}
 }
 
 // NewLookupWithQuery creates an empty lookup object with a given query.
-func NewLookupWithQuery(q query.Query) *Lookup {
+func NewLookupWithQuery(q query.Predicate) *Lookup {
 	return &Lookup{
 		filter: q,
 		sort:   []string{},
@@ -69,7 +69,7 @@ func (l *Lookup) Sort() []string {
 // Filter is a MongoDB inspired query with a more limited set of capabilities.
 //
 // See https://github.com/rs/rest-layer#filtering for more info.
-func (l *Lookup) Filter() query.Query {
+func (l *Lookup) Filter() query.Predicate {
 	return l.filter
 }
 
@@ -113,7 +113,7 @@ func (l *Lookup) SetSort(sort string, v schema.Validator) error {
 // The filter query is validated against the provided validator to ensure all
 // queried fields exists and are of the right type.
 func (l *Lookup) AddFilter(filter string, v schema.Validator) error {
-	f, err := query.Parse(filter)
+	f, err := query.ParsePredicate(filter)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (l *Lookup) AddFilter(filter string, v schema.Validator) error {
 }
 
 // AddQuery add an existing schema.Query to the lookup's filters.
-func (l *Lookup) AddQuery(query query.Query) {
+func (l *Lookup) AddQuery(query query.Predicate) {
 	if l.filter == nil {
 		l.filter = query
 		return

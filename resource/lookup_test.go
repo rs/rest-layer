@@ -11,15 +11,15 @@ import (
 
 func TestNewLookup(t *testing.T) {
 	l := NewLookup()
-	assert.Equal(t, query.Query{}, l.filter)
-	assert.Equal(t, query.Query{}, l.Filter())
+	assert.Equal(t, query.Predicate{}, l.filter)
+	assert.Equal(t, query.Predicate{}, l.Filter())
 	assert.Equal(t, []string{}, l.sort)
 	assert.Equal(t, []string{}, l.Sort())
 }
 
 func TestNewLookupQuery(t *testing.T) {
-	l := NewLookupWithQuery(query.Query{query.Equal{Field: "foo", Value: "bar"}})
-	assert.Equal(t, query.Query{query.Equal{Field: "foo", Value: "bar"}}, l.filter)
+	l := NewLookupWithQuery(query.Predicate{query.Equal{Field: "foo", Value: "bar"}})
+	assert.Equal(t, query.Predicate{query.Equal{Field: "foo", Value: "bar"}}, l.filter)
 }
 
 func TestLookupSetSort(t *testing.T) {
@@ -102,23 +102,23 @@ func TestLookupAddFilter(t *testing.T) {
 	assert.Error(t, err)
 	err = l.AddFilter("{\"foo\": \"bar\"}", v)
 	assert.NoError(t, err)
-	assert.Equal(t, query.Query{query.Equal{Field: "foo", Value: "bar"}}, l.filter)
+	assert.Equal(t, query.Predicate{query.Equal{Field: "foo", Value: "bar"}}, l.filter)
 	err = l.AddFilter("{\"baz\": 1}", v)
 	assert.NoError(t, err)
-	assert.Equal(t, query.Query{query.Equal{Field: "foo", Value: "bar"}, query.Equal{Field: "baz", Value: float64(1)}}, l.filter)
+	assert.Equal(t, query.Predicate{query.Equal{Field: "foo", Value: "bar"}, query.Equal{Field: "baz", Value: float64(1)}}, l.filter)
 	err = l.AddFilter("{\"baz\": 2}", v)
 	assert.NoError(t, err)
-	assert.Equal(t, query.Query{query.Equal{Field: "foo", Value: "bar"}, query.Equal{Field: "baz", Value: float64(1)}, query.Equal{Field: "baz", Value: float64(2)}}, l.filter)
+	assert.Equal(t, query.Predicate{query.Equal{Field: "foo", Value: "bar"}, query.Equal{Field: "baz", Value: float64(1)}, query.Equal{Field: "baz", Value: float64(2)}}, l.filter)
 }
 
 func TestLookupAddQuery(t *testing.T) {
 	l := Lookup{}
-	l.AddQuery(query.Query{query.Equal{Field: "foo", Value: "bar"}})
-	assert.Equal(t, query.Query{
+	l.AddQuery(query.Predicate{query.Equal{Field: "foo", Value: "bar"}})
+	assert.Equal(t, query.Predicate{
 		query.Equal{Field: "foo", Value: "bar"},
 	}, l.filter)
-	l.AddQuery(query.Query{query.Equal{Field: "bar", Value: "baz"}})
-	assert.Equal(t, query.Query{
+	l.AddQuery(query.Predicate{query.Equal{Field: "bar", Value: "baz"}})
+	assert.Equal(t, query.Predicate{
 		query.Equal{Field: "foo", Value: "bar"},
 		query.Equal{Field: "bar", Value: "baz"},
 	}, l.filter)

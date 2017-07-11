@@ -48,9 +48,9 @@ type Field struct {
 	// correctly causing unexpected runtime errors.
 	// @see http://research.swtch.com/interfaces for more details.
 	Validator FieldValidator
-	// Dependency rejects the field if the schema query doesn't match the document.
-	// Use query.MustParse(`{"field": "value"}`) to populate this field.
-	Dependency Query
+	// Dependency rejects the field if the schema predicate doesn't match the document.
+	// Use query.MustParsePredicate(`{"field": "value"}`) to populate this field.
+	Dependency Predicate
 	// Filterable defines that the field can be used with the `filter` parameter.
 	// When this property is set to `true`, you may want to ensure the backend
 	// database has this field indexed.

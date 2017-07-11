@@ -100,7 +100,7 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 	if parents <= 0 {
 		return nil
 	}
-	q := query.Query{}
+	q := query.Predicate{}
 	wait := sync.WaitGroup{}
 
 	defer wait.Wait()

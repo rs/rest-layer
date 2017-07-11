@@ -102,7 +102,7 @@ func (a AuthResourceHook) OnFind(ctx context.Context, lookup *resource.Lookup, o
 		return resource.ErrUnauthorized
 	}
 	// Add a lookup condition to restrict to result on objects owned by this user
-	lookup.AddQuery(query.Query{
+	lookup.AddQuery(query.Predicate{
 		query.Equal{Field: a.UserField, Value: user.ID},
 	})
 	return nil
@@ -188,7 +188,7 @@ func (a AuthResourceHook) OnClear(ctx context.Context, lookup *resource.Lookup) 
 		return resource.ErrUnauthorized
 	}
 	// Add a lookup condition to restrict to impact of the clear on objects owned by this user
-	lookup.AddQuery(query.Query{
+	lookup.AddQuery(query.Predicate{
 		query.Equal{Field: a.UserField, Value: user.ID},
 	})
 	return nil

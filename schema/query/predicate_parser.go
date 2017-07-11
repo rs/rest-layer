@@ -12,22 +12,22 @@ type parser struct {
 	pos   int
 }
 
-// MustParse parses a query and panics in case of error.
-func MustParse(query string) Query {
-	q, err := Parse(query)
+// MustParsePredicate parses a predicate expression and panics in case of error.
+func MustParsePredicate(query string) Predicate {
+	q, err := ParsePredicate(query)
 	if err != nil {
 		panic(fmt.Sprintf("query: Parse(%q): %v", query, err))
 	}
 	return q
 }
 
-// Parse parses a query.
-func Parse(query string) (Query, error) {
+// ParsePredicate parses a predicate.
+func ParsePredicate(query string) (Predicate, error) {
 	p := &parser{query: query}
 	return p.parse()
 }
 
-func (p *parser) parse() (Query, error) {
+func (p *parser) parse() (Predicate, error) {
 	p.eatWhitespaces()
 	q, err := p.parseExpressions()
 	if err != nil {

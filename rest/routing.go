@@ -186,7 +186,7 @@ func (r *RouteMatch) Lookup() (*resource.Lookup, *Error) {
 	// Append route fields to the query
 	for _, rp := range r.ResourcePath {
 		if rp.Value != nil {
-			l.AddQuery(query.Query{query.Equal{Field: rp.Field, Value: rp.Value}})
+			l.AddQuery(query.Predicate{query.Equal{Field: rp.Field, Value: rp.Value}})
 		}
 	}
 	// Parse query string params.

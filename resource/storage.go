@@ -146,7 +146,7 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 		// Otherwise, emulate MultiGetter with a Find query
 		l := NewLookup()
 		if len(ids) == 1 {
-			l.AddQuery(query.Query{
+			l.AddQuery(query.Predicate{
 				query.Equal{Field: "id", Value: ids[0]},
 			})
 		} else {
@@ -154,7 +154,7 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 			for i, id := range ids {
 				v[i] = query.Value(id)
 			}
-			l.AddQuery(query.Query{
+			l.AddQuery(query.Predicate{
 				query.In{Field: "id", Values: v},
 			})
 		}
