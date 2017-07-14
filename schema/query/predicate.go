@@ -27,6 +27,10 @@ type Predicate []Expression
 
 // Match implements Expression interface.
 func (e Predicate) Match(payload map[string]interface{}) bool {
+	if e == nil || len(e) == 0 {
+		// nil or empty predicates always match
+		return true
+	}
 	// Run each sub queries like a root query, stop/pass on first match
 	for _, subQuery := range e {
 		if !subQuery.Match(payload) {

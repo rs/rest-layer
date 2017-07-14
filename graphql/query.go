@@ -9,6 +9,7 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/schema/query"
 )
 
 func newRootQuery(idx resource.Index) *graphql.Object {
@@ -78,15 +79,11 @@ var listArgs = graphql.FieldConfigArgument{
 	},
 }
 
-func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url.Values) (lookup *resource.Lookup, offset int, limit int, err error) {
+func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url.Values) (q *query.Query, err error) {
 	skip := 0
 	page := 1
 	// Default value on non HEAD request for limit is -1 (pagination disabled).
-	limit = -1
-
-	if l := r.Conf().PaginationDefaultLimit; l > 0 {
-		limit = l
-	}
+	limit := -1
 	if i, ok := p.Args["skip"].(int); ok && i >= 0 {
 		skip = i
 	}
@@ -95,26 +92,45 @@ func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url
 	}
 	if i, ok := p.Args["limit"].(int); ok && i >= 0 && i < 1000 {
 		limit = i
+	} else if l := r.Conf().PaginationDefaultLimit; l > 0 {
+		limit = l
 	}
 	if page != 1 && limit == -1 {
-		return nil, 0, 0, errors.New("cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size")
+		return nil, errors.New("cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size")
 	}
-	offset = (page-1)*limit + skip
-	lookup = resource.NewLookup()
+	q = &query.Query{}
+	q.Window = query.Page(page, limit, skip)
 	if sort, ok := p.Args["sort"].(string); ok && sort != "" {
-		if err := lookup.SetSort(sort, r.Validator()); err != nil {
-			return nil, 0, 0, fmt.Errorf("invalid `sort` parameter: %v", err)
+		s, err := query.ParseSort(sort)
+		if err == nil {
+			err = s.Validate(r.Validator())
 		}
+		if err != nil {
+			return nil, fmt.Errorf("invalid `sort` parameter: %v", err)
+		}
+		q.Sort = s
 	}
 	if filter, ok := p.Args["filter"].(string); ok && filter != "" {
-		if err := lookup.AddFilter(filter, r.Validator()); err != nil {
-			return nil, 0, 0, fmt.Errorf("invalid `filter` parameter: %v", err)
+		p, err := query.ParsePredicate(filter)
+		if err == nil {
+			err = p.Validate(r.Validator())
 		}
+		if err != nil {
+			return nil, fmt.Errorf("invalid `filter` parameter: %v", err)
+		}
+		q.Predicate = p
 	}
 	if params != nil {
 		if filter := params.Get("filter"); filter != "" {
-			if err := lookup.AddFilter(filter, r.Validator()); err != nil {
-				return nil, 0, 0, fmt.Errorf("invalid `filter` parameter: %v", err)
+			p, err := query.ParsePredicate(filter)
+			if err == nil {
+				err = p.Validate(r.Validator())
+			}
+			if err != nil {
+				return nil, fmt.Errorf("invalid `filter` parameter: %v", err)
+			}
+			if len(p) > 0 {
+				q.Predicate = append(q.Predicate, p...)
 			}
 		}
 	}
@@ -127,11 +143,11 @@ func (t types) getListQuery(idx resource.Index, r *resource.Resource, params url
 		Type:        graphql.NewList(t.getObjectType(idx, r)),
 		Args:        listArgs,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			lookup, offset, limit, err := listParamResolver(r, p, params)
+			q, err := listParamResolver(r, p, params)
 			if err != nil {
 				return nil, err
 			}
-			list, err := r.Find(p.Context, lookup, offset, limit)
+			list, err := r.Find(p.Context, q)
 			if err != nil {
 				return nil, err
 			}

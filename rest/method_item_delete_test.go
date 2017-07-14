@@ -9,6 +9,7 @@ import (
 	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +38,7 @@ func TestHandlerDeleteItem(t *testing.T) {
 	assert.Nil(t, headers)
 	assert.Nil(t, body)
 
-	l, err := s.Find(context.TODO(), resource.NewLookup(), 0, -1)
+	l, err := s.Find(context.TODO(), &query.Query{})
 	assert.NoError(t, err)
 	assert.Len(t, l.Items, 2)
 }
@@ -76,7 +77,7 @@ func TestHandlerDeleteItemFilterCondition(t *testing.T) {
 		assert.Equal(t, "Not Found", err.Message)
 	}
 
-	l, err := s.Find(context.TODO(), resource.NewLookup(), 0, -1)
+	l, err := s.Find(context.TODO(), &query.Query{})
 	assert.NoError(t, err)
 	assert.Len(t, l.Items, 3)
 }
@@ -107,7 +108,7 @@ func TestHandlerDeleteItemEtag(t *testing.T) {
 	assert.Nil(t, headers)
 	assert.Nil(t, body)
 
-	l, err := s.Find(context.TODO(), resource.NewLookup(), 0, -1)
+	l, err := s.Find(context.TODO(), &query.Query{})
 	assert.NoError(t, err)
 	assert.Len(t, l.Items, 0)
 }
@@ -142,7 +143,7 @@ func TestHandlerDeleteItemWrongEtag(t *testing.T) {
 		assert.Equal(t, "Precondition Failed", err.Message)
 	}
 
-	l, err := s.Find(context.TODO(), resource.NewLookup(), 0, -1)
+	l, err := s.Find(context.TODO(), &query.Query{})
 	assert.NoError(t, err)
 	assert.Len(t, l.Items, 1)
 }

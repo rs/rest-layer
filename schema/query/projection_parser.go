@@ -1,4 +1,4 @@
-package resource
+package query
 
 import (
 	"fmt"
@@ -6,11 +6,9 @@ import (
 )
 
 /*
-parseSelectorExpression recursively parses a selector expression. The exp
-variable is the expression buffer, pos the current position of the parser and ln
-the total length of the expression to parse.
+ParseProjection recursively parses a projection expression.
 
-Selector expression syntax allows to list fields that must be kept in the
+Projection expression syntax allows to list fields that must be kept in the
 response hierarchically.
 
 A field is an alphanum + - and _ separated by comas:
@@ -54,17 +52,22 @@ With this example, the resulted document would be:
   }
 
 */
-func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field, error) {
+func ParseProjection(projection string) (Projection, error) {
+	pos := 0
+	return parseProjectionExpression(projection, &pos, false)
+}
+
+func parseProjectionExpression(exp string, pos *int, opened bool) (Projection, error) {
 	expectField := false
-	selector := []Field{}
-	var field *Field
-	for *pos < ln {
+	projection := []ProjectionField{}
+	var field *ProjectionField
+	for *pos < len(exp) {
 		if field == nil {
-			name, alias := scanSelectorFieldNameWithAlias(exp, pos, ln)
+			name, alias := scanProjectionFieldNameWithAlias(exp, pos)
 			if name == "" {
 				return nil, fmt.Errorf("looking for field name at char %d", *pos)
 			}
-			field = &Field{Name: name, Alias: alias}
+			field = &ProjectionField{Name: name, Alias: alias}
 			expectField = false
 			continue
 		}
@@ -72,26 +75,26 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 		switch c {
 		case '{':
 			*pos++
-			flds, err := parseSelectorExpression(exp, pos, ln, true)
+			children, err := parseProjectionExpression(exp, pos, true)
 			if err != nil {
 				return nil, err
 			}
-			field.Fields = flds
+			field.Children = children
 		case '}':
 			if opened && !expectField {
-				selector = append(selector, *field)
-				return selector, nil
+				projection = append(projection, *field)
+				return projection, nil
 			}
 			return nil, fmt.Errorf("looking for field name and got `}' at char %d", *pos)
 		case '(':
 			*pos++
-			params, err := scanSelectorFieldParams(exp, pos, ln)
+			params, err := scanProjectionFieldParams(exp, pos)
 			if err != nil {
 				return nil, err
 			}
 			field.Params = params
 		case ',':
-			selector = append(selector, *field)
+			projection = append(projection, *field)
 			field = nil
 			expectField = true
 		case ' ', '\n', '\r', '\t':
@@ -108,27 +111,27 @@ func parseSelectorExpression(exp []byte, pos *int, ln int, opened bool) ([]Field
 		return nil, fmt.Errorf("looking for `}' at char %d", *pos)
 	}
 	if field != nil {
-		selector = append(selector, *field)
+		projection = append(projection, *field)
 	}
-	return selector, nil
+	return projection, nil
 }
 
-// scanSelectorFieldParams parses fields params until it finds a closing
+// scanProjectionFieldParams parses fields params until it finds a closing
 // parenthesis. If the max length is reached before or a syntax error is found,
 // an error is returned.
 //
 // It gets the expression buffer as "exp", the current position after an opening
-// parenthesis as as "pos" and the max length to parse as ln.
-func scanSelectorFieldParams(exp []byte, pos *int, ln int) (map[string]interface{}, error) {
+// parenthesis at pos.
+func scanProjectionFieldParams(exp string, pos *int) (map[string]interface{}, error) {
 	params := map[string]interface{}{}
-	for *pos < ln {
-		name := scanSelectorFieldName(exp, pos, ln)
+	for *pos < len(exp) {
+		name := scanProjectionFieldName(exp, pos)
 		if name == "" {
 			return nil, fmt.Errorf("looking for parameter name at char %d", *pos)
 		}
 		found := false
 	L:
-		for *pos < ln {
+		for *pos < len(exp) {
 			c := exp[*pos]
 			switch c {
 			case ':', '=': // accept both : and = for backward compat
@@ -145,12 +148,12 @@ func scanSelectorFieldParams(exp []byte, pos *int, ln int) (map[string]interface
 			return nil, fmt.Errorf("looking for : at char %d", *pos)
 		}
 		*pos++
-		value, err := scanSelectorParamValue(exp, pos, ln)
+		value, err := scanProjectionParamValue(exp, pos)
 		if err != nil {
 			return nil, err
 		}
 		params[name] = value
-		ignoreWhitespaces(exp, pos, ln)
+		ignoreWhitespaces(exp, pos)
 		c := exp[*pos]
 		if c == ')' {
 			break
@@ -163,12 +166,12 @@ func scanSelectorFieldParams(exp []byte, pos *int, ln int) (map[string]interface
 	return params, nil
 }
 
-// scanSelectorFieldName captures a field name at current position and advance
+// scanProjectionFieldName captures a field name at current position and advance
 // the cursor position "pos" at the next character following the field name.
-func scanSelectorFieldName(exp []byte, pos *int, ln int) string {
-	ignoreWhitespaces(exp, pos, ln)
+func scanProjectionFieldName(exp string, pos *int) string {
+	ignoreWhitespaces(exp, pos)
 	field := []byte{}
-	for *pos < ln {
+	for *pos < len(exp) {
 		c := exp[*pos]
 		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' {
 			field = append(field, c)
@@ -180,28 +183,28 @@ func scanSelectorFieldName(exp []byte, pos *int, ln int) string {
 	return string(field)
 }
 
-// scanSelectorFieldNameWithAlias parses a field optional alias followed by it's
+// scanProjectionFieldNameWithAlias parses a field optional alias followed by it's
 // name separated by a column at current position and advance the cursor
 // position "pos" at the next character following the field name.
-func scanSelectorFieldNameWithAlias(exp []byte, pos *int, ln int) (name string, alias string) {
-	name = scanSelectorFieldName(exp, pos, ln)
-	ignoreWhitespaces(exp, pos, ln)
-	if *pos < ln && exp[*pos] == ':' {
+func scanProjectionFieldNameWithAlias(exp string, pos *int) (name string, alias string) {
+	name = scanProjectionFieldName(exp, pos)
+	ignoreWhitespaces(exp, pos)
+	if *pos < len(exp) && exp[*pos] == ':' {
 		*pos++
-		ignoreWhitespaces(exp, pos, ln)
+		ignoreWhitespaces(exp, pos)
 		alias = name
-		name = scanSelectorFieldName(exp, pos, ln)
+		name = scanProjectionFieldName(exp, pos)
 	}
 	return name, alias
 }
 
-// scanSelectorParamValue captures a parameter value at the current position and
+// scanProjectionParamValue captures a parameter value at the current position and
 // advance the cursor position "pos" at the next character following the field name.
 //
 // The returned value may be either a string if the value was quotted or a float
 // if not an was a valid number. In case of syntax error, an error is returned.
-func scanSelectorParamValue(exp []byte, pos *int, ln int) (interface{}, error) {
-	ignoreWhitespaces(exp, pos, ln)
+func scanProjectionParamValue(exp string, pos *int) (interface{}, error) {
+	ignoreWhitespaces(exp, pos)
 	c := exp[*pos]
 	if c == '"' || c == '\'' {
 		quote := c
@@ -210,7 +213,7 @@ func scanSelectorParamValue(exp []byte, pos *int, ln int) (interface{}, error) {
 		value := []byte{}
 		*pos++
 	L:
-		for *pos < ln {
+		for *pos < len(exp) {
 			c := exp[*pos]
 			if quotted {
 				quotted = false
@@ -237,7 +240,7 @@ func scanSelectorParamValue(exp []byte, pos *int, ln int) (interface{}, error) {
 		dot := false
 		value := []byte{c}
 		*pos++
-		for *pos < ln {
+		for *pos < len(exp) {
 			c := exp[*pos]
 			if c >= '0' && c <= '9' {
 				value = append(value, c)
@@ -257,8 +260,8 @@ func scanSelectorParamValue(exp []byte, pos *int, ln int) (interface{}, error) {
 
 // ignoreWhitespaces advance the cursor position pos until non printable
 // characters are met.
-func ignoreWhitespaces(exp []byte, pos *int, ln int) {
-	for *pos < ln {
+func ignoreWhitespaces(exp string, pos *int) {
+	for *pos < len(exp) {
 		c := exp[*pos]
 		switch c {
 		case ' ', '\n', '\r', '\t':

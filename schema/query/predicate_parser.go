@@ -22,8 +22,8 @@ func MustParsePredicate(query string) Predicate {
 }
 
 // ParsePredicate parses a predicate.
-func ParsePredicate(query string) (Predicate, error) {
-	p := &parser{query: query}
+func ParsePredicate(predicate string) (Predicate, error) {
+	p := &parser{query: predicate}
 	return p.parse()
 }
 

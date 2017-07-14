@@ -5,13 +5,14 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/rs/rest-layer/schema/query"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHookUseFind(t *testing.T) {
 	h := eventHandler{}
 	called := false
-	err := h.use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
+	err := h.use(FindEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		called = true
 		return nil
 	}))
@@ -28,21 +29,21 @@ func TestHookUseFind(t *testing.T) {
 	assert.Len(t, h.onDeletedH, 0)
 	assert.Len(t, h.onClearH, 0)
 	assert.Len(t, h.onClearedH, 0)
-	err = h.onFind(nil, nil, 0, 0)
+	err = h.onFind(nil, nil)
 	assert.True(t, called)
 
-	err = h.use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
+	err = h.use(FindEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		return errors.New("error")
 	}))
 	assert.NoError(t, err)
-	err = h.onFind(nil, nil, 0, 0)
+	err = h.onFind(nil, nil)
 	assert.EqualError(t, err, "error")
 }
 
 func TestHookUseFound(t *testing.T) {
 	h := eventHandler{}
 	called := false
-	err := h.use(FoundEventHandlerFunc(func(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
+	err := h.use(FoundEventHandlerFunc(func(ctx context.Context, q *query.Query, list **ItemList, err *error) {
 		called = true
 	}))
 	assert.NoError(t, err)
@@ -61,7 +62,7 @@ func TestHookUseFound(t *testing.T) {
 	h.onFound(nil, nil, nil, nil)
 	assert.True(t, called)
 
-	err = h.use(FoundEventHandlerFunc(func(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
+	err = h.use(FoundEventHandlerFunc(func(ctx context.Context, q *query.Query, list **ItemList, err *error) {
 		*list = &ItemList{}
 		*err = errors.New("error")
 	}))
@@ -327,7 +328,7 @@ func TestHookUseDeleted(t *testing.T) {
 func TestHookUseClear(t *testing.T) {
 	h := eventHandler{}
 	called := false
-	err := h.use(ClearEventHandlerFunc(func(ctx context.Context, lookup *Lookup) error {
+	err := h.use(ClearEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		called = true
 		return nil
 	}))
@@ -347,7 +348,7 @@ func TestHookUseClear(t *testing.T) {
 	h.onClear(nil, nil)
 	assert.True(t, called)
 
-	err = h.use(ClearEventHandlerFunc(func(ctx context.Context, lookup *Lookup) error {
+	err = h.use(ClearEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		return errors.New("error")
 	}))
 	assert.NoError(t, err)
@@ -358,7 +359,7 @@ func TestHookUseClear(t *testing.T) {
 func TestHookUseCleared(t *testing.T) {
 	h := eventHandler{}
 	called := false
-	err := h.use(ClearedEventHandlerFunc(func(ctx context.Context, lookup *Lookup, deleted *int, err *error) {
+	err := h.use(ClearedEventHandlerFunc(func(ctx context.Context, q *query.Query, deleted *int, err *error) {
 		called = true
 	}))
 	assert.NoError(t, err)
@@ -378,7 +379,7 @@ func TestHookUseCleared(t *testing.T) {
 	h.onCleared(nil, nil, &deleted, nil)
 	assert.True(t, called)
 
-	err = h.use(ClearedEventHandlerFunc(func(ctx context.Context, lookup *Lookup, deleted *int, err *error) {
+	err = h.use(ClearedEventHandlerFunc(func(ctx context.Context, q *query.Query, deleted *int, err *error) {
 		*err = errors.New("error")
 		*deleted = 2
 	}))

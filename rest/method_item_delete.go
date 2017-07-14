@@ -3,15 +3,18 @@ package rest
 import (
 	"context"
 	"net/http"
+
+	"github.com/rs/rest-layer/schema/query"
 )
 
 // itemDelete handles DELETE resquests on an item URL.
 func itemDelete(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
-	lookup, e := route.Lookup()
+	q, e := route.Query()
 	if e != nil {
 		return e.Code, nil, e
 	}
-	l, err := route.Resource().Find(ctx, lookup, 0, 1)
+	q.Window = &query.Window{Limit: 1}
+	l, err := route.Resource().Find(ctx, q)
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

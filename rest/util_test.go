@@ -245,13 +245,9 @@ func TestGetResourceResolver(t *testing.T) {
 	index := resource.NewIndex()
 	index.Bind("foo", schema.Schema{}, nil, resource.DefaultConf)
 	ctx := context.Background()
-	_, err := getReferenceResolver(ctx, nil)("bar")
+	_, _, err := getReferenceResolver(nil)(ctx, "bar", nil)
 	assert.EqualError(t, err, "router not available in context")
 	ctx = contextWithIndex(ctx, index)
-	_, err = getReferenceResolver(ctx, nil)("bar")
+	_, _, err = getReferenceResolver(nil)(ctx, "bar", nil)
 	assert.EqualError(t, err, "invalid resource reference: bar")
-	r, err := getReferenceResolver(ctx, nil)("foo")
-	if assert.NoError(t, err) {
-		assert.Equal(t, "foo", r.Name())
-	}
 }

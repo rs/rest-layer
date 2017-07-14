@@ -3,36 +3,38 @@ package resource
 import (
 	"context"
 	"errors"
+
+	"github.com/rs/rest-layer/schema/query"
 )
 
 // FindEventHandler is an interface to be implemented by an event handler that
 // want to be called before a find is performed on a resource. This interface is
 // to be used with resource.Use() method.
 type FindEventHandler interface {
-	OnFind(ctx context.Context, lookup *Lookup, offset, limit int) error
+	OnFind(ctx context.Context, q *query.Query) error
 }
 
 // FindEventHandlerFunc converts a function into a FindEventHandler.
-type FindEventHandlerFunc func(ctx context.Context, lookup *Lookup, offset, limit int) error
+type FindEventHandlerFunc func(ctx context.Context, q *query.Query) error
 
 // OnFind implements FindEventHandler
-func (e FindEventHandlerFunc) OnFind(ctx context.Context, lookup *Lookup, offset, limit int) error {
-	return e(ctx, lookup, offset, limit)
+func (e FindEventHandlerFunc) OnFind(ctx context.Context, q *query.Query) error {
+	return e(ctx, q)
 }
 
 // FoundEventHandler is an interface to be implemented by an event handler that
 // want to be called after a find has been performed on a resource. This
 // interface is to be used with resource.Use() method.
 type FoundEventHandler interface {
-	OnFound(ctx context.Context, lookup *Lookup, list **ItemList, err *error)
+	OnFound(ctx context.Context, query *query.Query, list **ItemList, err *error)
 }
 
 // FoundEventHandlerFunc converts a function into a FoundEventHandler.
-type FoundEventHandlerFunc func(ctx context.Context, lookup *Lookup, list **ItemList, err *error)
+type FoundEventHandlerFunc func(ctx context.Context, q *query.Query, list **ItemList, err *error)
 
 // OnFound implements FoundEventHandler
-func (e FoundEventHandlerFunc) OnFound(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
-	e(ctx, lookup, list, err)
+func (e FoundEventHandlerFunc) OnFound(ctx context.Context, q *query.Query, list **ItemList, err *error) {
+	e(ctx, q, list, err)
 }
 
 // GetEventHandler is an interface to be implemented by an event handler that
@@ -159,30 +161,30 @@ func (e DeletedEventHandlerFunc) OnDeleted(ctx context.Context, item *Item, err 
 // want to be called before a resource is cleared. This interface is to be used
 // with resource.Use() method.
 type ClearEventHandler interface {
-	OnClear(ctx context.Context, lookup *Lookup) error
+	OnClear(ctx context.Context, q *query.Query) error
 }
 
 // ClearEventHandlerFunc converts a function into a GetEventHandler.
-type ClearEventHandlerFunc func(ctx context.Context, lookup *Lookup) error
+type ClearEventHandlerFunc func(ctx context.Context, q *query.Query) error
 
 // OnClear implements ClearEventHandler
-func (e ClearEventHandlerFunc) OnClear(ctx context.Context, lookup *Lookup) error {
-	return e(ctx, lookup)
+func (e ClearEventHandlerFunc) OnClear(ctx context.Context, q *query.Query) error {
+	return e(ctx, q)
 }
 
 // ClearedEventHandler is an interface to be implemented by an event handler
 // that want to be called after a resource has been cleared. This interface is
 // to be used with resource.Use() method.
 type ClearedEventHandler interface {
-	OnCleared(ctx context.Context, lookup *Lookup, deleted *int, err *error)
+	OnCleared(ctx context.Context, q *query.Query, deleted *int, err *error)
 }
 
 // ClearedEventHandlerFunc converts a function into a FoundEventHandler.
-type ClearedEventHandlerFunc func(ctx context.Context, lookup *Lookup, deleted *int, err *error)
+type ClearedEventHandlerFunc func(ctx context.Context, q *query.Query, deleted *int, err *error)
 
 // OnCleared implements ClearedEventHandler
-func (e ClearedEventHandlerFunc) OnCleared(ctx context.Context, lookup *Lookup, deleted *int, err *error) {
-	e(ctx, lookup, deleted, err)
+func (e ClearedEventHandlerFunc) OnCleared(ctx context.Context, q *query.Query, deleted *int, err *error) {
+	e(ctx, q, deleted, err)
 }
 
 type eventHandler struct {
@@ -256,18 +258,18 @@ func (h *eventHandler) use(e interface{}) error {
 	return nil
 }
 
-func (h *eventHandler) onFind(ctx context.Context, lookup *Lookup, offset, limit int) error {
+func (h *eventHandler) onFind(ctx context.Context, q *query.Query) error {
 	for _, e := range h.onFindH {
-		if err := e.OnFind(ctx, lookup, offset, limit); err != nil {
+		if err := e.OnFind(ctx, q); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h *eventHandler) onFound(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
+func (h *eventHandler) onFound(ctx context.Context, q *query.Query, list **ItemList, err *error) {
 	for _, e := range h.onFoundH {
-		e.OnFound(ctx, lookup, list, err)
+		e.OnFound(ctx, q, list, err)
 	}
 }
 
@@ -331,17 +333,17 @@ func (h *eventHandler) onDeleted(ctx context.Context, item *Item, err *error) {
 	}
 }
 
-func (h *eventHandler) onClear(ctx context.Context, lookup *Lookup) error {
+func (h *eventHandler) onClear(ctx context.Context, q *query.Query) error {
 	for _, e := range h.onClearH {
-		if err := e.OnClear(ctx, lookup); err != nil {
+		if err := e.OnClear(ctx, q); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h *eventHandler) onCleared(ctx context.Context, lookup *Lookup, deleted *int, err *error) {
+func (h *eventHandler) onCleared(ctx context.Context, q *query.Query, deleted *int, err *error) {
 	for _, e := range h.onClearedH {
-		e.OnCleared(ctx, lookup, deleted, err)
+		e.OnCleared(ctx, q, deleted, err)
 	}
 }
