@@ -25,7 +25,7 @@ func TestResourceBind(t *testing.T) {
 		fallback: schema.Schema{Fields: schema.Fields{
 			"bar": {
 				ReadOnly: true,
-				Validator: schema.Connection{
+				Validator: &schema.Connection{
 					Path: ".bar",
 				},
 				Params: schema.Params{
