@@ -63,19 +63,19 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 					// Execute sub-request in batch
 					q := &Query{Predicate: Predicate{Equal{Field: "id", Value: val}}}
 					rbr.request(ref.Path, q, func(payloads []map[string]interface{}, validator schema.Validator) error {
+						var v interface{}
+						if len(payloads) == 1 {
+							payload, err := evalProjection(ctx, pf.Children, payloads[0], validator, rbr)
+							if err != nil {
+								return fmt.Errorf("%s: error applying Projection on sub-field: %v", name, err)
+							}
+							if v, err = resolveFieldHandler(ctx, pf, def, payload); err != nil {
+								return fmt.Errorf("%s: error resolving field handler on sub-field: %v", name, err)
+							}
+						}
 						resMu.Lock()
-						defer resMu.Unlock()
-						if len(payloads) != 1 {
-							res[name] = nil
-							return nil
-						}
-						payload, err := evalProjection(ctx, pf.Children, payloads[0], validator, rbr)
-						if err != nil {
-							return fmt.Errorf("%s: error applying Projection on sub-field: %v", name, err)
-						}
-						if res[name], err = resolveFieldHandler(ctx, pf, def, payload); err != nil {
-							return fmt.Errorf("%s: error resolving field handler on sub-field: %v", name, err)
-						}
+						res[name] = v
+						resMu.Unlock()
 						return nil
 					})
 				} else {
@@ -100,11 +100,13 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 							return fmt.Errorf("%s: error applying projection on sub-resource item #%d: %v", pf.Name, i, err)
 						}
 					}
-					resMu.Lock()
-					defer resMu.Unlock()
-					if res[name], err = resolveFieldHandler(ctx, pf, def, payloads); err != nil {
+					var v interface{}
+					if v, err = resolveFieldHandler(ctx, pf, def, payloads); err != nil {
 						return fmt.Errorf("%s: error resolving field handler on sub-resource: %v", name, err)
 					}
+					resMu.Lock()
+					res[name] = v
+					resMu.Unlock()
 					return nil
 				})
 			}

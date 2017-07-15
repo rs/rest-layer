@@ -15,8 +15,6 @@ type referenceBatchResolver struct {
 }
 
 func (rbr *referenceBatchResolver) request(resourcePath string, q *Query, handler referenceResponseHandler) {
-	rbr.mu.Lock()
-	defer rbr.mu.Unlock()
 	if len(q.Predicate) == 1 {
 		if eq, ok := q.Predicate[0].(Equal); ok && eq.Field == "id" {
 			// Make an optimization for query on a single id so we can coalese them into a single request.
@@ -30,15 +28,21 @@ func (rbr *referenceBatchResolver) request(resourcePath string, q *Query, handle
 			// Not found an existing multi get request for this path, create a new one.
 			r := &referenceMultiGetRequest{resourcePath: resourcePath}
 			r.add(id, handler)
-			rbr.requests = append(rbr.requests, r)
+			rbr.appendRequest(r)
 			return
 		}
 	}
-	rbr.requests = append(rbr.requests, referenceSingleRequest{
+	rbr.appendRequest(referenceSingleRequest{
 		resourcePath: resourcePath,
 		query:        q,
 		handler:      handler,
 	})
+}
+
+func (rbr *referenceBatchResolver) appendRequest(r referenceRequest) {
+	rbr.mu.Lock()
+	defer rbr.mu.Unlock()
+	rbr.requests = append(rbr.requests, r)
 }
 
 func (rbr *referenceBatchResolver) execute(ctx context.Context, resolver ReferenceResolver) error {
