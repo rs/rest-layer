@@ -2,6 +2,7 @@
 Package resource defines and manages the resource graph and handle the interface
 with the resource storage handler.
 
-See http://github.com/rs/rest-layer for full REST Layer documentation.
+This package is part of the rest-layer project. See http://rest-layer.io for
+full REST Layer documentation.
 */
 package resource

@@ -57,6 +57,15 @@ func ParseProjection(projection string) (Projection, error) {
 	return parseProjectionExpression(projection, &pos, false)
 }
 
+// MustParseProjection parses a projection expression and panics in case of error.
+func MustParseProjection(projection string) Projection {
+	p, err := ParseProjection(projection)
+	if err != nil {
+		panic(fmt.Sprintf("query: ParseProjection(%q): %v", projection, err))
+	}
+	return p
+}
+
 func parseProjectionExpression(exp string, pos *int, opened bool) (Projection, error) {
 	expectField := false
 	projection := []ProjectionField{}

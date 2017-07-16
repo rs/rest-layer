@@ -18,6 +18,15 @@ type SortField struct {
 	Reversed bool
 }
 
+// MustParseSort parses a sort expression and panics in case of error.
+func MustParseSort(sort string) Sort {
+	s, err := ParseSort(sort)
+	if err != nil {
+		panic(fmt.Sprintf("query: ParseSort(%q): %v", sort, err))
+	}
+	return s
+}
+
 // ParseSort parses a sort expression. A sort expression is a list of fields
 // separated by comas. A field sort is reverse if preceded by a minus sign (-).
 func ParseSort(sort string) (Sort, error) {

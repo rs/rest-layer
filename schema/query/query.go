@@ -1,12 +1,37 @@
+/*
+Package query provides tools to query a schema defined by github.com/rs/schema.
+
+A query is composed of the following elements:
+
+  * Projection to define the format of the response.
+  * Predicate to define selection criteria must match to be part of the result
+    set.
+  * Sort to define the order of the items.
+  * Window to limit slice the result set.
+
+The query package provides DLS to describe those elements as strings:
+
+  * Projections uses a subset of GraphQL syntax. See ParseProjection for more
+    info.
+  * Predicate uses a subset of MongoDB query syntax. See ParsePredicate for more
+    info.
+  * Sort is a simple list of field separated by comas. See ParseSort for more
+    info.
+
+This package is part of the rest-layer project. See http://rest-layer.io for
+full REST Layer documentation.
+*/
 package query
 
 import "github.com/rs/rest-layer/schema"
 
+// Query defines the criteria of a query to be applied on a resource validated
+// by a schema.Schema.
 type Query struct {
 	// Projection is the list of fields from the items of the result that should
 	// be included in the query response. A projected field can be aliased or
 	// given parameters to be passed to per field transformation filters. A
-	// projection is hierachical allow projection of deep structures.
+	// projection is hierarchical allow projection of deep structures.
 	//
 	// A DSL can be used to build the projection structure.
 	Projection Projection

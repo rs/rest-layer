@@ -16,7 +16,7 @@ type parser struct {
 func MustParsePredicate(query string) Predicate {
 	q, err := ParsePredicate(query)
 	if err != nil {
-		panic(fmt.Sprintf("query: Parse(%q): %v", query, err))
+		panic(fmt.Sprintf("query: ParsePredicate(%q): %v", query, err))
 	}
 	return q
 }
