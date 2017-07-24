@@ -2,14 +2,12 @@ package rest
 
 import (
 	"bytes"
-	"context"
 	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -239,15 +237,4 @@ func TestRequestCheckIntegrityModifiedDateMatch(t *testing.T) {
 	r.Header.Set("If-Unmodified-Since", now.Format(time.RFC1123))
 	err := checkIntegrityRequest(r, &resource.Item{Updated: now})
 	assert.Nil(t, err)
-}
-
-func TestGetResourceResolver(t *testing.T) {
-	index := resource.NewIndex()
-	index.Bind("foo", schema.Schema{}, nil, resource.DefaultConf)
-	ctx := context.Background()
-	_, _, err := getReferenceResolver(nil)(ctx, "bar", nil)
-	assert.EqualError(t, err, "router not available in context")
-	ctx = contextWithIndex(ctx, index)
-	_, _, err = getReferenceResolver(nil)(ctx, "bar", nil)
-	assert.EqualError(t, err, "invalid resource reference: bar")
 }

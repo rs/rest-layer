@@ -97,7 +97,7 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		}
 	}
 	// Evaluate projection so response gets the same format as read requests.
-	item.Payload, err = q.Projection.Eval(ctx, item.Payload, rsrc.Validator(), getReferenceResolver(rsrc))
+	item.Payload, err = q.Projection.Eval(ctx, item.Payload, restResource{rsrc})
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

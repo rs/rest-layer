@@ -1,8 +1,6 @@
 package query
 
 import (
-	"context"
-
 	"github.com/rs/rest-layer/schema"
 )
 
@@ -22,9 +20,6 @@ type ProjectionField struct {
 	// Children holds references to child projections if any.
 	Children Projection
 }
-
-// ReferenceResolver is a function resolving a reference to another field.
-type ReferenceResolver func(ctx context.Context, path string, query *Query) ([]map[string]interface{}, schema.Validator, error)
 
 // Validate validates the projection against the provided validator.
 func (p Projection) Validate(validator schema.Validator) error {

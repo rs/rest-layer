@@ -3,21 +3,38 @@ package query
 import (
 	"context"
 	"fmt"
-
 	"sync"
 
 	"github.com/rs/rest-layer/schema"
 )
 
+// Resource represents type that can be queried by Projection.Eval.
+type Resource interface {
+	// Find executes the query and returns the matching items.
+	Find(ctx context.Context, query *Query) ([]map[string]interface{}, error)
+
+	// MultiGet get some items by their id and return them in the same order. If one
+	// or more item(s) is not found, their slot in the response is set to nil.
+	MultiGet(ctx context.Context, ids []interface{}) ([]map[string]interface{}, error)
+
+	// GetSubResource returns the sub-resource at path. If path starts with a
+	// dot, the lookup is performed relative to the current resource.
+	GetSubResource(ctx context.Context, path string) (Resource, error)
+
+	// Validator returns the schema.Validator associated with the resource.
+	Validator() schema.Validator
+}
+
 // Eval evaluate the projection on the given payload with the help of the
 // validator. The resolver is used to fetch payload of references outside of the
 // provided payload.
-func (p Projection) Eval(ctx context.Context, payload map[string]interface{}, validator schema.Validator, resolver ReferenceResolver) (map[string]interface{}, error) {
+func (p Projection) Eval(ctx context.Context, payload map[string]interface{}, rsc Resource) (map[string]interface{}, error) {
 	rbr := &referenceBatchResolver{}
+	validator := rsc.Validator()
 	payload, err := evalProjection(ctx, p, payload, validator, rbr)
 	if err == nil {
 		// Execute the batched reference resolutions.
-		err = rbr.execute(ctx, resolver)
+		err = rbr.execute(ctx, rsc)
 	}
 	return payload, err
 }

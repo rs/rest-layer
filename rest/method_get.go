@@ -43,7 +43,7 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		list.Offset = win.Offset
 	}
 	for _, item := range list.Items {
-		item.Payload, err = q.Projection.Eval(ctx, item.Payload, rsc.Validator(), getReferenceResolver(rsc))
+		item.Payload, err = q.Projection.Eval(ctx, item.Payload, restResource{rsc})
 		if err != nil {
 			e = NewError(err)
 			return e.Code, nil, e

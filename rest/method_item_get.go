@@ -38,7 +38,7 @@ func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			return 304, nil, nil
 		}
 	}
-	item.Payload, err = q.Projection.Eval(ctx, item.Payload, rsrc.Validator(), getReferenceResolver(rsrc))
+	item.Payload, err = q.Projection.Eval(ctx, item.Payload, restResource{rsrc})
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

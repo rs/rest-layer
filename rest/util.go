@@ -3,15 +3,12 @@ package rest
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema"
-	"github.com/rs/rest-layer/schema/query"
 )
 
 // getMethodHandler returns the method handler for a given HTTP method in item
@@ -175,28 +172,6 @@ func checkIntegrityRequest(r *http.Request, original *resource.Item) *Error {
 		}
 	}
 	return nil
-}
-
-func getReferenceResolver(r *resource.Resource) query.ReferenceResolver {
-	return func(ctx context.Context, path string, q *query.Query) ([]map[string]interface{}, schema.Validator, error) {
-		router, ok := IndexFromContext(ctx)
-		if !ok {
-			return nil, nil, errors.New("router not available in context")
-		}
-		rsc, found := router.GetResource(path, r)
-		if !found {
-			return nil, nil, fmt.Errorf("invalid resource reference: %s", path)
-		}
-		itemList, err := rsc.Find(ctx, q)
-		if err != nil {
-			return nil, nil, err
-		}
-		payloads := make([]map[string]interface{}, 0, len(itemList.Items))
-		for _, item := range itemList.Items {
-			payloads = append(payloads, item.Payload)
-		}
-		return payloads, rsc.Validator(), nil
-	}
 }
 
 func logErrorf(ctx context.Context, format string, a ...interface{}) {

@@ -62,7 +62,7 @@ func NewItem(payload map[string]interface{}) (*Item, error) {
 //
 // A field name may use the dot notation to reference a sub field. A GetField on
 // field.subfield is equivalent to item.Payload["field"]["subfield].
-func (i Item) GetField(name string) interface{} {
+func (i *Item) GetField(name string) interface{} {
 	return getField(i.Payload, name)
 }
 

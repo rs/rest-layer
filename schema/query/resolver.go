@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/rs/rest-layer/schema"
@@ -45,7 +46,7 @@ func (rbr *referenceBatchResolver) appendRequest(r referenceRequest) {
 	rbr.requests = append(rbr.requests, r)
 }
 
-func (rbr *referenceBatchResolver) execute(ctx context.Context, resolver ReferenceResolver) error {
+func (rbr *referenceBatchResolver) execute(ctx context.Context, rsc Resource) error {
 	for len(rbr.requests) > 0 {
 		// Get the list of requests.
 		requests := rbr.requests
@@ -58,7 +59,7 @@ func (rbr *referenceBatchResolver) execute(ctx context.Context, resolver Referen
 		for i := range requests {
 			r := requests[i]
 			go func() {
-				if e := r.execute(ctx, resolver); e != nil {
+				if e := r.execute(ctx, rsc); e != nil {
 					err = e
 				}
 				wg.Done()
@@ -74,7 +75,7 @@ func (rbr *referenceBatchResolver) execute(ctx context.Context, resolver Referen
 }
 
 type referenceRequest interface {
-	execute(ctx context.Context, resolver ReferenceResolver) error
+	execute(ctx context.Context, rsc Resource) error
 }
 
 type referenceSingleRequest struct {
@@ -83,64 +84,53 @@ type referenceSingleRequest struct {
 	handler      referenceResponseHandler
 }
 
-func (r referenceSingleRequest) execute(ctx context.Context, resolver ReferenceResolver) error {
-	payloads, validator, err := resolver(ctx, r.resourcePath, r.query)
+func (r referenceSingleRequest) execute(ctx context.Context, rsc Resource) error {
+	subRsc, err := rsc.GetSubResource(ctx, r.resourcePath)
 	if err != nil {
 		return err
 	}
-	return r.handler(payloads, validator)
+	payloads, err := subRsc.Find(ctx, r.query)
+	if err != nil {
+		return err
+	}
+	return r.handler(payloads, subRsc.Validator())
 }
 
 type referenceMultiGetRequest struct {
 	resourcePath string
-	ids          []Value
+	ids          []interface{}
 	handlers     []referenceResponseHandler
-	done         []bool
 }
 
 func (r *referenceMultiGetRequest) add(id interface{}, handler referenceResponseHandler) {
 	r.ids = append(r.ids, id)
 	r.handlers = append(r.handlers, handler)
-	r.done = append(r.done, false)
 }
 
-func (r *referenceMultiGetRequest) execute(ctx context.Context, resolver ReferenceResolver) error {
-	q := &Query{}
-	if len(r.ids) == 1 {
-		q.Predicate = Predicate{
-			Equal{Field: "id", Value: r.ids[0]},
-		}
-	} else {
-		q.Predicate = Predicate{
-			In{Field: "id", Values: r.ids},
-		}
-	}
-	payloads, validator, err := resolver(ctx, r.resourcePath, q)
+func (r *referenceMultiGetRequest) execute(ctx context.Context, rsc Resource) error {
+	subRsc, err := rsc.GetSubResource(ctx, r.resourcePath)
 	if err != nil {
 		return err
 	}
-	payloadsWrapper := make([]map[string]interface{}, 1)
-	for _, p := range payloads {
-		for i, id := range r.ids {
-			// XXX we should not rely on the value of "id" to be equal to the requested id.
-			if id == p["id"] {
-				payloadsWrapper[0] = p
-				handler := r.handlers[i]
-				if err := handler(payloadsWrapper, validator); err != nil {
-					return err
-				}
-				r.done[i] = true
-			}
-		}
+	payloads, err := subRsc.MultiGet(ctx, r.ids)
+	if err != nil {
+		return err
 	}
-	// Call handlers for ids which did not get a matching response (i.e. not found).
-	payloadsEmptyWrapper := payloadsWrapper[:0]
-	for i, done := range r.done {
-		if !done {
-			handler := r.handlers[i]
-			if err := handler(payloadsEmptyWrapper, validator); err != nil {
+	if len(payloads) != len(r.ids) {
+		return errors.New("invalid number of items returned by MultiGet")
+	}
+	validator := subRsc.Validator()
+	payloadsWrapper := make([]map[string]interface{}, 1)
+	for i, p := range payloads {
+		handler := r.handlers[i]
+		if p == nil {
+			if err := handler(payloadsWrapper[:0], validator); err != nil {
 				return err
 			}
+		}
+		payloadsWrapper[0] = p
+		if err := handler(payloadsWrapper, validator); err != nil {
+			return err
 		}
 	}
 	return nil
