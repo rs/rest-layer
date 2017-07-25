@@ -20,7 +20,7 @@ func (r resource) Find(ctx context.Context, query *Query) ([]map[string]interfac
 func (r resource) MultiGet(ctx context.Context, ids []interface{}) ([]map[string]interface{}, error) {
 	return nil, errors.New("not implemented")
 }
-func (r resource) GetSubResource(ctx context.Context, path string) (Resource, error) {
+func (r resource) SubResource(ctx context.Context, path string) (Resource, error) {
 	return nil, errors.New("not implemented")
 }
 func (r resource) Validator() schema.Validator {

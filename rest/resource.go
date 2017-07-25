@@ -13,7 +13,7 @@ type restResource struct {
 	*resource.Resource
 }
 
-// GetSubResource implements query.Resource interface.
+// Find implements query.Resource interface.
 func (r restResource) Find(ctx context.Context, query *query.Query) ([]map[string]interface{}, error) {
 	itemList, err := r.Resource.Find(ctx, query)
 	if err != nil {
@@ -26,7 +26,7 @@ func (r restResource) Find(ctx context.Context, query *query.Query) ([]map[strin
 	return payloads, nil
 }
 
-// GetSubResource implements query.Resource interface.
+// MultiGet implements query.Resource interface.
 func (r restResource) MultiGet(ctx context.Context, ids []interface{}) ([]map[string]interface{}, error) {
 	items, err := r.Resource.MultiGet(ctx, ids)
 	if err != nil {
@@ -39,8 +39,8 @@ func (r restResource) MultiGet(ctx context.Context, ids []interface{}) ([]map[st
 	return payloads, nil
 }
 
-// GetSubResource implements query.Resource interface.
-func (r restResource) GetSubResource(ctx context.Context, path string) (query.Resource, error) {
+// SubResource implements query.Resource interface.
+func (r restResource) SubResource(ctx context.Context, path string) (query.Resource, error) {
 	router, ok := IndexFromContext(ctx)
 	if !ok {
 		return restResource{}, errors.New("router not available in context")

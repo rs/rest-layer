@@ -17,9 +17,9 @@ type Resource interface {
 	// or more item(s) is not found, their slot in the response is set to nil.
 	MultiGet(ctx context.Context, ids []interface{}) ([]map[string]interface{}, error)
 
-	// GetSubResource returns the sub-resource at path. If path starts with a
+	// SubResource returns the sub-resource at path. If path starts with a
 	// dot, the lookup is performed relative to the current resource.
-	GetSubResource(ctx context.Context, path string) (Resource, error)
+	SubResource(ctx context.Context, path string) (Resource, error)
 
 	// Validator returns the schema.Validator associated with the resource.
 	Validator() schema.Validator

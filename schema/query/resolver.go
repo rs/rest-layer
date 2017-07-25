@@ -85,7 +85,7 @@ type referenceSingleRequest struct {
 }
 
 func (r referenceSingleRequest) execute(ctx context.Context, rsc Resource) error {
-	subRsc, err := rsc.GetSubResource(ctx, r.resourcePath)
+	subRsc, err := rsc.SubResource(ctx, r.resourcePath)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (r *referenceMultiGetRequest) add(id interface{}, handler referenceResponse
 }
 
 func (r *referenceMultiGetRequest) execute(ctx context.Context, rsc Resource) error {
-	subRsc, err := rsc.GetSubResource(ctx, r.resourcePath)
+	subRsc, err := rsc.SubResource(ctx, r.resourcePath)
 	if err != nil {
 		return err
 	}
