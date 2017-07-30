@@ -2,12 +2,13 @@ package query
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/rs/rest-layer/schema"
-	"github.com/stretchr/testify/assert"
 )
 
 type resource struct {
@@ -54,74 +55,84 @@ func TestProjectionEval(t *testing.T) {
 			},
 		},
 	}
+	cases := []struct {
+		name       string
+		projection string
+		payload    string
+		err        error
+		want       string
+	}{
+		{
+			"Basic",
+			`parent{child}`,
+			`{"parent":{"child":"value"},"simple":"value"}`,
+			nil,
+			`{"parent":{"child":"value"}}`,
+		},
+		{
+			"Aliasing",
+			`p:parent{c:child}`,
+			`{"parent":{"child":"value"}}`,
+			nil,
+			`{"p":{"c":"value"}}`,
+		},
+		{
+			"Parmeters",
+			`with_params(foo:1)`,
+			`{"with_params":"value"}`,
+			nil,
+			`{"with_params":"param is 1"}`,
+		},
+		{
+			"Parmeters/NoParam", // Handler is not called.
+			`with_params`,
+			`{"with_params":"value"}`,
+			nil,
+			`{"with_params":"value"}`,
+		},
+		{
+			"Parmeters/InvalidParam",
+			`with_params(foo:-1)`,
+			`{"with_params":"value"}`,
+			errors.New("with_params: some error"),
+			``,
+		},
+		{
+			"InvalidPayload",
+			`parent{child}`,
+			`{"parent":"value"}`,
+			errors.New("parent: invalid value: not a dict"),
+			``,
+		},
+	}
 
-	// Basic filtering
-	ctx := context.Background()
-	pr := Projection{{Name: "parent", Children: Projection{{Name: "child"}}}}
-	p, err := pr.Eval(ctx, map[string]interface{}{"parent": map[string]interface{}{"child": "value"}, "simple": "value"}, resource{s})
-	if assert.NoError(t, err) {
-		assert.Equal(t, map[string]interface{}{"parent": map[string]interface{}{"child": "value"}}, p)
+	for i := range cases {
+		tc := cases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			pr, err := ParseProjection(tc.projection)
+			if err != nil {
+				t.Errorf("ParseProjection unexpected error: %v", err)
+			}
+			if err = pr.Validate(s); err != nil {
+				t.Errorf("Projection.Validate unexpected error: %v", err)
+			}
+			var payload map[string]interface{}
+			err = json.Unmarshal([]byte(tc.payload), &payload)
+			if err != nil {
+				t.Errorf("Invalid JSON payload: %v", err)
+			}
+			payload, err = pr.Eval(ctx, payload, resource{s})
+			if !reflect.DeepEqual(err, tc.err) {
+				t.Errorf("Eval return error: %v, wanted: %v", err, tc.err)
+			}
+			if err != nil {
+				return
+			}
+			got, _ := json.Marshal(payload)
+			if string(got) != tc.want {
+				t.Errorf("Eval = %v, wanted: %v", string(got), tc.want)
+			}
+		})
 	}
-	// Alias on both parent and child
-	pr = Projection{{Name: "parent", Alias: "p", Children: Projection{{Name: "child", Alias: "c"}}}}
-	p, err = pr.Eval(ctx, map[string]interface{}{"parent": map[string]interface{}{"child": "value"}}, resource{s})
-	if assert.NoError(t, err) {
-		assert.Equal(t, map[string]interface{}{"p": map[string]interface{}{"c": "value"}}, p)
-	}
-	// Param call with valid value
-	pr = Projection{{Name: "with_params", Params: map[string]interface{}{"foo": 1}}}
-	p, err = pr.Eval(ctx, map[string]interface{}{"with_params": "value"}, resource{s})
-	if assert.NoError(t, err) {
-		assert.Equal(t, map[string]interface{}{"with_params": "param is 1"}, p)
-	}
-	// If no param, handler do not call handler
-	pr = Projection{{Name: "with_params"}}
-	p, err = pr.Eval(ctx, map[string]interface{}{"with_params": "value"}, resource{s})
-	if assert.NoError(t, err) {
-		assert.Equal(t, map[string]interface{}{"with_params": "value"}, p)
-	}
-	// Param call with valid value rejected by the handler
-	pr = Projection{{Name: "with_params", Params: map[string]interface{}{"foo": -1}}}
-	p, err = pr.Eval(ctx, map[string]interface{}{"with_params": "value"}, resource{s})
-	assert.EqualError(t, err, "with_params: some error")
-	assert.Nil(t, p)
-	// Deep field lookup on a field with no child
-	pr = Projection{{Name: "simple", Children: Projection{{Name: "child"}}}}
-	p, err = pr.Eval(ctx, map[string]interface{}{"simple": "value"}, resource{s})
-	assert.EqualError(t, err, "simple: field as no children")
-	assert.Nil(t, p)
-	// Deep field lookup on a field with invalid payload (no dict)
-	pr = Projection{{Name: "parent", Children: Projection{{Name: "child"}}}}
-	p, err = pr.Eval(ctx, map[string]interface{}{"parent": "value"}, resource{s})
-	assert.EqualError(t, err, "parent: invalid value: not a dict")
-	assert.Nil(t, p)
 }
-
-// func TestLookupApplySelector(t *testing.T) {
-// 	l := NewLookup()
-// 	v := schema.Schema{
-// 		Fields: schema.Fields{
-// 			"foo": {
-// 				Schema: &schema.Schema{
-// 					Fields: schema.Fields{
-// 						"bar": {},
-// 					},
-// 				},
-// 			},
-// 			"baz": {},
-// 		},
-// 	}
-// 	ctx := context.Background()
-// 	l.SetSelector(`foo{bar},baz`, v)
-// 	p, err := l.ApplySelector(ctx, v, map[string]interface{}{
-// 		"foo": map[string]interface{}{
-// 			"bar": "baz",
-// 		},
-// 	}, nil)
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, map[string]interface{}{
-// 		"foo": map[string]interface{}{
-// 			"bar": "baz",
-// 		},
-// 	}, p)
-// }

@@ -1,10 +1,11 @@
 package query
 
 import (
+	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/rs/rest-layer/schema"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestProjectionValidate(t *testing.T) {
@@ -25,48 +26,29 @@ func TestProjectionValidate(t *testing.T) {
 			},
 		},
 	}
-
-	assert.NoError(t, Projection{{Name: "parent", Children: Projection{{Name: "child"}}}}.Validate(s))
-	assert.NoError(t, Projection{{Name: "with_params", Params: map[string]interface{}{"foo": 1}}}.Validate(s))
-
-	assert.EqualError(t,
-		Projection{{Name: "foo"}}.Validate(s),
-		"foo: unknown field")
-	assert.EqualError(t,
-		Projection{{Name: "simple", Children: Projection{{Name: "child"}}}}.Validate(s),
-		"simple: field as no children")
-	assert.EqualError(t,
-		Projection{{Name: "parent", Children: Projection{{Name: "foo"}}}}.Validate(s),
-		"parent.foo: unknown field")
-	assert.EqualError(t,
-		Projection{{Name: "simple", Params: map[string]interface{}{"foo": 1}}}.Validate(s),
-		"simple: params not allowed")
-	assert.EqualError(t,
-		Projection{{Name: "with_params", Params: map[string]interface{}{"bar": 1}}}.Validate(s),
-		"with_params: unsupported param name: bar")
-	assert.EqualError(t,
-		Projection{{Name: "with_params", Params: map[string]interface{}{"foo": "a string"}}}.Validate(s),
-		"with_params: invalid param `foo' value: not an integer")
+	cases := []struct {
+		projection string
+		err        error
+	}{
+		{`parent{child},simple`, nil},
+		{`with_params(foo:1)`, nil},
+		{`foo`, errors.New("foo: unknown field")},
+		{`simple{child}`, errors.New("simple: field as no children")},
+		{`parent{foo}`, errors.New("parent.foo: unknown field")},
+		{`simple(foo:1)`, errors.New("simple: params not allowed")},
+		{`with_params(bar:1)`, errors.New("with_params: unsupported param name: bar")},
+		{`with_params(foo:"a string")`, errors.New("with_params: invalid param `foo' value: not an integer")},
+	}
+	for i := range cases {
+		tc := cases[i]
+		t.Run(tc.projection, func(t *testing.T) {
+			pr, err := ParseProjection(tc.projection)
+			if err != nil {
+				t.Errorf("ParseProjection unexpected error: %v", err)
+			}
+			if err = pr.Validate(s); !reflect.DeepEqual(err, tc.err) {
+				t.Errorf("Projection.Validate error = %v, wanted: %v", err, tc.err)
+			}
+		})
+	}
 }
-
-// func TestLookupSetSelector(t *testing.T) {
-// 	l := NewLookup()
-// 	v := schema.Schema{
-// 		Fields: schema.Fields{
-// 			"foo": {
-// 				Schema: &schema.Schema{
-// 					Fields: schema.Fields{
-// 						"bar": {},
-// 					},
-// 				},
-// 			},
-// 			"baz": {},
-// 		},
-// 	}
-// 	err := l.SetSelector(`foo{bar},baz`, v)
-// 	assert.NoError(t, err)
-// 	err = l.SetSelector(`foo,`, v)
-// 	assert.EqualError(t, err, "looking for field name at char 4")
-// 	err = l.SetSelector(`bar`, v)
-// 	assert.EqualError(t, err, "bar: unknown field")
-// }
