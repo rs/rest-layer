@@ -2,6 +2,9 @@ package query
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
@@ -20,9 +23,21 @@ func TestParseSort(t *testing.T) {
 		{"", Sort{}, errors.New("empty sort field")},
 		{"foo,", Sort{}, errors.New("empty sort field")},
 		{",foo", Sort{}, errors.New("empty sort field")},
+		{",,", Sort{}, errors.New("empty sort field")},
+		{"   ,   ,", Sort{}, errors.New("empty sort field")},
+		{"-", Sort{}, errors.New("empty sort field")},
+		{"- ", Sort{}, errors.New("empty sort field")},
 	}
 	for i := range tests {
 		tt := tests[i]
+		if *updateFuzzCorpus {
+			os.MkdirAll("testdata/fuzz-sort/corpus", 0755)
+			corpusFile := fmt.Sprintf("testdata/fuzz-sort/corpus/test%d", i)
+			if err := ioutil.WriteFile(corpusFile, []byte(tt.sort), 0666); err != nil {
+				t.Error(err)
+			}
+			continue
+		}
 		t.Run(tt.sort, func(t *testing.T) {
 			got, err := ParseSort(tt.sort)
 			if !reflect.DeepEqual(err, tt.err) {

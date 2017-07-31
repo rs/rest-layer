@@ -2,6 +2,9 @@ package query
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -158,9 +161,43 @@ func TestParseProjection(t *testing.T) {
 			errors.New("looking for field name at char 8"),
 			Projection{},
 		},
+		// Fuzz crashers
+		{
+			"0(0:",
+			errors.New("looking for value at char 4"),
+			Projection{},
+		},
+		{
+			"0(0:0",
+			errors.New("looking for `,' or ')' at char 5"),
+			Projection{},
+		},
+		{
+			"0{0(0:",
+			errors.New("looking for value at char 6"),
+			Projection{},
+		},
+		{
+			"0{0(0:0",
+			errors.New("looking for `,' or ')' at char 7"),
+			Projection{},
+		},
+		{
+			"o(r:0.0000000000",
+			errors.New("looking for `,' or ')' at char 16"),
+			Projection{},
+		},
 	}
 	for i := range cases {
 		tc := cases[i]
+		if *updateFuzzCorpus {
+			os.MkdirAll("testdata/fuzz-projection/corpus", 0755)
+			corpusFile := fmt.Sprintf("testdata/fuzz-projection/corpus/test%d", i)
+			if err := ioutil.WriteFile(corpusFile, []byte(tc.projection), 0666); err != nil {
+				t.Error(err)
+			}
+			continue
+		}
 		t.Run(tc.projection, func(t *testing.T) {
 			pr, err := ParseProjection(tc.projection)
 			if !reflect.DeepEqual(err, tc.err) {

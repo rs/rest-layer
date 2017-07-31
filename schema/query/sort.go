@@ -33,12 +33,12 @@ func ParseSort(sort string) (Sort, error) {
 	s := Sort{}
 	for _, f := range strings.Split(sort, ",") {
 		sf := SortField{Name: strings.Trim(f, " ")}
-		if sf.Name == "" {
+		if sf.Name == "" || sf.Name == "-" {
 			return nil, errors.New("empty sort field")
 		}
 		// If the field start with - (to indicate descended sort), shift it
 		// before validator lookup.
-		if f[0] == '-' {
+		if sf.Name[0] == '-' {
 			sf.Name = sf.Name[1:]
 			sf.Reversed = true
 		}

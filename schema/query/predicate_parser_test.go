@@ -2,6 +2,9 @@ package query
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -331,6 +334,14 @@ func TestParse(t *testing.T) {
 	}
 	for i := range tests {
 		tt := tests[i]
+		if *updateFuzzCorpus {
+			os.MkdirAll("testdata/fuzz-predicate/corpus", 0755)
+			corpusFile := fmt.Sprintf("testdata/fuzz-predicate/corpus/test%d", i)
+			if err := ioutil.WriteFile(corpusFile, []byte(tt.query), 0666); err != nil {
+				t.Error(err)
+			}
+			continue
+		}
 		t.Run(strings.Replace(tt.query, " ", "", -1), func(t *testing.T) {
 			t.Parallel()
 			got, err := ParsePredicate(tt.query)

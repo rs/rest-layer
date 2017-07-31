@@ -163,7 +163,7 @@ func scanProjectionFieldParams(exp string, pos *int) (map[string]interface{}, er
 		}
 		params[name] = value
 		ignoreWhitespaces(exp, pos)
-		c := exp[*pos]
+		c := charAtPos(exp, pos)
 		if c == ')' {
 			break
 		} else if c == ',' {
@@ -214,7 +214,7 @@ func scanProjectionFieldNameWithAlias(exp string, pos *int) (name string, alias 
 // if not an was a valid number. In case of syntax error, an error is returned.
 func scanProjectionParamValue(exp string, pos *int) (interface{}, error) {
 	ignoreWhitespaces(exp, pos)
-	c := exp[*pos]
+	c := charAtPos(exp, pos)
 	if c == '"' || c == '\'' {
 		quote := c
 		quotted := false
@@ -280,4 +280,13 @@ func ignoreWhitespaces(exp string, pos *int) {
 		}
 		break
 	}
+}
+
+// charAtPos returns the character at current position or 0x0 if the current
+// position is out of range.
+func charAtPos(exp string, pos *int) byte {
+	if *pos < len(exp) {
+		return exp[*pos]
+	}
+	return 0
 }
