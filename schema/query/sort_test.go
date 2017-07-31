@@ -20,7 +20,7 @@ func TestParseSort(t *testing.T) {
 		{"foo", Sort{SortField{Name: "foo"}}, nil},
 		{"foo.bar,baz", Sort{SortField{Name: "foo.bar"}, SortField{Name: "baz"}}, nil},
 		{"foo.bar,-baz", Sort{SortField{Name: "foo.bar"}, SortField{Name: "baz", Reversed: true}}, nil},
-		{"", Sort{}, errors.New("empty sort field")},
+		{"", Sort{}, nil},
 		{"foo,", Sort{}, errors.New("empty sort field")},
 		{",foo", Sort{}, errors.New("empty sort field")},
 		{",,", Sort{}, errors.New("empty sort field")},

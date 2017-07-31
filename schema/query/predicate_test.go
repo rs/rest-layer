@@ -137,10 +137,10 @@ func TestString(t *testing.T) {
 		`{"foo": {"$in": ["bar", "baz"]}}`:                        `{foo: {$in: ["bar", "baz"]}}`,
 		`{"foo": {"$nin": ["bar", "baz"]}}`:                       `{foo: {$nin: ["bar", "baz"]}}`,
 		`{"$or": [{"foo": "bar"}, {"bar": 1}]}`:                   `{$or: [{foo: "bar"}, {bar: 1}]}`,
-		`{"$and": [{"foo": "bar"}, {"bar": 1}]}`:                  `{foo: "bar", bar: 1}`,
+		`{"$and": [{"foo": "bar"}, {"bar": 1}]}`:                  `{$and: [{foo: "bar"}, {bar: 1}]}`,
 		`{"foo": {"$regex": "rege[x]{1}.+some"}}`:                 `{foo: {$regex: "rege[x]{1}.+some"}}`,
 		`{"foo": {"$regex": "^(?i)my.+-rest.+$"}}`:                `{foo: {$regex: "^(?i)my.+-rest.+$"}}`,
-		`{"$and": [{"foo": "bar"}, {"foo": "baz"}]}`:              `{foo: "bar", foo: "baz"}`,
+		`{"$and": [{"foo": "bar"}, {"foo": "baz"}]}`:              `{$and: [{foo: "bar"}, {foo: "baz"}]}`,
 		`{"foo": "bar", "$or": [{"bar": "baz"}, {"bar": "foo"}]}`: `{foo: "bar", $or: [{bar: "baz"}, {bar: "foo"}]}`,
 		`{"foo": ["bar", "baz"]}`:                                 `{foo: ["bar","baz"]}`,
 	}

@@ -100,7 +100,12 @@ func TestParse(t *testing.T) {
 		},
 		{
 			`{"$and": [{"foo": "bar"}, {"foo": "baz"}]}`,
-			Predicate{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}},
+			Predicate{And{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}},
+			nil,
+		},
+		{
+			`{"$and": [{"foo": "bar", "bar": "baz"}, {"baz": "foo"}]}`,
+			Predicate{And{And{Equal{Field: "foo", Value: "bar"}, Equal{Field: "bar", Value: "baz"}}, Equal{Field: "baz", Value: "foo"}}},
 			nil,
 		},
 		{
@@ -355,6 +360,7 @@ func TestParse(t *testing.T) {
 				return
 			}
 			// Parse the result of query.String()
+			t.Logf("%#v", got)
 			str := got.String()
 			got, err = ParsePredicate(str)
 			if err != nil {

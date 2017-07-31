@@ -37,12 +37,6 @@ func (p *predicateParser) parse() (Predicate, error) {
 	if p.more() {
 		return nil, fmt.Errorf("char %d: expected EOF got %q", p.pos, p.peek())
 	}
-	if len(q) == 1 {
-		if and, ok := q[0].(And); ok {
-			// Simplify {$and: [{foo: "bar"}, {bar: "baz"}]} to {foo: "bar", bar: "baz"}
-			q = and
-		}
-	}
 	return q, nil
 }
 

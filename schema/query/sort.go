@@ -31,6 +31,9 @@ func MustParseSort(sort string) Sort {
 // separated by comas. A field sort is reverse if preceded by a minus sign (-).
 func ParseSort(sort string) (Sort, error) {
 	s := Sort{}
+	if strings.Trim(sort, " ") == "" {
+		return s, nil
+	}
 	for _, f := range strings.Split(sort, ",") {
 		sf := SortField{Name: strings.Trim(f, " ")}
 		if sf.Name == "" || sf.Name == "-" {

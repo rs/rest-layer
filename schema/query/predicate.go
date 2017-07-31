@@ -90,13 +90,13 @@ func (e And) Validate(validator schema.Validator) error {
 // String implements Expression interface.
 func (e And) String() string {
 	if len(e) == 0 {
-		return ""
+		return opAnd + ": []"
 	}
 	s := make([]string, 0, len(e))
 	for _, subQuery := range e {
-		s = append(s, subQuery.String())
+		s = append(s, "{"+subQuery.String()+"}")
 	}
-	return strings.Join(s, ", ")
+	return opAnd + ": [" + strings.Join(s, ", ") + "]"
 }
 
 // Or joins query clauses with a logical OR, returns all documents that
