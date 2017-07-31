@@ -1,9 +1,15 @@
 package query
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 )
+
+type projectionParser struct {
+	exp string
+	pos int
+}
 
 /*
 ParseProjection recursively parses a projection expression.
@@ -53,8 +59,8 @@ With this example, the resulted document would be:
 
 */
 func ParseProjection(projection string) (Projection, error) {
-	pos := 0
-	return parseProjectionExpression(projection, &pos, false)
+	p := &projectionParser{exp: projection}
+	return p.parse()
 }
 
 // MustParseProjection parses a projection expression and panics in case of error.
@@ -66,25 +72,29 @@ func MustParseProjection(projection string) Projection {
 	return p
 }
 
-func parseProjectionExpression(exp string, pos *int, opened bool) (Projection, error) {
+func (p *projectionParser) parse() (Projection, error) {
+	return p.parseExpression(false)
+}
+
+func (p *projectionParser) parseExpression(opened bool) (Projection, error) {
 	expectField := false
 	projection := []ProjectionField{}
 	var field *ProjectionField
-	for *pos < len(exp) {
+	for p.more() {
 		if field == nil {
-			name, alias := scanProjectionFieldNameWithAlias(exp, pos)
+			p.eatWhitespaces()
+			name, alias := p.scanFieldNameWithAlias()
 			if name == "" {
-				return nil, fmt.Errorf("looking for field name at char %d", *pos)
+				return nil, fmt.Errorf("looking for field name at char %d", p.pos)
 			}
 			field = &ProjectionField{Name: name, Alias: alias}
 			expectField = false
 			continue
 		}
-		c := exp[*pos]
-		switch c {
+		switch p.peek() {
 		case '{':
-			*pos++
-			children, err := parseProjectionExpression(exp, pos, true)
+			p.pos++
+			children, err := p.parseExpression(true)
 			if err != nil {
 				return nil, err
 			}
@@ -94,10 +104,10 @@ func parseProjectionExpression(exp string, pos *int, opened bool) (Projection, e
 				projection = append(projection, *field)
 				return projection, nil
 			}
-			return nil, fmt.Errorf("looking for field name and got `}' at char %d", *pos)
+			return nil, fmt.Errorf("looking for field name and got `}' at char %d", p.pos)
 		case '(':
-			*pos++
-			params, err := scanProjectionFieldParams(exp, pos)
+			p.pos++
+			params, err := p.scanFieldParams()
 			if err != nil {
 				return nil, err
 			}
@@ -109,15 +119,15 @@ func parseProjectionExpression(exp string, pos *int, opened bool) (Projection, e
 		case ' ', '\n', '\r', '\t':
 			// ignore whitespace
 		default:
-			return nil, fmt.Errorf("invalid char `%c` at %d", c, *pos)
+			return nil, fmt.Errorf("invalid char `%c` at %d", p.peek(), p.pos)
 		}
-		*pos++
+		p.pos++
 	}
 	if expectField {
-		return nil, fmt.Errorf("looking for field name at char %d", *pos)
+		return nil, fmt.Errorf("looking for field name at char %d", p.pos)
 	}
 	if opened {
-		return nil, fmt.Errorf("looking for `}' at char %d", *pos)
+		return nil, fmt.Errorf("looking for `}' at char %d", p.pos)
 	}
 	if field != nil {
 		projection = append(projection, *field)
@@ -125,66 +135,52 @@ func parseProjectionExpression(exp string, pos *int, opened bool) (Projection, e
 	return projection, nil
 }
 
-// scanProjectionFieldParams parses fields params until it finds a closing
+// p.scanFieldParams parses fields params until it finds a closing
 // parenthesis. If the max length is reached before or a syntax error is found,
 // an error is returned.
 //
 // It gets the expression buffer as "exp", the current position after an opening
 // parenthesis at pos.
-func scanProjectionFieldParams(exp string, pos *int) (map[string]interface{}, error) {
+func (p *projectionParser) scanFieldParams() (map[string]interface{}, error) {
 	params := map[string]interface{}{}
-	for *pos < len(exp) {
-		name := scanProjectionFieldName(exp, pos)
+	for p.more() {
+		p.eatWhitespaces()
+		name := p.scanFieldName()
 		if name == "" {
-			return nil, fmt.Errorf("looking for parameter name at char %d", *pos)
+			return nil, fmt.Errorf("looking for parameter name at char %d", p.pos)
 		}
-		found := false
-	L:
-		for *pos < len(exp) {
-			c := exp[*pos]
-			switch c {
-			case ':', '=': // accept both : and = for backward compat
-				found = true
-				break L
-			case ' ', '\n', '\r', '\t':
-				// ignore whitespaces
-			default:
-				return nil, fmt.Errorf("looking for : at char %d", *pos)
-			}
-			*pos++
+		p.eatWhitespaces()
+		if !p.expect(':') && !p.expect('=') {
+			return nil, fmt.Errorf("looking for : at char %d", p.pos)
 		}
-		if !found {
-			return nil, fmt.Errorf("looking for : at char %d", *pos)
-		}
-		*pos++
-		value, err := scanProjectionParamValue(exp, pos)
+		p.eatWhitespaces()
+		value, err := p.scanParamValue()
 		if err != nil {
 			return nil, err
 		}
 		params[name] = value
-		ignoreWhitespaces(exp, pos)
-		c := charAtPos(exp, pos)
+		p.eatWhitespaces()
+		c := p.peek()
 		if c == ')' {
 			break
 		} else if c == ',' {
-			*pos++
+			p.pos++
 		} else {
-			return nil, fmt.Errorf("looking for `,' or ')' at char %d", *pos)
+			return nil, fmt.Errorf("looking for `,' or ')' at char %d", p.pos)
 		}
 	}
 	return params, nil
 }
 
-// scanProjectionFieldName captures a field name at current position and advance
+// p.scanFieldName captures a field name at current position and advance
 // the cursor position "pos" at the next character following the field name.
-func scanProjectionFieldName(exp string, pos *int) string {
-	ignoreWhitespaces(exp, pos)
+func (p *projectionParser) scanFieldName() string {
 	field := []byte{}
-	for *pos < len(exp) {
-		c := exp[*pos]
+	for p.more() {
+		c := p.peek()
 		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' {
 			field = append(field, c)
-			*pos++
+			p.pos++
 			continue
 		}
 		break
@@ -192,101 +188,142 @@ func scanProjectionFieldName(exp string, pos *int) string {
 	return string(field)
 }
 
-// scanProjectionFieldNameWithAlias parses a field optional alias followed by it's
+// p.scanFieldNameWithAlias parses a field optional alias followed by it's
 // name separated by a column at current position and advance the cursor
 // position "pos" at the next character following the field name.
-func scanProjectionFieldNameWithAlias(exp string, pos *int) (name string, alias string) {
-	name = scanProjectionFieldName(exp, pos)
-	ignoreWhitespaces(exp, pos)
-	if *pos < len(exp) && exp[*pos] == ':' {
-		*pos++
-		ignoreWhitespaces(exp, pos)
+func (p *projectionParser) scanFieldNameWithAlias() (name string, alias string) {
+	name = p.scanFieldName()
+	p.eatWhitespaces()
+	if p.expect(':') {
+		p.eatWhitespaces()
 		alias = name
-		name = scanProjectionFieldName(exp, pos)
+		name = p.scanFieldName()
 	}
 	return name, alias
 }
 
-// scanProjectionParamValue captures a parameter value at the current position and
+// p.scanParamValue captures a parameter value at the current position and
 // advance the cursor position "pos" at the next character following the field name.
 //
 // The returned value may be either a string if the value was quotted or a float
 // if not an was a valid number. In case of syntax error, an error is returned.
-func scanProjectionParamValue(exp string, pos *int) (interface{}, error) {
-	ignoreWhitespaces(exp, pos)
-	c := charAtPos(exp, pos)
-	if c == '"' || c == '\'' {
-		quote := c
-		quotted := false
-		closed := false
-		value := []byte{}
-		*pos++
-	L:
-		for *pos < len(exp) {
-			c := exp[*pos]
-			if quotted {
-				quotted = false
-				value = append(value, c)
-			} else {
-				switch c {
-				case '\\':
-					quotted = true
-				case quote:
-					*pos++
-					closed = true
-					break L
-				default:
-					value = append(value, c)
-				}
-			}
-			*pos++
-		}
-		if !closed {
-			return nil, fmt.Errorf("looking for %c at char %d", quote, *pos)
-		}
-		return string(value), nil
-	} else if (c >= '0' && c <= '9') || c == '-' {
-		dot := false
-		value := []byte{c}
-		*pos++
-		for *pos < len(exp) {
-			c := exp[*pos]
-			if c >= '0' && c <= '9' {
-				value = append(value, c)
-			} else if !dot && c == '.' {
-				dot = true
-				value = append(value, c)
-			} else {
-				break
-			}
-			*pos++
-		}
-		return strconv.ParseFloat(string(value), 64)
-	} else {
-		return nil, fmt.Errorf("looking for value at char %d", *pos)
+func (p *projectionParser) scanParamValue() (interface{}, error) {
+	switch p.peek() {
+	case '"', '\'':
+		return p.parseString()
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-':
+		return p.parseNumber()
+	default:
+		return nil, fmt.Errorf("looking for value at char %d", p.pos)
 	}
 }
 
-// ignoreWhitespaces advance the cursor position pos until non printable
-// characters are met.
-func ignoreWhitespaces(exp string, pos *int) {
-	for *pos < len(exp) {
-		c := exp[*pos]
-		switch c {
+// parseNumber parses a number as float.
+func (p *projectionParser) parseNumber() (float64, error) {
+	end := p.pos
+	if p.peek() == '-' {
+		end++
+	}
+	if c := p.peekAt(end); c >= '0' && c <= '9' {
+		end++
+	} else {
+		return 0, errors.New("not a number")
+	}
+	for {
+		if c := p.peekAt(end); (c >= '0' && c <= '9') || c == '.' || c == 'e' {
+			end++
+		} else {
+			break
+		}
+	}
+	f, err := strconv.ParseFloat(p.exp[p.pos:end], 64)
+	if err != nil {
+		return 0, fmt.Errorf("not a number: %v", err)
+	}
+	p.pos = end
+	return f, nil
+}
+
+// parseString parses a string quotted with " or '.
+func (p *projectionParser) parseString() (string, error) {
+	quote := p.peek()
+	if quote != '"' && quote != '\'' {
+		return "", errors.New("not a string")
+	}
+	start := p.pos
+	end := start + 1
+	escaped := false
+	simple := true
+	done := false
+	for ; end < len(p.exp); end++ {
+		c := p.peekAt(end)
+		if escaped {
+			escaped = false
+		} else if c == '\\' {
+			escaped = true
+			simple = false
+		} else if c == quote {
+			done = true
+			end++
+			break
+		}
+	}
+	if !done {
+		return "", errors.New("not a string: unexpected EOF")
+	}
+	if simple {
+		// If no quoted char found, just return the string without the surrounding
+		// quotes to avoid allocation.
+		p.pos = end
+		return p.exp[start+1 : end-1], nil
+	}
+	s, err := strconv.Unquote(p.exp[start:end])
+	if err != nil {
+		return "", fmt.Errorf("not a string: %v", err)
+	}
+	p.pos = end
+	return s, nil
+}
+
+// more returns true if there is more data to parse.
+func (p *projectionParser) more() bool {
+	return p.pos < len(p.exp)
+}
+
+// expect advances the cursor if the current char is equal to c or return
+// false otherwise.
+func (p *projectionParser) expect(c byte) bool {
+	if p.peek() == c {
+		p.pos++
+		return true
+	}
+	return false
+}
+
+// peek returns the char at the current position without advancing the cursor.
+func (p *projectionParser) peek() byte {
+	if p.more() {
+		return p.exp[p.pos]
+	}
+	return 0
+}
+
+// peek returns the char at the given position without moving the cursor.
+func (p *projectionParser) peekAt(pos int) byte {
+	if pos < len(p.exp) {
+		return p.exp[pos]
+	}
+	return 0
+}
+
+// eatWhitespaces advance the cursor position pos until non printable characters are met.
+func (p *projectionParser) eatWhitespaces() {
+	for p.more() {
+		switch p.exp[p.pos] {
 		case ' ', '\n', '\r', '\t':
-			// ignore witespaces
-			*pos++
+			p.pos++
 			continue
 		}
 		break
 	}
-}
-
-// charAtPos returns the character at current position or 0x0 if the current
-// position is out of range.
-func charAtPos(exp string, pos *int) byte {
-	if *pos < len(exp) {
-		return exp[*pos]
-	}
-	return 0
 }

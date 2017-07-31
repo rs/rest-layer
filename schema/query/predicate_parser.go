@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-type parser struct {
+type predicateParser struct {
 	query string
 	pos   int
 }
@@ -23,11 +23,11 @@ func MustParsePredicate(query string) Predicate {
 
 // ParsePredicate parses a predicate.
 func ParsePredicate(predicate string) (Predicate, error) {
-	p := &parser{query: predicate}
+	p := &predicateParser{query: predicate}
 	return p.parse()
 }
 
-func (p *parser) parse() (Predicate, error) {
+func (p *predicateParser) parse() (Predicate, error) {
 	p.eatWhitespaces()
 	q, err := p.parseExpressions()
 	if err != nil {
@@ -53,7 +53,7 @@ func (p *parser) parse() (Predicate, error) {
 //   {foo: "bar", bar: "baz"}
 //   {$or: [{foo: "bar"}, {foo: "baz"}]}
 //   {foo: {$exists: true}}
-func (p *parser) parseExpressions() ([]Expression, error) {
+func (p *predicateParser) parseExpressions() ([]Expression, error) {
 	exps := []Expression{}
 	if !p.expect('{') {
 		return nil, fmt.Errorf("expected '{' got %q", p.peek())
@@ -87,7 +87,7 @@ func (p *parser) parseExpressions() ([]Expression, error) {
 //   foo: "bar"
 //   $or: [{foo: "bar"}, {foo: "baz"}]
 //   foo: {$exists: true}
-func (p *parser) parseExpression() (Expression, error) {
+func (p *predicateParser) parseExpression() (Expression, error) {
 	oldPos := p.pos
 	label, err := p.parseLabel()
 	if err != nil {
@@ -121,7 +121,7 @@ func (p *parser) parseExpression() (Expression, error) {
 }
 
 // parseSubExpressions parses [{exp}, {exp, exp}...].
-func (p *parser) parseSubExpressions() ([]Expression, error) {
+func (p *predicateParser) parseSubExpressions() ([]Expression, error) {
 	if !p.expect('[') {
 		return nil, fmt.Errorf("expected '[' got %q", p.peek())
 	}
@@ -165,7 +165,7 @@ func (p *parser) parseSubExpressions() ([]Expression, error) {
 //   {$exist: true}
 //   {$ne: "foo"}
 //   {$in: ["foo", "bar"]}
-func (p *parser) parseCommand(field string) (Expression, error) {
+func (p *predicateParser) parseCommand(field string) (Expression, error) {
 	oldPos := p.pos
 	if p.expect('{') {
 		p.eatWhitespaces()
@@ -263,7 +263,7 @@ VALUE:
 
 // parseLabel parses a label with or without quotes and advance the curser right
 // after the ":".
-func (p *parser) parseLabel() (label string, err error) {
+func (p *predicateParser) parseLabel() (label string, err error) {
 	if p.peek() == '"' {
 		if label, err = p.parseString(); err != nil {
 			return "", fmt.Errorf("invalid label: %v", err)
@@ -294,7 +294,7 @@ func (p *parser) parseLabel() (label string, err error) {
 
 // parseValue parses a value like JSON with optional quotes for dictionary keys
 // and advance the cursor after the end of the value.
-func (p *parser) parseValue() (Value, error) {
+func (p *predicateParser) parseValue() (Value, error) {
 	c := p.peek()
 	switch c {
 	case '"':
@@ -315,7 +315,7 @@ func (p *parser) parseValue() (Value, error) {
 }
 
 // parseValues parses a list of values like [Value, Value...].
-func (p *parser) parseValues() ([]Value, error) {
+func (p *predicateParser) parseValues() ([]Value, error) {
 	if !p.expect('[') {
 		return nil, fmt.Errorf("expected '[' got %q", p.peek())
 	}
@@ -344,7 +344,7 @@ func (p *parser) parseValues() ([]Value, error) {
 }
 
 // parseDict parses a dictionary of key: Value with keys optionally quotted.
-func (p *parser) parseDict() (map[string]Value, error) {
+func (p *predicateParser) parseDict() (map[string]Value, error) {
 	if !p.expect('{') {
 		return nil, fmt.Errorf("expected '{' got %q", p.peek())
 	}
@@ -378,7 +378,7 @@ func (p *parser) parseDict() (map[string]Value, error) {
 }
 
 // parseBool parses a Boolean value.
-func (p *parser) parseBool() (bool, error) {
+func (p *predicateParser) parseBool() (bool, error) {
 	switch p.peek() {
 	case 't':
 		if p.pos+4 <= len(p.query) && p.query[p.pos:p.pos+4] == "true" {
@@ -395,7 +395,7 @@ func (p *parser) parseBool() (bool, error) {
 }
 
 // parseNumber parses a number as float.
-func (p *parser) parseNumber() (float64, error) {
+func (p *predicateParser) parseNumber() (float64, error) {
 	end := p.pos
 	if p.peek() == '-' {
 		end++
@@ -421,7 +421,7 @@ func (p *parser) parseNumber() (float64, error) {
 }
 
 // parseString parses a string.
-func (p *parser) parseString() (string, error) {
+func (p *predicateParser) parseString() (string, error) {
 	if p.peek() != '"' {
 		return "", errors.New("not a string")
 	}
@@ -461,13 +461,13 @@ func (p *parser) parseString() (string, error) {
 }
 
 // more returns true if there is more data to parse.
-func (p *parser) more() bool {
+func (p *predicateParser) more() bool {
 	return p.pos < len(p.query)
 }
 
 // expect advances the cursor if the current char is equal to c or return
 // false otherwise.
-func (p *parser) expect(c byte) bool {
+func (p *predicateParser) expect(c byte) bool {
 	if p.peek() == c {
 		p.pos++
 		return true
@@ -476,7 +476,7 @@ func (p *parser) expect(c byte) bool {
 }
 
 // peek returns the char at the current position without advancing the cursor.
-func (p *parser) peek() byte {
+func (p *predicateParser) peek() byte {
 	if p.more() {
 		return p.query[p.pos]
 	}
@@ -484,7 +484,7 @@ func (p *parser) peek() byte {
 }
 
 // peek returns the char at the given position without moving the cursor.
-func (p *parser) peekAt(pos int) byte {
+func (p *predicateParser) peekAt(pos int) byte {
 	if pos < len(p.query) {
 		return p.query[pos]
 	}
@@ -492,7 +492,7 @@ func (p *parser) peekAt(pos int) byte {
 }
 
 // eatWhitespaces advance the cursor position pos until non printable characters are met.
-func (p *parser) eatWhitespaces() {
+func (p *predicateParser) eatWhitespaces() {
 	for p.more() {
 		switch p.query[p.pos] {
 		case ' ', '\n', '\r', '\t':

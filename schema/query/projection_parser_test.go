@@ -67,6 +67,11 @@ func TestParseProjection(t *testing.T) {
 			Projection{{Name: "foo", Params: map[string]interface{}{"bar": "baz"}}},
 		},
 		{
+			` foo ( bar : "baz" ) `,
+			nil,
+			Projection{{Name: "foo", Params: map[string]interface{}{"bar": "baz"}}},
+		},
+		{
 			`foo(bar:"baz\"zab")`,
 			nil,
 			Projection{{Name: "foo", Params: map[string]interface{}{"bar": "baz\"zab"}}},
@@ -138,7 +143,7 @@ func TestParseProjection(t *testing.T) {
 		},
 		{
 			`foo(bar:"baz)`,
-			errors.New("looking for \" at char 13"),
+			errors.New("not a string: unexpected EOF"),
 			Projection{},
 		},
 		{
