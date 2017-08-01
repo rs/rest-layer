@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHandlerGetListInvalidLookupFields(t *testing.T) {
+func TestHandlerGetListInvalidQueryFields(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test", nil)
@@ -38,7 +38,7 @@ func TestHandlerGetListInvalidLookupFields(t *testing.T) {
 	}
 }
 
-func TestHandlerGetListInvalidLookupSort(t *testing.T) {
+func TestHandlerGetListInvalidQuerySort(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test", nil)
@@ -63,7 +63,7 @@ func TestHandlerGetListInvalidLookupSort(t *testing.T) {
 	}
 }
 
-func TestHandlerGetListInvalidLookupFilter(t *testing.T) {
+func TestHandlerGetListInvalidQueryFilter(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test", nil)
@@ -93,6 +93,7 @@ func TestHandlerGetListInvalidPage(t *testing.T) {
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test", nil)
 	rm := &RouteMatch{
+		Method: "GET",
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",
@@ -129,6 +130,7 @@ func TestHandlerGetListInvalidLimit(t *testing.T) {
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test", nil)
 	rm := &RouteMatch{
+		Method: "GET",
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",
@@ -165,6 +167,7 @@ func TestHandlerGetListPageWithNoLimit(t *testing.T) {
 	test := index.Bind("test", schema.Schema{}, nil, resource.Conf{})
 	r, _ := http.NewRequest("GET", "/test", nil)
 	rm := &RouteMatch{
+		Method: "GET",
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",
@@ -198,6 +201,7 @@ func TestHandlerGetListPagination(t *testing.T) {
 	test := index.Bind("test", schema.Schema{}, s, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test", nil)
 	rm := &RouteMatch{
+		Method: "GET",
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",
@@ -271,6 +275,7 @@ func TestHandlerGetListFieldHandlerError(t *testing.T) {
 	}, s, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test", nil)
 	rm := &RouteMatch{
+		Method: "GET",
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
 				Name:     "test",

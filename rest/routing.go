@@ -180,36 +180,83 @@ func (r *RouteMatch) ResourceID() interface{} {
 	return (r.ResourcePath)[l-1].Value
 }
 
-// Lookup builds a Lookup object from the matched route
-func (r *RouteMatch) Lookup() (*resource.Lookup, *Error) {
-	l := resource.NewLookup()
+// Query builds a query object from the matched route
+func (r *RouteMatch) Query() (*query.Query, *Error) {
+	q := &query.Query{}
 	// Append route fields to the query
 	for _, rp := range r.ResourcePath {
 		if rp.Value != nil {
-			l.AddQuery(query.Query{query.Equal{Field: rp.Field, Value: rp.Value}})
+			q.Predicate = append(q.Predicate, query.Equal{Field: rp.Field, Value: rp.Value})
 		}
 	}
 	// Parse query string params.
+	switch r.Method {
+	case "HEAD":
+		// request empty response
+		q.Window = &query.Window{Offset: 0, Limit: 0}
+	case "GET":
+		limit := -1
+		if l, found, err := getUintParam(r.Params, "limit"); found {
+			if err != nil {
+				return nil, &Error{422, err.Error(), nil}
+			}
+			limit = l
+		} else if l := r.Resource().Conf().PaginationDefaultLimit; l > 0 {
+			limit = l
+		}
+		skip := 0
+		if s, found, err := getUintParam(r.Params, "skip"); found {
+			if err != nil {
+				return nil, &Error{422, err.Error(), nil}
+			}
+			skip = s
+		}
+		page := 1
+		if p, found, err := getUintParam(r.Params, "page"); found {
+			if err != nil {
+				return nil, &Error{422, err.Error(), nil}
+			}
+			page = p
+		}
+		if page > 1 && limit <= 0 {
+			return nil, &Error{422, "Cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size", nil}
+		}
+		q.Window = query.Page(page, limit, skip)
+	}
 	if sort := r.Params.Get("sort"); sort != "" {
-		if err := l.SetSort(sort, r.Resource().Validator()); err != nil {
+		s, err := query.ParseSort(sort)
+		if err == nil {
+			err = s.Validate(r.Resource().Validator())
+		}
+		if err != nil {
 			return nil, &Error{422, fmt.Sprintf("Invalid `sort` parameter: %s", err), nil}
 		}
+		q.Sort = s
 	}
 	if filters, found := r.Params["filter"]; found {
 		// If several filter parameters are present, merge them using $and
-		// (see lookup.addFilter).
 		for _, filter := range filters {
-			if err := l.AddFilter(filter, r.Resource().Validator()); err != nil {
+			p, err := query.ParsePredicate(filter)
+			if err == nil {
+				err = p.Validate(r.Resource().Validator())
+			}
+			if err != nil {
 				return nil, &Error{422, fmt.Sprintf("Invalid `filter` parameter: %s", err), nil}
 			}
+			q.Predicate = append(q.Predicate, p)
 		}
 	}
 	if fields := r.Params.Get("fields"); fields != "" {
-		if err := l.SetSelector(fields, r.Resource().Validator()); err != nil {
+		p, err := query.ParseProjection(fields)
+		if err == nil {
+			err = p.Validate(r.Resource().Validator())
+		}
+		if err != nil {
 			return nil, &Error{422, fmt.Sprintf("Invalid `fields` parameter: %s", err), nil}
 		}
+		q.Projection = p
 	}
-	return l, nil
+	return q, nil
 }
 
 // Release releases the route so it can be reused.

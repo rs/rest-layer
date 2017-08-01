@@ -3,7 +3,6 @@ package rest
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -173,20 +172,6 @@ func checkIntegrityRequest(r *http.Request, original *resource.Item) *Error {
 		}
 	}
 	return nil
-}
-
-func getReferenceResolver(ctx context.Context, r *resource.Resource) resource.ReferenceResolver {
-	return func(path string) (*resource.Resource, error) {
-		router, ok := IndexFromContext(ctx)
-		if !ok {
-			return nil, errors.New("router not available in context")
-		}
-		rsrc, found := router.GetResource(path, r)
-		if !found {
-			return nil, fmt.Errorf("invalid resource reference: %s", path)
-		}
-		return rsrc, nil
-	}
 }
 
 func logErrorf(ctx context.Context, format string, a ...interface{}) {

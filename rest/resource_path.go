@@ -100,7 +100,7 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 	if parents <= 0 {
 		return nil
 	}
-	q := query.Query{}
+	predicate := query.Predicate{}
 	wait := sync.WaitGroup{}
 
 	defer wait.Wait()
@@ -109,16 +109,16 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 		if p[i].Value == nil {
 			continue
 		}
-		// Create a lookup with the parent path fields + the current path id.
-		l := resource.NewLookup()
-		lq := append(q[:], query.Equal{Field: "id", Value: p[i].Value})
-		l.AddQuery(lq)
+		// Create a query with the parent path fields + the current path id.
+		q := &query.Query{
+			Predicate: append(predicate[:], query.Equal{Field: "id", Value: p[i].Value}),
+		}
 		// Execute all intermediate checks concurrently
 		wait.Add(1)
 		go func(index int) {
 			defer wait.Done()
 			// Check if the resource exists.
-			list, err := p[index].Resource.Find(ctx, l, 0, 1)
+			list, err := p[index].Resource.Find(ctx, q)
 			if err != nil {
 				c <- err
 			} else if len(list.Items) == 0 {
@@ -128,7 +128,7 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 			}
 		}(i)
 		// Push the resource field=value for the next hops.
-		q = append(q, query.Equal{Field: p[i].Field, Value: p[i].Value})
+		predicate = append(predicate, query.Equal{Field: p[i].Field, Value: p[i].Value})
 	}
 	// Fail on first error.
 	for i := 0; i < parents; i++ {

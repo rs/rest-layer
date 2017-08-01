@@ -8,11 +8,11 @@ import (
 
 // listDelete handles DELETE resquests on a resource URL.
 func listDelete(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
-	lookup, e := route.Lookup()
+	q, e := route.Query()
 	if e != nil {
 		return e.Code, nil, e
 	}
-	total, err := route.Resource().Clear(ctx, lookup)
+	total, err := route.Resource().Clear(ctx, q)
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

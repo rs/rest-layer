@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHandlerGetItemInvalidLookupFields(t *testing.T) {
+func TestHandlerGetItemInvalidQueryFields(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test/1", nil)
@@ -41,7 +41,7 @@ func TestHandlerGetItemInvalidLookupFields(t *testing.T) {
 	}
 }
 
-func TestHandlerGetItemInvalidLookupSort(t *testing.T) {
+func TestHandlerGetItemInvalidQuerySort(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test", nil)
@@ -68,7 +68,7 @@ func TestHandlerGetItemInvalidLookupSort(t *testing.T) {
 	}
 }
 
-func TestHandlerGetItemInvalidLookupFilter(t *testing.T) {
+func TestHandlerGetItemInvalidQueryFilter(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test", nil)

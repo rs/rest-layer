@@ -33,12 +33,15 @@ func TestHandlerPostList(t *testing.T) {
 			ResponseCode: 201,
 			ResponseBody: `{"foo":"bar","id":"1"}`,
 			ExtraTest: func(t *testing.T, vars *requestTestVars) {
-				lkp := resource.NewLookupWithQuery(query.Query{query.Equal{Field: "id", Value: "1"}})
+				q := &query.Query{
+					Predicate: query.Predicate{query.Equal{Field: "id", Value: "1"}},
+					Window:    &query.Window{Limit: 1},
+				}
 				s, ok := vars.Storers["foo"]
 				if !assert.True(t, ok) {
 					return
 				}
-				l, err := s.Find(context.TODO(), lkp, 0, 1)
+				l, err := s.Find(context.TODO(), q)
 				assert.NoError(t, err)
 				if assert.Len(t, l.Items, 1) {
 					assert.Equal(t, map[string]interface{}{"id": "1", "foo": "bar"}, l.Items[0].Payload)
@@ -60,7 +63,7 @@ func TestHandlerPostList(t *testing.T) {
 				"message": "Malformed body: invalid character 'i' looking for beginning of object key string"
 			}`,
 		},
-		"InvalIDLookupFields": {
+		"InvalIDQueryFields": {
 			Init: func() *requestTestVars {
 				index := resource.NewIndex()
 				index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)

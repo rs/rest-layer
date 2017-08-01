@@ -4,16 +4,19 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/rs/rest-layer/schema/query"
 )
 
 // itemGet handles GET and HEAD resquests on an item URL.
 func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
-	lookup, e := route.Lookup()
+	q, e := route.Query()
 	if e != nil {
 		return e.Code, nil, e
 	}
 	rsrc := route.Resource()
-	list, err := rsrc.Find(ctx, lookup, 0, 1)
+	q.Window = &query.Window{Limit: 1}
+	list, err := rsrc.Find(ctx, q)
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e
@@ -35,7 +38,7 @@ func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			return 304, nil, nil
 		}
 	}
-	item.Payload, err = lookup.ApplySelector(ctx, rsrc.Validator(), item.Payload, getReferenceResolver(ctx, rsrc))
+	item.Payload, err = q.Projection.Eval(ctx, item.Payload, restResource{rsrc})
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

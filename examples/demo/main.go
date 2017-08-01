@@ -105,7 +105,7 @@ var (
 						"body": {
 							// Dependency defines that body field can't be changed if
 							// the published field is not "false".
-							Dependency: query.MustParse(`{"published": false}`),
+							Dependency: query.MustParsePredicate(`{"published": false}`),
 							Validator: &schema.String{
 								MaxLen: 100000,
 							},

@@ -91,18 +91,13 @@ func getSubResourceResolver(r *resource.Resource) graphql.FieldResolveFn {
 		if !ok {
 			return nil, nil
 		}
-		lookup, offset, limit, err := listParamResolver(r, p, nil)
+		q, err := listParamResolver(r, p, nil)
 		if err != nil {
 			return nil, err
 		}
 		// Limit the connection to parent's owned.
-		lookup.AddQuery(query.Query{
-			query.Equal{
-				Field: r.ParentField(),
-				Value: parent["id"],
-			},
-		})
-		list, err := r.Find(p.Context, lookup, offset, limit)
+		q.Predicate = append(q.Predicate, query.Equal{Field: r.ParentField(), Value: parent["id"]})
+		list, err := r.Find(p.Context, q)
 		if err != nil {
 			return nil, err
 		}

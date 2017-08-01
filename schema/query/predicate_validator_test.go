@@ -93,7 +93,7 @@ func TestValidateErrors(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		q, err := Parse(tt.query)
+		q, err := ParsePredicate(tt.query)
 		if err != nil {
 			t.Errorf("Unexpected parse error for `%v`: %v", tt.query, err)
 			continue

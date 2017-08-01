@@ -6,6 +6,7 @@ import (
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 )
 
 // itemPut handles PUT resquests on an item URL.
@@ -16,7 +17,7 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	if e := decodePayload(r, &payload); e != nil {
 		return e.Code, nil, e
 	}
-	lookup, e := route.Lookup()
+	q, e := route.Query()
 	if e != nil {
 		return e.Code, nil, e
 	}
@@ -24,7 +25,8 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 	// Fetch original item if exist (PUT can be used to create a document with a
 	// manual id).
 	var original *resource.Item
-	if l, err := rsrc.Find(ctx, lookup, 0, 1); err != nil && err != ErrNotFound {
+	q.Window = &query.Window{Limit: 1}
+	if l, err := rsrc.Find(ctx, q); err != nil && err != ErrNotFound {
 		e = NewError(err)
 		return e.Code, nil, e
 	} else if len(l.Items) == 1 {
@@ -94,8 +96,8 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			return e.Code, nil, e
 		}
 	}
-	// Apply selector so response gets the same format as read requests.
-	item.Payload, err = lookup.ApplySelector(ctx, rsrc.Validator(), item.Payload, getReferenceResolver(ctx, rsrc))
+	// Evaluate projection so response gets the same format as read requests.
+	item.Payload, err = q.Projection.Eval(ctx, item.Payload, restResource{rsrc})
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

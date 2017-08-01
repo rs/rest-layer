@@ -95,16 +95,14 @@ type AuthResourceHook struct {
 }
 
 // OnFind implements resource.FindEventHandler interface
-func (a AuthResourceHook) OnFind(ctx context.Context, lookup *resource.Lookup, offset, limit int) error {
+func (a AuthResourceHook) OnFind(ctx context.Context, q *query.Query) error {
 	// Reject unauthorized users
 	user, found := UserFromContext(ctx)
 	if !found {
 		return resource.ErrUnauthorized
 	}
-	// Add a lookup condition to restrict to result on objects owned by this user
-	lookup.AddQuery(query.Query{
-		query.Equal{Field: a.UserField, Value: user.ID},
-	})
+	// Add a predicate to the query to restrict to result on objects owned by this user
+	q.Predicate = append(q.Predicate, query.Equal{Field: a.UserField, Value: user.ID})
 	return nil
 }
 
@@ -181,16 +179,14 @@ func (a AuthResourceHook) OnDelete(ctx context.Context, item *resource.Item) err
 }
 
 // OnClear implements resource.ClearEventHandler interface
-func (a AuthResourceHook) OnClear(ctx context.Context, lookup *resource.Lookup) error {
+func (a AuthResourceHook) OnClear(ctx context.Context, q *query.Query) error {
 	// Reject unauthorized users
 	user, found := UserFromContext(ctx)
 	if !found {
 		return resource.ErrUnauthorized
 	}
-	// Add a lookup condition to restrict to impact of the clear on objects owned by this user
-	lookup.AddQuery(query.Query{
-		query.Equal{Field: a.UserField, Value: user.ID},
-	})
+	// Add a predicate to the query to restrict to impact of the clear on objects owned by this user
+	q.Predicate = append(q.Predicate, query.Equal{Field: a.UserField, Value: user.ID})
 	return nil
 }
 

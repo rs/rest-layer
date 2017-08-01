@@ -10,7 +10,7 @@ import (
 
 // listPost handles POST resquests on a resource URL.
 func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
-	lookup, e := route.Lookup()
+	q, e := route.Query()
 	if e != nil {
 		return e.Code, nil, e
 	}
@@ -39,8 +39,8 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 		e = NewError(err)
 		return e.Code, nil, e
 	}
-	// Apply selector so response gets the same format as read requests.
-	item.Payload, err = lookup.ApplySelector(ctx, rsrc.Validator(), item.Payload, getReferenceResolver(ctx, rsrc))
+	// Evaluate projection so response gets the same format as read requests.
+	item.Payload, err = q.Projection.Eval(ctx, item.Payload, restResource{rsrc})
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

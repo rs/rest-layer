@@ -2,6 +2,7 @@
 Package rest is a `net/http` handler responsible for HTTP RESTful implementation
 for the REST Layer framework.
 
-See http://github.com/rs/rest-layer for full REST Layer documentation.
+This package is part of the rest-layer project. See http://rest-layer.io for
+full REST Layer documentation.
 */
 package rest

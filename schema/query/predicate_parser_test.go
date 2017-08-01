@@ -2,6 +2,9 @@ package query
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -11,329 +14,342 @@ import (
 func TestParse(t *testing.T) {
 	tests := []struct {
 		query string
-		want  Query
+		want  Predicate
 		err   error
 	}{
 		{
 			`{}`,
-			Query{},
+			Predicate{},
 			nil,
 		},
 		{
 			`{"foo": "bar"}`,
-			Query{Equal{Field: "foo", Value: "bar"}},
+			Predicate{Equal{Field: "foo", Value: "bar"}},
 			nil,
 		},
 		{
 			`{"foo": -1.1}`,
-			Query{Equal{Field: "foo", Value: -1.1}},
+			Predicate{Equal{Field: "foo", Value: -1.1}},
 			nil,
 		},
 		{
 			`{"foo": true}`,
-			Query{Equal{Field: "foo", Value: true}},
+			Predicate{Equal{Field: "foo", Value: true}},
 			nil,
 		},
 		{
 			`{"foo": false}`,
-			Query{Equal{Field: "foo", Value: false}},
+			Predicate{Equal{Field: "foo", Value: false}},
 			nil,
 		},
 		{
 			`{"foo": "bar \n\" ❤️"}`,
-			Query{Equal{Field: "foo", Value: "bar \n\" ❤️"}},
+			Predicate{Equal{Field: "foo", Value: "bar \n\" ❤️"}},
 			nil,
 		},
 		{
 			`{"foo": {"bar": "baz", "baz": 1.1}}`,
-			Query{Equal{Field: "foo", Value: map[string]Value{"bar": "baz", "baz": 1.1}}},
+			Predicate{Equal{Field: "foo", Value: map[string]Value{"bar": "baz", "baz": 1.1}}},
 			nil,
 		},
 		{
 			`{foo: {}}`,
-			Query{Equal{Field: "foo", Value: map[string]Value{}}},
+			Predicate{Equal{Field: "foo", Value: map[string]Value{}}},
 			nil,
 		},
 		{
 			`{"foo.bar": "baz"}`,
-			Query{Equal{Field: "foo.bar", Value: "baz"}},
+			Predicate{Equal{Field: "foo.bar", Value: "baz"}},
 			nil,
 		},
 		{
 			`{"foo": {"$ne": "bar"}}`,
-			Query{NotEqual{Field: "foo", Value: "bar"}},
+			Predicate{NotEqual{Field: "foo", Value: "bar"}},
 			nil,
 		},
 		{
 			`{"foo": {"$exists": true}}`,
-			Query{Exist{Field: "foo"}},
+			Predicate{Exist{Field: "foo"}},
 			nil,
 		},
 		{
 			`{"foo": {"$exists": false}}`,
-			Query{NotExist{Field: "foo"}},
+			Predicate{NotExist{Field: "foo"}},
 			nil,
 		},
 		{
 			`{"baz": {"$gt": 1}}`,
-			Query{GreaterThan{Field: "baz", Value: float64(1)}},
+			Predicate{GreaterThan{Field: "baz", Value: float64(1)}},
 			nil,
 		},
 		{
 			`{"$or": [{"foo": "bar"}, {"foo": "baz"}]}`,
-			Query{Or{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}},
+			Predicate{Or{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}},
 			nil,
 		},
 		{
 			`{"$or": [{"foo": "bar"}, {"foo": "baz", "bar": "baz"}]}`,
-			Query{Or{Equal{Field: "foo", Value: "bar"}, And{Equal{Field: "foo", Value: "baz"}, Equal{Field: "bar", Value: "baz"}}}},
+			Predicate{Or{Equal{Field: "foo", Value: "bar"}, And{Equal{Field: "foo", Value: "baz"}, Equal{Field: "bar", Value: "baz"}}}},
 			nil,
 		},
 
 		{
 			`{"foo": {"$regex": "regex.+awesome"}}`,
-			Query{Regex{Field: "foo", Value: regexp.MustCompile("regex.+awesome")}},
+			Predicate{Regex{Field: "foo", Value: regexp.MustCompile("regex.+awesome")}},
 			nil,
 		},
 		{
 			`{"$and": [{"foo": "bar"}, {"foo": "baz"}]}`,
-			Query{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}},
+			Predicate{And{Equal{Field: "foo", Value: "bar"}, Equal{Field: "foo", Value: "baz"}}},
+			nil,
+		},
+		{
+			`{"$and": [{"foo": "bar", "bar": "baz"}, {"baz": "foo"}]}`,
+			Predicate{And{And{Equal{Field: "foo", Value: "bar"}, Equal{Field: "bar", Value: "baz"}}, Equal{Field: "baz", Value: "foo"}}},
 			nil,
 		},
 		{
 			`{"foo": {"$in": ["bar", "baz"]}}`,
-			Query{In{Field: "foo", Values: []Value{"bar", "baz"}}},
+			Predicate{In{Field: "foo", Values: []Value{"bar", "baz"}}},
 			nil,
 		},
 		{
 			`{"foo": {"$nin": ["bar", "baz"]}}`,
-			Query{NotIn{Field: "foo", Values: []Value{"bar", "baz"}}},
+			Predicate{NotIn{Field: "foo", Values: []Value{"bar", "baz"}}},
 			nil,
 		},
 		{
 			`{ "foo" : { "$in" : [ "bar" , "baz" ] } , "bar" : { "a": [ "b", "c" ] } }`,
-			Query{In{Field: "foo", Values: []Value{"bar", "baz"}}, Equal{Field: "bar", Value: map[string]Value{"a": []Value{"b", "c"}}}},
+			Predicate{In{Field: "foo", Values: []Value{"bar", "baz"}}, Equal{Field: "bar", Value: map[string]Value{"a": []Value{"b", "c"}}}},
 			nil,
 		},
 		{
 			`{`,
-			Query{},
+			Predicate{},
 			errors.New("char 1: expected a label got '\\x00'"),
 		},
 		{
 			`{foo: bar}`,
-			Query{},
+			Predicate{},
 			errors.New("char 6: foo: unexpected char 'b'"),
 		},
 		{
 			`{foo: "bar"`,
-			Query{},
+			Predicate{},
 			errors.New("char 11: expected '}' got '\\x00'"),
 		},
 		{
 			`{foo, "bar"`,
-			Query{},
+			Predicate{},
 			errors.New("char 4: expected ':' got ','"),
 		},
 
 		{
 			`{foo: "bar",}`,
-			Query{},
+			Predicate{},
 			errors.New("char 12: expected a label got '}'"),
 		},
 		{
 			`{foo: "bar"}garbage`,
-			Query{},
+			Predicate{},
 			errors.New("char 12: expected EOF got 'g'"),
 		},
 		{
 			`[]`,
-			Query{},
+			Predicate{},
 			errors.New("char 0: expected '{' got '['"),
 		},
 		{
 			`{"foo": {"$exists": 1}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 20: foo: $exists: not a boolean"),
 		},
 		{
 			`{"foo": {"$exists": true`,
-			Query{},
+			Predicate{},
 			errors.New("char 24: foo: $exists: expected '}' got '\\x00'"),
 		},
 		{
 			`{"foo": {"$in": []`,
-			Query{},
+			Predicate{},
 			errors.New("char 18: foo: $in: expected '}' got '\\x00'"),
 		},
 		{
 			`{"foo": {"$ne": "bar"`,
-			Query{},
+			Predicate{},
 			errors.New("char 21: foo: $ne: expected '}' got '\\x00'"),
 		},
 		{
 			`{"foo": {"$regex": "."`,
-			Query{},
+			Predicate{},
 			errors.New("char 22: foo: $regex: expected '}' got '\\x00'"),
 		},
 		{
 			`{"foo": {"$gt": 1`,
-			Query{},
+			Predicate{},
 			errors.New("char 17: foo: $gt: expected '}' got '\\x00'"),
 		},
 		{
 			`{"foo": {"$exists`,
-			Query{},
+			Predicate{},
 			errors.New("char 9: foo: invalid label: not a string: unexpected EOF"),
 		},
 		{
 			`{"foo": {"$ne": "`,
-			Query{},
+			Predicate{},
 			errors.New("char 16: foo: $ne: not a string: unexpected EOF"),
 		},
 		{
 			`{"foo": {"$regex": "`,
-			Query{},
+			Predicate{},
 			errors.New("char 19: foo: $regex: not a string: unexpected EOF"),
 		},
 		{
 			`{"foo": "`,
-			Query{},
+			Predicate{},
 			errors.New("char 8: foo: not a string: unexpected EOF"),
 		},
 		{
 			`{"foo": {"$ne": {"bar", "baz"}}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 22: foo: $ne: expected ':' got ','"),
 		},
 		{
 			`{"foo": {"$ne": {"bar": baz}}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 24: foo: $ne: unexpected char 'b'"),
 		},
 		{
 			`{"foo": {"$ne": {"bar": "baz"]}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 29: foo: $ne: expected '}' got ']'"),
 		},
 		{
 			`{"bar": {"$gt": "1"}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 16: bar: $gt: not a number"),
 		},
 		{
 			`{"bar": {"$gt": 1ee0}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 16: bar: $gt: not a number: strconv.ParseFloat: parsing \"1ee0\": invalid syntax"),
 		},
 
 		{
 			`{"bar": {"$in": {"bar": "1"}}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 16: bar: $in: expected '[' got '{'"),
 		},
 		{
 			`{"bar": {"$in": ["bar": "1"]}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 22: bar: $in: expected ',' or ']' got ':'"),
 		},
 		{
 			`{"bar": {"$in": [bar]}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 17: bar: $in: item #0: unexpected char 'b'"),
 		},
 		{
 			`{"bar": {"$in": "bar"}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 16: bar: $in: expected '[' got '\"'"),
 		},
 		{
 			`{"$or": "foo"}`,
-			Query{},
+			Predicate{},
 			errors.New("char 8: $or: expected '[' got '\"'"),
 		},
 		{
 			`{"$or": ["foo", "bar"]}`,
-			Query{},
+			Predicate{},
 			errors.New("char 9: $or: expected '{' got '\"'"),
 		},
 		{
 			`{"$or": [{"foo": "bar"}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 23: $or: expected ']' got '}'"),
 		},
 		{
 			`{"$or": []}`,
-			Query{},
+			Predicate{},
 			errors.New("char 10: $or: two expressions or more required"),
 		},
 		{
 			`{"$or": [{"foo": "bar"}]}`,
-			Query{},
+			Predicate{},
 			errors.New("char 24: $or: two expressions or more required"),
 		},
 		{
 			`{"$and": "foo"}`,
-			Query{},
+			Predicate{},
 			errors.New("char 9: $and: expected '[' got '\"'"),
 		},
 		{
 			`{"$and": [{"foo": "bar"}]}`,
-			Query{},
+			Predicate{},
 			errors.New("char 25: $and: two expressions or more required"),
 		},
 		{
 			`{"$and": ["foo", "bar"]}`,
-			Query{},
+			Predicate{},
 			errors.New("char 10: $and: expected '{' got '\"'"),
 		},
 		{
 			`{"foo": {"$regex": "b[..?r"}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 27: foo: $regex: invalid regex: error parsing regexp: missing closing ]: `[..?r`"),
 		},
 		{
 			`{"foo": {"$regex": "b[a-z)r"}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 28: foo: $regex: invalid regex: error parsing regexp: missing closing ]: `[a-z)r`"),
 		},
 		{
 			`{"foo": {"$regex": "b(?=a)r"}}`,
-			Query{},
+			Predicate{},
 			errors.New("char 28: foo: $regex: invalid regex: error parsing regexp: invalid or unsupported Perl syntax: `(?=`"),
 		},
 		// Hierarchy issues
 		{
 			`{"$ne": "bar"}`,
-			Query{},
+			Predicate{},
 			errors.New("char 1: $ne: invalid placement"),
 		},
 		{
 			`{"$exists": true}`,
-			Query{},
+			Predicate{},
 			errors.New("char 1: $exists: invalid placement"),
 		},
 		{
 			`{"$gt": 1}`,
-			Query{},
+			Predicate{},
 			errors.New("char 1: $gt: invalid placement"),
 		},
 		{
 			`{"$in": [1,2]}`,
-			Query{},
+			Predicate{},
 			errors.New("char 1: $in: invalid placement"),
 		},
 		{
 			`{"$regex": "someregexpression"}`,
-			Query{},
+			Predicate{},
 			errors.New("char 1: $regex: invalid placement"),
 		},
 	}
 	for i := range tests {
 		tt := tests[i]
+		if *updateFuzzCorpus {
+			os.MkdirAll("testdata/fuzz-predicate/corpus", 0755)
+			corpusFile := fmt.Sprintf("testdata/fuzz-predicate/corpus/test%d", i)
+			if err := ioutil.WriteFile(corpusFile, []byte(tt.query), 0666); err != nil {
+				t.Error(err)
+			}
+			continue
+		}
 		t.Run(strings.Replace(tt.query, " ", "", -1), func(t *testing.T) {
 			t.Parallel()
-			got, err := Parse(tt.query)
+			got, err := ParsePredicate(tt.query)
 			if !reflect.DeepEqual(err, tt.err) {
 				t.Errorf("unexpected error for `%v`\ngot:  %v\nwant: %v", tt.query, err, tt.err)
 			}
@@ -345,7 +361,7 @@ func TestParse(t *testing.T) {
 			}
 			// Parse the result of query.String()
 			str := got.String()
-			got, err = Parse(str)
+			got, err = ParsePredicate(str)
 			if err != nil {
 				t.Errorf("unexpected error for reparsed query `%v`: %v", str, err)
 			}

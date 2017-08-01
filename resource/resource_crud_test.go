@@ -6,15 +6,16 @@ import (
 	"testing"
 
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 	"github.com/stretchr/testify/assert"
 )
 
 type testStorer struct {
-	find   func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error)
+	find   func(ctx context.Context, q *query.Query) (*ItemList, error)
 	insert func(ctx context.Context, items []*Item) error
 	update func(ctx context.Context, item *Item, original *Item) error
 	delete func(ctx context.Context, item *Item) error
-	clear  func(ctx context.Context, lookup *Lookup) (int, error)
+	clear  func(ctx context.Context, q *query.Query) (int, error)
 }
 
 type testMStorer struct {
@@ -22,8 +23,8 @@ type testMStorer struct {
 	multiGet func(ctx context.Context, ids []interface{}) ([]*Item, error)
 }
 
-func (s testStorer) Find(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
-	return s.find(ctx, lookup, offset, limit)
+func (s testStorer) Find(ctx context.Context, q *query.Query) (*ItemList, error) {
+	return s.find(ctx, q)
 }
 func (s testStorer) Insert(ctx context.Context, items []*Item) error {
 	return s.insert(ctx, items)
@@ -34,8 +35,8 @@ func (s testStorer) Update(ctx context.Context, item *Item, original *Item) erro
 func (s testStorer) Delete(ctx context.Context, item *Item) error {
 	return s.delete(ctx, item)
 }
-func (s testStorer) Clear(ctx context.Context, lookup *Lookup) (int, error) {
-	return s.clear(ctx, lookup)
+func (s testStorer) Clear(ctx context.Context, q *query.Query) (int, error) {
+	return s.clear(ctx, q)
 }
 func (s testMStorer) MultiGet(ctx context.Context, ids []interface{}) ([]*Item, error) {
 	return s.multiGet(ctx, ids)
@@ -43,7 +44,7 @@ func (s testMStorer) MultiGet(ctx context.Context, ids []interface{}) ([]*Item, 
 
 func newTestStorer() *testStorer {
 	return &testStorer{
-		find: func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
+		find: func(ctx context.Context, q *query.Query) (*ItemList, error) {
 			return &ItemList{}, nil
 		},
 		insert: func(ctx context.Context, items []*Item) error {
@@ -55,7 +56,7 @@ func newTestStorer() *testStorer {
 		delete: func(ctx context.Context, item *Item) error {
 			return nil
 		},
-		clear: func(ctx context.Context, lookup *Lookup) (int, error) {
+		clear: func(ctx context.Context, q *query.Query) (int, error) {
 			return 0, nil
 		},
 	}
@@ -338,26 +339,26 @@ func TestResourceFind(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.find = func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
+	s.find = func(ctx context.Context, q *query.Query) (*ItemList, error) {
 		handler = true
 		return &ItemList{Items: []*Item{{ID: 1}}}, nil
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
+	r.Use(FindEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		preHook = true
-		assert.NotNil(t, lookup)
-		assert.Equal(t, 0, offset)
-		assert.Equal(t, 2, limit)
+		if assert.NotNil(t, q, "query") {
+			assert.Nil(t, q.Window, "window")
+		}
 		return nil
 	}))
-	r.Use(FoundEventHandlerFunc(func(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
+	r.Use(FoundEventHandlerFunc(func(ctx context.Context, q *query.Query, list **ItemList, err *error) {
 		postHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		assert.Equal(t, &ItemList{Items: []*Item{{ID: 1}}}, *list)
 		assert.NoError(t, *err)
 	}))
 	ctx := context.Background()
-	_, err := r.Find(ctx, NewLookup(), 0, 2)
+	_, err := r.Find(ctx, &query.Query{})
 	assert.NoError(t, err)
 	assert.True(t, preHook)
 	assert.True(t, handler)
@@ -367,15 +368,15 @@ func TestResourceFind(t *testing.T) {
 func TestResourceMultiFindPostHookOverwrite(t *testing.T) {
 	i := NewIndex()
 	s := newTestMStorer()
-	s.find = func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
+	s.find = func(ctx context.Context, q *query.Query) (*ItemList, error) {
 		return &ItemList{Items: []*Item{{ID: 1}}}, nil
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(FoundEventHandlerFunc(func(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
+	r.Use(FoundEventHandlerFunc(func(ctx context.Context, q *query.Query, list **ItemList, err *error) {
 		*list = &ItemList{Items: []*Item{{ID: 2}}}
 	}))
 	ctx := context.Background()
-	list, err := r.Find(ctx, NewLookup(), 0, 2)
+	list, err := r.Find(ctx, &query.Query{Window: &query.Window{Limit: 2}})
 	assert.Equal(t, &ItemList{Items: []*Item{{ID: 2}}}, list)
 	assert.NoError(t, err)
 }
@@ -384,26 +385,27 @@ func TestResourceFindError(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.find = func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
+	s.find = func(ctx context.Context, q *query.Query) (*ItemList, error) {
 		handler = true
 		return nil, errors.New("storer error")
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
+	r.Use(FindEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		preHook = true
-		assert.NotNil(t, lookup)
-		assert.Equal(t, 0, offset)
-		assert.Equal(t, 2, limit)
+		if assert.NotNil(t, q) && assert.NotNil(t, q.Window) {
+			assert.Equal(t, 0, q.Window.Offset)
+			assert.Equal(t, 2, q.Window.Limit)
+		}
 		return nil
 	}))
-	r.Use(FoundEventHandlerFunc(func(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
+	r.Use(FoundEventHandlerFunc(func(ctx context.Context, q *query.Query, list **ItemList, err *error) {
 		postHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		assert.Nil(t, *list)
 		assert.EqualError(t, *err, "storer error")
 	}))
 	ctx := context.Background()
-	_, err := r.Find(ctx, NewLookup(), 0, 2)
+	_, err := r.Find(ctx, &query.Query{Window: &query.Window{Limit: 2}})
 	assert.EqualError(t, err, "storer error")
 	assert.True(t, preHook)
 	assert.True(t, handler)
@@ -414,23 +416,23 @@ func TestResourceFindPreHookError(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.find = func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
+	s.find = func(ctx context.Context, q *query.Query) (*ItemList, error) {
 		handler = true
 		return nil, errors.New("storer error")
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
+	r.Use(FindEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		preHook = true
 		return errors.New("pre hook error")
 	}))
-	r.Use(FoundEventHandlerFunc(func(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
+	r.Use(FoundEventHandlerFunc(func(ctx context.Context, q *query.Query, list **ItemList, err *error) {
 		postHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		assert.Nil(t, *list)
 		assert.EqualError(t, *err, "pre hook error")
 	}))
 	ctx := context.Background()
-	_, err := r.Find(ctx, NewLookup(), 0, 2)
+	_, err := r.Find(ctx, &query.Query{Window: &query.Window{Limit: 2}})
 	assert.EqualError(t, err, "pre hook error")
 	assert.True(t, preHook)
 	assert.False(t, handler)
@@ -441,27 +443,28 @@ func TestResourceFindPostHookError(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.find = func(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error) {
+	s.find = func(ctx context.Context, q *query.Query) (*ItemList, error) {
 		handler = true
 		return &ItemList{Items: []*Item{{ID: 1}}}, nil
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(FindEventHandlerFunc(func(ctx context.Context, lookup *Lookup, offset, limit int) error {
+	r.Use(FindEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		preHook = true
-		assert.NotNil(t, lookup)
-		assert.Equal(t, 0, offset)
-		assert.Equal(t, 2, limit)
+		if assert.NotNil(t, q) && assert.NotNil(t, q.Window) {
+			assert.Equal(t, 0, q.Window.Offset)
+			assert.Equal(t, 2, q.Window.Limit)
+		}
 		return nil
 	}))
-	r.Use(FoundEventHandlerFunc(func(ctx context.Context, lookup *Lookup, list **ItemList, err *error) {
+	r.Use(FoundEventHandlerFunc(func(ctx context.Context, q *query.Query, list **ItemList, err *error) {
 		postHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		assert.Equal(t, &ItemList{Items: []*Item{{ID: 1}}}, *list)
 		assert.NoError(t, *err)
 		*err = errors.New("post hook error")
 	}))
 	ctx := context.Background()
-	_, err := r.Find(ctx, NewLookup(), 0, 2)
+	_, err := r.Find(ctx, &query.Query{Window: &query.Window{Limit: 2}})
 	assert.EqualError(t, err, "post hook error")
 	assert.True(t, preHook)
 	assert.True(t, handler)
@@ -822,23 +825,23 @@ func TestResourceClear(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.clear = func(ctx context.Context, lookup *Lookup) (int, error) {
+	s.clear = func(ctx context.Context, q *query.Query) (int, error) {
 		handler = true
 		return 0, nil
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(ClearEventHandlerFunc(func(ctx context.Context, lookup *Lookup) error {
+	r.Use(ClearEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		preHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		return nil
 	}))
-	r.Use(ClearedEventHandlerFunc(func(ctx context.Context, lookup *Lookup, deleted *int, err *error) {
+	r.Use(ClearedEventHandlerFunc(func(ctx context.Context, q *query.Query, deleted *int, err *error) {
 		postHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		assert.NoError(t, *err)
 	}))
 	ctx := context.Background()
-	_, err := r.Clear(ctx, NewLookup())
+	_, err := r.Clear(ctx, &query.Query{})
 	assert.NoError(t, err)
 	assert.True(t, preHook)
 	assert.True(t, handler)
@@ -849,23 +852,23 @@ func TestResourceClearError(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.clear = func(ctx context.Context, lookup *Lookup) (int, error) {
+	s.clear = func(ctx context.Context, q *query.Query) (int, error) {
 		handler = true
 		return 0, errors.New("storer error")
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(ClearEventHandlerFunc(func(ctx context.Context, lookup *Lookup) error {
+	r.Use(ClearEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		preHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		return nil
 	}))
-	r.Use(ClearedEventHandlerFunc(func(ctx context.Context, lookup *Lookup, deleted *int, err *error) {
+	r.Use(ClearedEventHandlerFunc(func(ctx context.Context, q *query.Query, deleted *int, err *error) {
 		postHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		assert.EqualError(t, *err, "storer error")
 	}))
 	ctx := context.Background()
-	_, err := r.Clear(ctx, NewLookup())
+	_, err := r.Clear(ctx, &query.Query{})
 	assert.EqualError(t, err, "storer error")
 	assert.True(t, preHook)
 	assert.True(t, handler)
@@ -876,23 +879,23 @@ func TestResourceClearPreHookError(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.clear = func(ctx context.Context, lookup *Lookup) (int, error) {
+	s.clear = func(ctx context.Context, q *query.Query) (int, error) {
 		handler = true
 		return 0, errors.New("storer error")
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(ClearEventHandlerFunc(func(ctx context.Context, lookup *Lookup) error {
+	r.Use(ClearEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		preHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		return errors.New("pre hook error")
 	}))
-	r.Use(ClearedEventHandlerFunc(func(ctx context.Context, lookup *Lookup, deleted *int, err *error) {
+	r.Use(ClearedEventHandlerFunc(func(ctx context.Context, q *query.Query, deleted *int, err *error) {
 		postHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		assert.EqualError(t, *err, "pre hook error")
 	}))
 	ctx := context.Background()
-	_, err := r.Clear(ctx, NewLookup())
+	_, err := r.Clear(ctx, &query.Query{})
 	assert.EqualError(t, err, "pre hook error")
 	assert.True(t, preHook)
 	assert.False(t, handler)
@@ -903,24 +906,24 @@ func TestResourceClearPostHookError(t *testing.T) {
 	var preHook, postHook, handler bool
 	i := NewIndex()
 	s := newTestMStorer()
-	s.clear = func(ctx context.Context, lookup *Lookup) (int, error) {
+	s.clear = func(ctx context.Context, q *query.Query) (int, error) {
 		handler = true
 		return 0, nil
 	}
 	r := i.Bind("foo", schema.Schema{}, s, DefaultConf)
-	r.Use(ClearEventHandlerFunc(func(ctx context.Context, lookup *Lookup) error {
+	r.Use(ClearEventHandlerFunc(func(ctx context.Context, q *query.Query) error {
 		preHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		return nil
 	}))
-	r.Use(ClearedEventHandlerFunc(func(ctx context.Context, lookup *Lookup, deleted *int, err *error) {
+	r.Use(ClearedEventHandlerFunc(func(ctx context.Context, q *query.Query, deleted *int, err *error) {
 		postHook = true
-		assert.NotNil(t, lookup)
+		assert.NotNil(t, q)
 		assert.NoError(t, *err)
 		*err = errors.New("post hook error")
 	}))
 	ctx := context.Background()
-	_, err := r.Clear(ctx, NewLookup())
+	_, err := r.Clear(ctx, &query.Query{})
 	assert.EqualError(t, err, "post hook error")
 	assert.True(t, preHook)
 	assert.True(t, handler)

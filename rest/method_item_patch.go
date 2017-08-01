@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/schema/query"
 )
 
 // itemPatch handles PATCH resquests on an item URL.
@@ -15,14 +16,15 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	if e := decodePayload(r, &payload); e != nil {
 		return e.Code, nil, e
 	}
-	lookup, e := route.Lookup()
+	q, e := route.Query()
 	if e != nil {
 		return e.Code, nil, e
 	}
 	// Get original item if any.
 	rsrc := route.Resource()
 	var original *resource.Item
-	if l, err := rsrc.Find(ctx, lookup, 0, 1); err != nil {
+	q.Window = &query.Window{Limit: 1}
+	if l, err := rsrc.Find(ctx, q); err != nil {
 		// If item can't be fetch, return an error.
 		e = NewError(err)
 		return e.Code, nil, e
@@ -62,8 +64,8 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 		e = NewError(err)
 		return e.Code, nil, e
 	}
-	// Apply selector so response gets the same format as read requests.
-	item.Payload, err = lookup.ApplySelector(ctx, rsrc.Validator(), item.Payload, getReferenceResolver(ctx, rsrc))
+	// Evaluate projection so response gets the same format as read requests.
+	item.Payload, err = q.Projection.Eval(ctx, item.Payload, restResource{rsrc})
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

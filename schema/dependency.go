@@ -4,15 +4,15 @@ import (
 	"fmt"
 )
 
-// Query is an interface matching the query.Query type.
-type Query interface {
+// Predicate is an interface matching the query.Predicate type.
+type Predicate interface {
 	Match(payload map[string]interface{}) bool
 	Validate(v Validator) error
 }
 
-// Q is deprecated, use query.MustParse instead.
-func Q() Query {
-	panic("schema.Q is deprecated, please use query.MustParse instead")
+// Q is deprecated, use query.MustParsePredicate instead.
+func Q() Predicate {
+	panic("schema.Q is deprecated, please use query.MustParsePredicate instead")
 }
 
 // compileDependencies recursively compiles all field.Dependency against the

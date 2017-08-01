@@ -12,43 +12,9 @@ import (
 
 // listGet handles GET resquests on a resource URL.
 func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
-	offset := 0
-	limit := 0
-	rsrc := route.Resource()
-	if route.Method != "HEAD" {
-		if l := rsrc.Conf().PaginationDefaultLimit; l > 0 {
-			limit = l
-		} else {
-			// Default value on non HEAD request for limit is -1 (pagination disabled).
-			limit = -1
-		}
-		if l, found, err := getUintParam(route.Params, "limit"); found {
-			if err != nil {
-				return 422, nil, err
-			}
-			limit = l
-		}
-		skip := 0
-		if s, found, err := getUintParam(route.Params, "skip"); found {
-			if err != nil {
-				return 422, nil, err
-			}
-			skip = s
-		}
-		page := 1
-		if p, found, err := getUintParam(route.Params, "page"); found {
-			if err != nil {
-				return 422, nil, err
-			}
-			page = p
-		}
-		if page > 1 && limit <= 0 {
-			return 422, nil, &Error{422, "Cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size", nil}
-		}
-		offset = (page-1)*limit + skip
-	}
 	forceTotal := false
-	switch rsrc.Conf().ForceTotal {
+	rsc := route.Resource()
+	switch rsc.Conf().ForceTotal {
 	case resource.TotalOptIn:
 		forceTotal = route.Params.Get("total") == "1"
 	case resource.TotalAlways:
@@ -58,24 +24,26 @@ func listGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			return 422, nil, &Error{422, "Cannot use `total' parameter: denied by configuration", nil}
 		}
 	}
-	lookup, e := route.Lookup()
+	q, e := route.Query()
 	if e != nil {
 		return e.Code, nil, e
 	}
 	var list *resource.ItemList
 	var err error
 	if forceTotal {
-		list, err = rsrc.FindWithTotal(ctx, lookup, offset, limit)
+		list, err = rsc.FindWithTotal(ctx, q)
 	} else {
-		list, err = rsrc.Find(ctx, lookup, offset, limit)
+		list, err = rsc.Find(ctx, q)
 	}
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e
 	}
-	list.Offset = offset
+	if win := q.Window; win != nil && win.Offset > 0 {
+		list.Offset = win.Offset
+	}
 	for _, item := range list.Items {
-		item.Payload, err = lookup.ApplySelector(ctx, rsrc.Validator(), item.Payload, getReferenceResolver(ctx, rsrc))
+		item.Payload, err = q.Projection.Eval(ctx, item.Payload, restResource{rsc})
 		if err != nil {
 			e = NewError(err)
 			return e.Code, nil, e

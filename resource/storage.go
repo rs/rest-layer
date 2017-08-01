@@ -8,23 +8,27 @@ import (
 
 // Storer defines the interface of an handler able to store and retrieve resources
 type Storer interface {
-	// Find searches for items in the backend store matching the lookup
-	// argument. The pagination argument must be respected. If no items are
-	// found, an empty list should be returned with no error.
+	// Find searches for items in the backend store matching the q argument. The
+	// Window of the query must be respected. If no items are found, an empty
+	// list should be returned with no error.
 	//
 	// If the total number of item can't be computed for free, ItemList.Total
 	// must be set to -1. Your Storer may implement the Counter interface to let
 	// the user explicitly request the total.
 	//
-	// The whole lookup query must be treated. If a query operation is not
-	// implemented by the storage handler, a resource.ErrNotImplemented must be
-	// returned.
+	// The whole query must be treated. If a query predicate operation or sort
+	// is not implemented by the storage handler, a resource.ErrNotImplemented
+	// must be returned.
+	//
+	// A storer must ignore the Projection part of the query and always return
+	// the document in its entirety. Documents matching a given predicate might
+	// be reused (i.e.: cached) with a different projection.
 	//
 	// If the fetching of the data is not immediate, the method must listen for
 	// cancellation on the passed ctx. If the operation is stopped due to
 	// context cancellation, the function must return the result of the
 	// ctx.Err() method.
-	Find(ctx context.Context, lookup *Lookup, offset, limit int) (*ItemList, error)
+	Find(ctx context.Context, q *query.Query) (*ItemList, error)
 	// Insert stores new items in the backend store. If any of the items does
 	// already exist, no item should be inserted and a resource.ErrConflict must
 	// be returned. The insertion of the items must be performed atomically. If
@@ -66,18 +70,18 @@ type Storer interface {
 	// context cancellation, the function must return the result of the
 	// ctx.Err() method.
 	Delete(ctx context.Context, item *Item) error
-	// Clear removes all items matching the lookup. When possible, the number of
+	// Clear removes all items matching the query. When possible, the number of
 	// items removed is returned, otherwise -1 is return as the first value.
 	//
-	// The whole lookup query must be treated. If a query operation is not
-	// implemented by the storage handler, a resource.ErrNotImplemented must be
-	// returned.
+	// The whole query must be treated. If a query predicate operation or sort
+	// is not implemented by the storage handler, a resource.ErrNotImplemented
+	// must be returned.
 	//
 	// If the removal of the data is not immediate, the method must listen for
 	// cancellation on the passed ctx. If the operation is stopped due to
 	// context cancellation, the function must return the result of the
 	// ctx.Err() method.
-	Clear(ctx context.Context, lookup *Lookup) (int, error)
+	Clear(ctx context.Context, q *query.Query) (int, error)
 }
 
 // MultiGetter is an optional interface a Storer can implement when the storage
@@ -94,14 +98,13 @@ type MultiGetter interface {
 }
 
 // Counter is an optional interface a Storer can implement to provide a way to
-// explicitly count the total number of elements a given lookup would return
-// with no pagination provided. This method is called by REST Layer when the
-// storage handler returned -1 as ItemList.Total and the user (or configuration)
-// explicitly request the total.
+// explicitly count the total number of elements a given query would return.
+// This method is called by REST Layer when the storage handler returned -1 as
+// ItemList.Total and the user (or configuration) explicitly request the total.
 type Counter interface {
 	// Count returns the total number of item in the collection given the
-	// provided lookup filter.
-	Count(ctx context.Context, lookup *Lookup) (int, error)
+	// provided query filter.
+	Count(ctx context.Context, q *query.Query) (int, error)
 }
 
 type storageHandler interface {
@@ -144,22 +147,23 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 		tmp, err = mg.MultiGet(ctx, ids)
 	} else {
 		// Otherwise, emulate MultiGetter with a Find query
-		l := NewLookup()
+		q := &query.Query{}
 		if len(ids) == 1 {
-			l.AddQuery(query.Query{
+			q.Predicate = query.Predicate{
 				query.Equal{Field: "id", Value: ids[0]},
-			})
+			}
 		} else {
 			v := make([]query.Value, len(ids))
 			for i, id := range ids {
 				v[i] = query.Value(id)
 			}
-			l.AddQuery(query.Query{
+			q.Predicate = query.Predicate{
 				query.In{Field: "id", Values: v},
-			})
+			}
 		}
+		q.Window = &query.Window{Limit: len(ids)}
 		var list *ItemList
-		list, err = s.Storer.Find(ctx, l, 0, len(ids))
+		list, err = s.Storer.Find(ctx, q)
 		if list != nil {
 			tmp = list.Items
 		}
@@ -180,31 +184,31 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 }
 
 // Find tries to use storer MultiGet with some pattern or Find otherwise.
-func (s storageWrapper) Find(ctx context.Context, lookup *Lookup, offset, limit int) (list *ItemList, err error) {
+func (s storageWrapper) Find(ctx context.Context, q *query.Query) (list *ItemList, err error) {
 	if s.Storer == nil {
 		return nil, ErrNoStorage
 	}
 	if mg, ok := s.Storer.(MultiGetter); ok {
 		// If storage supports MultiGetter interface, detect some common find
 		// pattern that could be converted to multi get.
-		if q := lookup.Filter(); len(q) == 1 && offset == 0 && len(lookup.Sort()) == 0 {
-			switch op := q[0].(type) {
+		if len(q.Predicate) == 1 && (q.Window == nil || q.Window.Offset == 0) && len(q.Sort) == 0 {
+			switch op := q.Predicate[0].(type) {
 			case query.Equal:
 				// When query pattern is a single document request by its id,
 				// use the multi get API.
-				if id, ok := op.Value.(string); ok && op.Field == "id" && (limit == 1 || limit < 0) {
+				if id, ok := op.Value.(string); ok && op.Field == "id" && (q.Window == nil || q.Window.Limit == 1) {
 					return wrapMgetList(mg.MultiGet(ctx, []interface{}{id}))
 				}
 			case query.In:
 				// When query pattern is a list of documents request by their
 				// ids, use the multi get API.
-				if op.Field == "id" && limit < 0 || limit == len(op.Values) {
+				if op.Field == "id" && (q.Window == nil || q.Window.Limit == len(op.Values)) {
 					return wrapMgetList(mg.MultiGet(ctx, valuesToInterface(op.Values)))
 				}
 			}
 		}
 	}
-	return s.Storer.Find(ctx, lookup, offset, limit)
+	return s.Storer.Find(ctx, q)
 }
 
 // wrapMgetList wraps a MultiGet response into a resource.ItemList response.
@@ -246,17 +250,17 @@ func (s storageWrapper) Delete(ctx context.Context, item *Item) (err error) {
 	return s.Storer.Delete(ctx, item)
 }
 
-func (s storageWrapper) Clear(ctx context.Context, lookup *Lookup) (deleted int, err error) {
+func (s storageWrapper) Clear(ctx context.Context, q *query.Query) (deleted int, err error) {
 	if s.Storer == nil {
 		return 0, ErrNoStorage
 	}
 	if ctx.Err() != nil {
 		return 0, ctx.Err()
 	}
-	return s.Storer.Clear(ctx, lookup)
+	return s.Storer.Clear(ctx, q)
 }
 
-func (s storageWrapper) Count(ctx context.Context, lookup *Lookup) (total int, err error) {
+func (s storageWrapper) Count(ctx context.Context, q *query.Query) (total int, err error) {
 	if s.Storer == nil {
 		return -1, ErrNoStorage
 	}
@@ -264,7 +268,7 @@ func (s storageWrapper) Count(ctx context.Context, lookup *Lookup) (total int, e
 		return -1, ctx.Err()
 	}
 	if c, ok := s.Storer.(Counter); ok {
-		return c.Count(ctx, lookup)
+		return c.Count(ctx, q)
 	}
 	return -1, ErrNotImplemented
 }

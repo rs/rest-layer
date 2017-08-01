@@ -25,8 +25,8 @@ func TestResourceBind(t *testing.T) {
 		fallback: schema.Schema{Fields: schema.Fields{
 			"bar": {
 				ReadOnly: true,
-				Validator: connection{
-					path: ".bar",
+				Validator: &schema.Connection{
+					Path: ".bar",
 				},
 				Params: schema.Params{
 					"skip": schema.Param{
@@ -123,7 +123,7 @@ func TestResourceValidatorFallback(t *testing.T) {
 }
 
 func TestResourceConnection(t *testing.T) {
-	c := connection{}
+	c := schema.Connection{}
 	v, err := c.Validate("foo")
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", v)

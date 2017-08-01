@@ -31,16 +31,16 @@ func (m *mockHandler) Update(ctx context.Context, item *resource.Item, original 
 func (m *mockHandler) Delete(ctx context.Context, item *resource.Item) error {
 	return ErrNotImplemented
 }
-func (m *mockHandler) Clear(ctx context.Context, lookup *resource.Lookup) (int, error) {
+func (m *mockHandler) Clear(ctx context.Context, q *query.Query) (int, error) {
 	return 0, ErrNotImplemented
 }
-func (m *mockHandler) Find(ctx context.Context, lookup *resource.Lookup, offset, limit int) (*resource.ItemList, error) {
+func (m *mockHandler) Find(ctx context.Context, q *query.Query) (*resource.ItemList, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.queries = append(m.queries, lookup.Filter())
+	m.queries = append(m.queries, *q)
 	return &resource.ItemList{Total: len(m.items), Items: m.items}, nil
 }
 
@@ -208,9 +208,9 @@ func TestRoutePathParentsExists(t *testing.T) {
 		// There's 3 components in the path but only 2 are parents
 		assert.Len(t, h.queries, 2)
 		// query on /foo/1234
-		assert.Contains(t, h.queries, query.Query{query.Equal{Field: "id", Value: "1234"}})
+		assert.Contains(t, h.queries, query.Query{Predicate: query.Predicate{query.Equal{Field: "id", Value: "1234"}}})
 		// query on /bar/5678 with foo/1234 context
-		assert.Contains(t, h.queries, query.Query{query.Equal{Field: "f", Value: "1234"}, query.Equal{Field: "id", Value: "5678"}})
+		assert.Contains(t, h.queries, query.Query{Predicate: query.Predicate{query.Equal{Field: "f", Value: "1234"}, query.Equal{Field: "id", Value: "5678"}}})
 	}
 
 	route = newRoute("GET")

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rs/rest-layer/schema"
+	"github.com/rs/rest-layer/schema/query"
 )
 
 // Resource holds information about a class of items exposed on the API.
@@ -64,18 +65,6 @@ func (v validatorFallback) GetField(name string) *schema.Field {
 		return f
 	}
 	return v.fallback.GetField(name)
-}
-
-// connection is a special internal validator to hook a validator of a sub resource
-// to the resource validator in order to allow embedding of sub resources during
-// field selection. Those connections are set on a fallback schema.
-type connection struct {
-	path string
-}
-
-func (v connection) Validate(value interface{}) (interface{}, error) {
-	// no validation needed
-	return value, nil
 }
 
 // new creates a new resource with provided spec, handler and config.
@@ -153,8 +142,8 @@ func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *
 	r.resources.add(sr)
 	r.validator.fallback.Fields[name] = schema.Field{
 		ReadOnly: true,
-		Validator: connection{
-			path: "." + name,
+		Validator: &schema.Connection{
+			Path: "." + name,
 		},
 		Params: schema.Params{
 			"skip": schema.Param{
@@ -313,8 +302,8 @@ func (r *Resource) MultiGet(ctx context.Context, ids []interface{}) (items []*It
 }
 
 // Find calls the Find method on the storage handler with the corresponding pre/post hooks.
-func (r *Resource) Find(ctx context.Context, lookup *Lookup, offset, limit int) (list *ItemList, err error) {
-	return r.find(ctx, lookup, offset, limit, false)
+func (r *Resource) Find(ctx context.Context, q *query.Query) (list *ItemList, err error) {
+	return r.find(ctx, q, false)
 }
 
 // FindWithTotal calls the Find method on the storage handler with the
@@ -322,31 +311,33 @@ func (r *Resource) Find(ctx context.Context, lookup *Lookup, offset, limit int) 
 // total, this method will call the Count method on the storage. If the storage
 // Find does not compute the total and the Counter interface is not implemented,
 // an ErrNotImplemented error is returned.
-func (r *Resource) FindWithTotal(ctx context.Context, lookup *Lookup, offset, limit int) (list *ItemList, err error) {
-	return r.find(ctx, lookup, offset, limit, true)
+func (r *Resource) FindWithTotal(ctx context.Context, q *query.Query) (list *ItemList, err error) {
+	return r.find(ctx, q, true)
 }
 
-func (r *Resource) find(ctx context.Context, lookup *Lookup, offset, limit int, forceTotal bool) (list *ItemList, err error) {
+func (r *Resource) find(ctx context.Context, q *query.Query, forceTotal bool) (list *ItemList, err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {
 			found := -1
 			if list != nil {
 				found = len(list.Items)
 			}
-			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Find(..., %d, %d)", r.path, offset, limit), map[string]interface{}{
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Find(...)", r.path), map[string]interface{}{
 				"duration": time.Since(t),
 				"found":    found,
 				"error":    err,
 			})
 		}(time.Now())
 	}
-	if err = r.hooks.onFind(ctx, lookup, offset, limit); err == nil {
-		list, err = r.storage.Find(ctx, lookup, offset, limit)
+	if err = r.hooks.onFind(ctx, q); err == nil {
+		list, err = r.storage.Find(ctx, q)
 		if err == nil && list.Total == -1 && forceTotal {
-			list.Total, err = r.storage.Count(ctx, lookup)
+			// Send a query with no window so the storage won't be tempted to
+			// count within the window.
+			list.Total, err = r.storage.Count(ctx, &query.Query{Predicate: q.Predicate})
 		}
 	}
-	r.hooks.onFound(ctx, lookup, &list, &err)
+	r.hooks.onFound(ctx, q, &list, &err)
 	return
 }
 
@@ -402,19 +393,19 @@ func (r *Resource) Delete(ctx context.Context, item *Item) (err error) {
 }
 
 // Clear implements Storer interface.
-func (r *Resource) Clear(ctx context.Context, lookup *Lookup) (deleted int, err error) {
+func (r *Resource) Clear(ctx context.Context, q *query.Query) (deleted int, err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
 		defer func(t time.Time) {
-			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Clear(%v)", r.path, lookup), map[string]interface{}{
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Clear(%v)", r.path, q), map[string]interface{}{
 				"duration": time.Since(t),
 				"deleted":  deleted,
 				"error":    err,
 			})
 		}(time.Now())
 	}
-	if err = r.hooks.onClear(ctx, lookup); err == nil {
-		deleted, err = r.storage.Clear(ctx, lookup)
+	if err = r.hooks.onClear(ctx, q); err == nil {
+		deleted, err = r.storage.Clear(ctx, q)
 	}
-	r.hooks.onCleared(ctx, lookup, &deleted, &err)
+	r.hooks.onCleared(ctx, q, &deleted, &err)
 	return
 }

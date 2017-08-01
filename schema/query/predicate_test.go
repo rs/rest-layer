@@ -111,7 +111,7 @@ func TestMatch(t *testing.T) {
 		tt := tests[i]
 		t.Run(strings.Replace(tt.query, " ", "", -1), func(t *testing.T) {
 			t.Parallel()
-			q, err := Parse(tt.query)
+			q, err := ParsePredicate(tt.query)
 			if err != nil {
 				t.Errorf("Unexpected error for query `%v`: %v", tt.query, err)
 			}
@@ -137,15 +137,15 @@ func TestString(t *testing.T) {
 		`{"foo": {"$in": ["bar", "baz"]}}`:                        `{foo: {$in: ["bar", "baz"]}}`,
 		`{"foo": {"$nin": ["bar", "baz"]}}`:                       `{foo: {$nin: ["bar", "baz"]}}`,
 		`{"$or": [{"foo": "bar"}, {"bar": 1}]}`:                   `{$or: [{foo: "bar"}, {bar: 1}]}`,
-		`{"$and": [{"foo": "bar"}, {"bar": 1}]}`:                  `{foo: "bar", bar: 1}`,
+		`{"$and": [{"foo": "bar"}, {"bar": 1}]}`:                  `{$and: [{foo: "bar"}, {bar: 1}]}`,
 		`{"foo": {"$regex": "rege[x]{1}.+some"}}`:                 `{foo: {$regex: "rege[x]{1}.+some"}}`,
 		`{"foo": {"$regex": "^(?i)my.+-rest.+$"}}`:                `{foo: {$regex: "^(?i)my.+-rest.+$"}}`,
-		`{"$and": [{"foo": "bar"}, {"foo": "baz"}]}`:              `{foo: "bar", foo: "baz"}`,
+		`{"$and": [{"foo": "bar"}, {"foo": "baz"}]}`:              `{$and: [{foo: "bar"}, {foo: "baz"}]}`,
 		`{"foo": "bar", "$or": [{"bar": "baz"}, {"bar": "foo"}]}`: `{foo: "bar", $or: [{bar: "baz"}, {bar: "foo"}]}`,
 		`{"foo": ["bar", "baz"]}`:                                 `{foo: ["bar","baz"]}`,
 	}
 	for query, want := range tests {
-		q, err := Parse(query)
+		q, err := ParsePredicate(query)
 		if err != nil {
 			t.Errorf("Unexpected error for query `%v`: %v", query, err)
 		}

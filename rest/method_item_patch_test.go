@@ -31,8 +31,11 @@ func TestHandlerPatchItem(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	b, _ := ioutil.ReadAll(w.Body)
 	assert.Equal(t, `{"bar":"baz","foo":"baz","id":"1"}`, string(b))
-	lkp := resource.NewLookupWithQuery(query.Query{query.Equal{Field: "id", Value: "1"}})
-	l, err := s.Find(context.TODO(), lkp, 0, 1)
+	q := &query.Query{
+		Predicate: query.Predicate{query.Equal{Field: "id", Value: "1"}},
+		Window:    &query.Window{Limit: 1},
+	}
+	l, err := s.Find(context.TODO(), q)
 	assert.NoError(t, err)
 	if assert.Len(t, l.Items, 1) {
 		assert.Equal(t, map[string]interface{}{"id": "1", "foo": "baz", "bar": "baz"}, l.Items[0].Payload)
@@ -51,7 +54,7 @@ func TestHandlerPatchItemBadPayload(t *testing.T) {
 	}
 }
 
-func TestHandlerPatchItemInvalidLookupFields(t *testing.T) {
+func TestHandlerPatchItemInvalidQueryFields(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
 	r, _ := http.NewRequest("PATCH", "/test/2", bytes.NewBufferString("{}"))
