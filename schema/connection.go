@@ -7,12 +7,7 @@ type Connection struct {
 	Path string
 }
 
-func (v *Connection) Compile(rc ReferenceChecker) (err error) {
-	// Nothing to compile, implemented to force Connection on pointer.
-	return nil
-}
-
-func (v Connection) Validate(value interface{}) (interface{}, error) {
+func (v *Connection) Validate(value interface{}) (interface{}, error) {
 	// No validation perform at this time.
 	return value, nil
 }

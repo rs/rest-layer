@@ -193,6 +193,19 @@ func TestParseProjection(t *testing.T) {
 			Projection{},
 		},
 	}
+	normalize := func(p string) string {
+		np := make([]byte, 0, len(p))
+		for _, c := range []byte(p) {
+			switch c {
+			case ' ', '\n', '\t':
+				continue
+			case '=':
+				c = ':'
+			}
+			np = append(np, c)
+		}
+		return string(np)
+	}
 	for i := range cases {
 		tc := cases[i]
 		if *updateFuzzCorpus {
@@ -213,6 +226,10 @@ func TestParseProjection(t *testing.T) {
 			}
 			if !reflect.DeepEqual(pr, tc.want) {
 				t.Errorf("Projection:\ngot:  %#v\nwant: %#v", pr, tc.want)
+			}
+
+			if got, want := pr.String(), normalize(tc.projection); got != want {
+				t.Errorf("Projection.String:\ngot:  %s\nwant: %s", got, want)
 			}
 		})
 	}

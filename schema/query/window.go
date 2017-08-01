@@ -1,5 +1,6 @@
 package query
 
+// Window defines a view on the resulting payload.
 type Window struct {
 	// Offset is the 0 based index of the item in the result set to start the
 	// window at.
