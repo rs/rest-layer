@@ -3,6 +3,7 @@ package query
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -60,7 +61,13 @@ func (pf ProjectionField) String() string {
 	buf.WriteString(pf.Name)
 	if len(pf.Params) > 0 {
 		buf.WriteByte('(')
-		for name, value := range pf.Params {
+		names := make([]string, 0, len(pf.Params))
+		for name := range pf.Params {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			value := pf.Params[name]
 			buf.WriteString(name)
 			buf.WriteByte(':')
 			switch v := value.(type) {

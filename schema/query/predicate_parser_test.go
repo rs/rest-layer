@@ -360,7 +360,6 @@ func TestParse(t *testing.T) {
 				return
 			}
 			// Parse the result of query.String()
-			t.Logf("%#v", got)
 			str := got.String()
 			got, err = ParsePredicate(str)
 			if err != nil {
