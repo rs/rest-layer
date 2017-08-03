@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -26,19 +27,12 @@ var (
 		Fields: schema.Fields{
 			"id": {
 				Required: true,
-				// When a field is read-only, on default values or hooks can
-				// set their value. The client can't change it.
-				ReadOnly: true,
-				// This is a field hook called when a new user is created.
-				// The schema.NewID hook is a provided hook to generate a
-				// unique id when no value is provided.
-				OnInit: schema.NewID,
 				// The Filterable and Sortable allows usage of filter and sort
 				// on this field in requests.
 				Filterable: true,
 				Sortable:   true,
 				Validator: &schema.String{
-					Regexp: "^[0-9a-v]{20}$",
+					Regexp: "^[0-9a-z]{2,20}$",
 				},
 			},
 			"created": {
@@ -84,34 +78,30 @@ var (
 			"user": {
 				Required:   true,
 				Filterable: true,
+				ReadOnly:   true,
 				Validator: &schema.Reference{
 					Path: "users",
 				},
 			},
 			"published": {
 				Filterable: true,
+				Default:    false,
 				Validator:  &schema.Bool{},
 			},
-			// Sub-documents are handled via a sub-schema
-			"meta": {
-				Schema: &schema.Schema{
-					Fields: schema.Fields{
-						"title": {
-							Required: true,
-							Validator: &schema.String{
-								MaxLen: 150,
-							},
-						},
-						"body": {
-							// Dependency defines that body field can't be changed if
-							// the published field is not "false".
-							Dependency: query.MustParsePredicate(`{"published": false}`),
-							Validator: &schema.String{
-								MaxLen: 100000,
-							},
-						},
-					},
+			"title": {
+				Required: true,
+				Validator: &schema.String{
+					MaxLen: 150,
 				},
+				// Dependency defines that body field can't be changed if
+				// the published field is not "false".
+				Dependency: query.MustParsePredicate(`{published: false}`),
+			},
+			"body": {
+				Validator: &schema.String{
+					MaxLen: 100000,
+				},
+				Dependency: query.MustParsePredicate(`{published: false}`),
 			},
 		},
 	}
@@ -131,8 +121,7 @@ func main() {
 	// Bind a sub resource on /users/:user_id/posts[/:post_id]
 	// and reference the user on each post using the "user" field of the posts resource.
 	posts := users.Bind("posts", "user", post, mem.NewHandler(), resource.Conf{
-		// Posts can only be read, created and deleted, not updated
-		AllowedModes: []resource.Mode{resource.Read, resource.List, resource.Create, resource.Delete},
+		AllowedModes: resource.ReadWrite,
 	})
 
 	// Add a friendly alias to public posts
@@ -176,8 +165,34 @@ func main() {
 	http.Handle("/api/", http.StripPrefix("/api/", c.Then(api)))
 
 	// Serve it
-	log.Info().Msg("Serving API on http://localhost:8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	fmt.Println("Serving API on http://localhost:8080")
+	fmt.Println(`
+Create a user:
+
+	http PUT :8080/api/users/john name="John Doe"
+
+Create a post for that user:
+
+	http :8080/api/users/john/posts title="First Post" body="Lorem ipsum"
+
+Edit the post:
+
+	http PATCH :8080/api/users/john/posts/<post_id> body="Final body"
+
+Publish:
+
+	http PATCH :8080/api/users/john/posts/<post_id> published:=true
+
+Once published, title and body can't be changed:
+
+	http PATCH :8080/api/users/john/posts/<post_id> body="Final body"
+	# returns 422
+
+Get the post plus user name:
+
+	http :8080/api/users/john/posts/<post_id> fields=='title,body,user{name}'
+`)
+	if err := http.ListenAndServe("localhost:8080", nil); err != nil {
 		log.Fatal().Err(err).Msg("")
 	}
 }
