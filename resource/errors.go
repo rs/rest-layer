@@ -5,9 +5,9 @@ import "errors"
 var (
 	// ErrNotFound is returned when the requested resource can't be found.
 	ErrNotFound = errors.New("Not Found")
-	// ErrUnauthorized is returned when the requested resource can be accessed
+	// ErrForbidden is returned when the requested resource can not be accessed
 	// by the requestor for security reason.
-	ErrUnauthorized = errors.New("Unauthorized")
+	ErrForbidden = errors.New("Forbidden")
 	// ErrConflict happens when another thread or node modified the data
 	// concurrently with our own thread in such a way we can't securely apply
 	// the requested changes.
