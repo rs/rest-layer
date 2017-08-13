@@ -66,7 +66,7 @@ func NewJWTHandler(users *resource.Resource, jwtKeyFunc jwt.Keyfunc) func(next h
 			// Lookup the user by its id
 			ctx := r.Context()
 			user, err := users.Get(ctx, userID)
-			if user != nil && err == resource.ErrUnauthorized {
+			if user != nil && err == resource.ErrForbidden {
 				// Ignore unauthorized errors set by ourselves (see AuthResourceHook)
 				err = nil
 			}
@@ -99,7 +99,7 @@ func (a AuthResourceHook) OnFind(ctx context.Context, q *query.Query) error {
 	// Reject unauthorized users
 	user, found := UserFromContext(ctx)
 	if !found {
-		return resource.ErrUnauthorized
+		return resource.ErrForbidden
 	}
 	// Add a predicate to the query to restrict to result on objects owned by this user
 	q.Predicate = append(q.Predicate, query.Equal{Field: a.UserField, Value: user.ID})
@@ -115,7 +115,7 @@ func (a AuthResourceHook) OnGot(ctx context.Context, item **resource.Item, err *
 	// Reject unauthorized users
 	user, found := UserFromContext(ctx)
 	if !found {
-		*err = resource.ErrUnauthorized
+		*err = resource.ErrForbidden
 		return
 	}
 	// Check access right
@@ -130,13 +130,13 @@ func (a AuthResourceHook) OnInsert(ctx context.Context, items []*resource.Item) 
 	// Reject unauthorized users
 	user, found := UserFromContext(ctx)
 	if !found {
-		return resource.ErrUnauthorized
+		return resource.ErrForbidden
 	}
 	// Check access right
 	for _, item := range items {
 		if u, found := item.Payload[a.UserField]; found {
 			if u != user.ID {
-				return resource.ErrUnauthorized
+				return resource.ErrForbidden
 			}
 		} else {
 			// If no user set for the item, set it to current user
@@ -151,15 +151,15 @@ func (a AuthResourceHook) OnUpdate(ctx context.Context, item *resource.Item, ori
 	// Reject unauthorized users
 	user, found := UserFromContext(ctx)
 	if !found {
-		return resource.ErrUnauthorized
+		return resource.ErrForbidden
 	}
 	// Check access right
 	if u, found := original.Payload[a.UserField]; !found || u != user.ID {
-		return resource.ErrUnauthorized
+		return resource.ErrForbidden
 	}
 	// Ensure user field is not altered
 	if u, found := item.Payload[a.UserField]; !found || u != user.ID {
-		return resource.ErrUnauthorized
+		return resource.ErrForbidden
 	}
 	return nil
 }
@@ -169,11 +169,11 @@ func (a AuthResourceHook) OnDelete(ctx context.Context, item *resource.Item) err
 	// Reject unauthorized users
 	user, found := UserFromContext(ctx)
 	if !found {
-		return resource.ErrUnauthorized
+		return resource.ErrForbidden
 	}
 	// Check access right
 	if item.Payload[a.UserField] != user.ID {
-		return resource.ErrUnauthorized
+		return resource.ErrForbidden
 	}
 	return nil
 }
@@ -183,7 +183,7 @@ func (a AuthResourceHook) OnClear(ctx context.Context, q *query.Query) error {
 	// Reject unauthorized users
 	user, found := UserFromContext(ctx)
 	if !found {
-		return resource.ErrUnauthorized
+		return resource.ErrForbidden
 	}
 	// Add a predicate to the query to restrict to impact of the clear on objects owned by this user
 	q.Predicate = append(q.Predicate, query.Equal{Field: a.UserField, Value: user.ID})
