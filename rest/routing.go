@@ -243,7 +243,7 @@ func (r *RouteMatch) Query() (*query.Query, *Error) {
 			if err != nil {
 				return nil, &Error{422, fmt.Sprintf("Invalid `filter` parameter: %s", err), nil}
 			}
-			q.Predicate = append(q.Predicate, p)
+			q.Predicate = append(q.Predicate, p...)
 		}
 	}
 	if fields := r.Params.Get("fields"); fields != "" {
