@@ -34,10 +34,16 @@ func (v String) Validate(value interface{}) (interface{}, error) {
 		return nil, errors.New("not successfully compiled")
 	}
 
-	s, ok := value.(string)
-	if !ok {
+	var s string
+	switch v := value.(type) {
+	case fmt.Stringer:
+		s = v.String()
+	case string:
+		s = v
+	default:
 		return nil, errors.New("not a string")
 	}
+
 	l := len(s)
 	if l < v.MinLen {
 		return nil, fmt.Errorf("is shorter than %d", v.MinLen)
