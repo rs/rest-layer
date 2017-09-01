@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"reflect"
 	"sync"
 	"testing"
 
@@ -247,5 +248,29 @@ func TestRoutePathParentsNotExists(t *testing.T) {
 	if assert.NoError(t, err) {
 		err := route.ResourcePath.ParentsExist(ctx)
 		assert.Equal(t, &Error{404, "Parent Resource Not Found", nil}, err)
+	}
+}
+
+func TestRouteQueryFilter(t *testing.T) {
+	index := resource.NewIndex()
+	index.Bind("foo", schema.Schema{
+		Fields: schema.Fields{"a": {Filterable: true}},
+	}, nil, resource.DefaultConf)
+	route := newRoute("GET")
+	route.Params = url.Values{"filter": []string{`{a: "b"}`}}
+	err := findRoute(`/foo`, index, route)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	q, rErr := route.Query()
+	if rErr != nil {
+		t.Errorf("unexpected error: %v", rErr)
+	}
+	want := &query.Query{
+		Predicate: query.Predicate{query.Equal{Field: "a", Value: "b"}},
+		Window:    query.Page(1, resource.DefaultConf.PaginationDefaultLimit, 0),
+	}
+	if !reflect.DeepEqual(q, want) {
+		t.Errorf("RouteMatch.Query = %+v, want %+v", q, want)
 	}
 }

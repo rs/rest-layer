@@ -189,6 +189,10 @@ func (r *RouteMatch) Query() (*query.Query, *Error) {
 			q.Predicate = append(q.Predicate, query.Equal{Field: rp.Field, Value: rp.Value})
 		}
 	}
+	rsc := r.Resource()
+	if rsc == nil {
+		return nil, &Error{500, "missing resource", nil}
+	}
 	// Parse query string params.
 	switch r.Method {
 	case "HEAD":
@@ -201,7 +205,7 @@ func (r *RouteMatch) Query() (*query.Query, *Error) {
 				return nil, &Error{422, err.Error(), nil}
 			}
 			limit = l
-		} else if l := r.Resource().Conf().PaginationDefaultLimit; l > 0 {
+		} else if l := rsc.Conf().PaginationDefaultLimit; l > 0 {
 			limit = l
 		}
 		skip := 0
@@ -226,7 +230,7 @@ func (r *RouteMatch) Query() (*query.Query, *Error) {
 	if sort := r.Params.Get("sort"); sort != "" {
 		s, err := query.ParseSort(sort)
 		if err == nil {
-			err = s.Validate(r.Resource().Validator())
+			err = s.Validate(rsc.Validator())
 		}
 		if err != nil {
 			return nil, &Error{422, fmt.Sprintf("Invalid `sort` parameter: %s", err), nil}
@@ -238,18 +242,18 @@ func (r *RouteMatch) Query() (*query.Query, *Error) {
 		for _, filter := range filters {
 			p, err := query.ParsePredicate(filter)
 			if err == nil {
-				err = p.Validate(r.Resource().Validator())
+				err = p.Validate(rsc.Validator())
 			}
 			if err != nil {
 				return nil, &Error{422, fmt.Sprintf("Invalid `filter` parameter: %s", err), nil}
 			}
-			q.Predicate = append(q.Predicate, p)
+			q.Predicate = append(q.Predicate, p...)
 		}
 	}
 	if fields := r.Params.Get("fields"); fields != "" {
 		p, err := query.ParseProjection(fields)
 		if err == nil {
-			err = p.Validate(r.Resource().Validator())
+			err = p.Validate(rsc.Validator())
 		}
 		if err != nil {
 			return nil, &Error{422, fmt.Sprintf("Invalid `fields` parameter: %s", err), nil}
