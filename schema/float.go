@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -19,10 +20,16 @@ type Float struct {
 
 // Validate validates and normalize float based value.
 func (v Float) Validate(value interface{}) (interface{}, error) {
-	f, ok := value.(float64)
-	if !ok {
+	var f float64
+	switch val := value.(type) {
+	case json.Number:
+		f, _ = val.Float64()
+	case float64:
+		f = val
+	default:
 		return nil, errors.New("not a float")
 	}
+
 	if v.Boundaries != nil {
 		if f < v.Boundaries.Min {
 			return nil, fmt.Errorf("is lower than %.2f", v.Boundaries.Min)
