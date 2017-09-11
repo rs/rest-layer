@@ -142,6 +142,7 @@ func decodePayload(r *http.Request, payload *map[string]interface{}) *Error {
 		return &Error{501, fmt.Sprintf("Invalid Content-Type header: `%s' not supported", ct), nil}
 	}
 	decoder := json.NewDecoder(r.Body)
+	decoder.UseNumber()
 	defer r.Body.Close()
 	if err := decoder.Decode(payload); err != nil {
 		return &Error{400, fmt.Sprintf("Malformed body: %v", err), nil}

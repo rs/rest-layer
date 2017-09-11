@@ -1,9 +1,10 @@
 package schema
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
+	"strings"
 )
 
 // Integer validates integer based values.
@@ -14,19 +15,20 @@ type Integer struct {
 
 // Validate validates and normalize integer based value.
 func (v Integer) Validate(value interface{}) (interface{}, error) {
-	if f, ok := value.(float64); ok {
-		// JSON unmarshaling treat all numbers as float64, try to convert it to
-		// int if not fraction.
-		i, frac := math.Modf(f)
-		if frac == 0.0 {
-			v := int(i)
-			value = v
+	var i int
+	switch val := value.(type) {
+	case json.Number:
+		if strings.Index(val.String(), ".") != -1 {
+			return nil, errors.New("found float, integer expected")
 		}
-	}
-	i, ok := value.(int)
-	if !ok {
+		d, _ := val.Int64()
+		i = int(d)
+	case int:
+		i = val
+	default:
 		return nil, errors.New("not an integer")
 	}
+
 	if v.Boundaries != nil {
 		if float64(i) < v.Boundaries.Min {
 			return nil, fmt.Errorf("is lower than %.0f", v.Boundaries.Min)
