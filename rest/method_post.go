@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/schema"
 )
 
 // listPost handles POST resquests on a resource URL.
@@ -47,6 +48,14 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 	}
 	// See https://www.subbu.org/blog/2008/10/location-vs-content-location
 	headers = http.Header{}
-	headers.Set("Content-Location", fmt.Sprintf("%s/%s", r.URL.Path, item.ID))
+	itemID := item.ID
+	if f := rsrc.Validator().GetField("id"); f != nil {
+		if s, ok := f.Validator.(schema.FieldSerializer); ok {
+			if tmp, err := s.Serialize(itemID); err == nil {
+				itemID = tmp
+			}
+		}
+	}
+	headers.Set("Content-Location", fmt.Sprintf("%s/%s", r.URL.Path, itemID))
 	return 201, headers, item
 }
