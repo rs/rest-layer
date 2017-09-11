@@ -48,14 +48,14 @@ func listPost(ctx context.Context, r *http.Request, route *RouteMatch) (status i
 	}
 	// See https://www.subbu.org/blog/2008/10/location-vs-content-location
 	headers = http.Header{}
-	rID := item.ID
+	itemID := item.ID
 	if f := rsrc.Validator().GetField("id"); f != nil {
 		if s, serialize := f.Validator.(schema.FieldSerializer); serialize {
-			if tmp, err := s.Serialize(rID); err == nil {
-				rID = tmp
+			if tmp, err := s.Serialize(itemID); err == nil {
+				itemID = tmp
 			}
 		}
 	}
-	headers.Set("Content-Location", fmt.Sprintf("%s/%s", r.URL.Path, rID))
+	headers.Set("Content-Location", fmt.Sprintf("%s/%s", r.URL.Path, itemID))
 	return 201, headers, item
 }
