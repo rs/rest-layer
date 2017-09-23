@@ -107,7 +107,11 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 		} else if def != nil {
 			// If field is not found, it may be a connection
 			if ref, ok := def.Validator.(*schema.Connection); ok {
-				q, err := connectionQuery(pf)
+				id, ok := payload["id"]
+				if !ok {
+					return nil, fmt.Errorf("%s: error applying projection on sub-resource: item lacks ID field", pf.Name)
+				}
+				q, err := connectionQuery(pf, ref.Field, id)
 				if err != nil {
 					return nil, err
 				}
@@ -133,14 +137,16 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 }
 
 // connectionQuery builds a query from a projection field on a schema.Connection type field.
-func connectionQuery(pf ProjectionField) (*Query, error) {
-	q := &Query{}
+func connectionQuery(pf ProjectionField, field string, id interface{}) (*Query, error) {
+	q := &Query{
+		Predicate: Predicate{Equal{Field: field, Value: id}},
+	}
 	if filter, ok := pf.Params["filter"].(string); ok {
 		p, err := ParsePredicate(filter)
 		if err != nil {
 			return nil, fmt.Errorf("%s: invalid filter: %v", pf.Name, err)
 		}
-		q.Predicate = p
+		q.Predicate = append(q.Predicate, p)
 	}
 	if sort, ok := pf.Params["sort"].(string); ok {
 		s, err := ParseSort(sort)

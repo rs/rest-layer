@@ -4,7 +4,8 @@ package schema
 // schema. The query.Projection will treat this validator as an external
 // resource, and generate a sub-request to fetch the sub-payload.
 type Connection struct {
-	Path string
+	Path  string
+	Field string
 }
 
 func (v *Connection) Validate(value interface{}) (interface{}, error) {
