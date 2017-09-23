@@ -55,6 +55,7 @@ func (r resource) Validator() schema.Validator {
 func TestProjectionEval(t *testing.T) {
 	r := resource{
 		validator: schema.Schema{Fields: schema.Fields{
+			"id":     {},
 			"simple": {},
 			"parent": {
 				Schema: &schema.Schema{
@@ -70,7 +71,8 @@ func TestProjectionEval(t *testing.T) {
 			},
 			"connection": {
 				Validator: &schema.Connection{
-					Path: "cnx",
+					Path:  "cnx",
+					Field: "ref",
 				},
 			},
 			"with_params": {
@@ -92,11 +94,13 @@ func TestProjectionEval(t *testing.T) {
 			"cnx": resource{
 				validator: schema.Schema{Fields: schema.Fields{
 					"name": {},
+					"ref":  {},
 				}},
 				payloads: map[string]map[string]interface{}{
 					"1": map[string]interface{}{"name": "first"},
-					"2": map[string]interface{}{"name": "second"},
-					"3": map[string]interface{}{"name": "third"},
+					"2": map[string]interface{}{"name": "second", "ref": "a"},
+					"3": map[string]interface{}{"name": "third", "ref": "b"},
+					"4": map[string]interface{}{"name": "forth", "ref": "a"},
 				},
 			},
 		},
@@ -165,11 +169,18 @@ func TestProjectionEval(t *testing.T) {
 			`{"reference":{"name":"second"}}`,
 		},
 		{
-			"Connection",
+			"Connection#1",
 			`connection{name}`,
-			`{"simple":"foo"}`,
+			`{"id":"a","simple":"foo"}`,
 			nil,
-			`{"connection":[{"name":"first"},{"name":"second"},{"name":"third"}]}`,
+			`{"connection":[{"name":"second"},{"name":"forth"}]}`,
+		},
+		{
+			"Connection#2",
+			`connection{name}`,
+			`{"id":"b","simple":"foo"}`,
+			nil,
+			`{"connection":[{"name":"third"}]}`,
 		},
 	}
 
