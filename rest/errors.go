@@ -10,8 +10,8 @@ import (
 var (
 	// ErrNotFound represents a 404 HTTP error.
 	ErrNotFound = &Error{http.StatusNotFound, "Not Found", nil}
-	// ErrUnauthorized represents a 401 HTTP error.
-	ErrUnauthorized = &Error{http.StatusUnauthorized, "Unauthorized", nil}
+	// ErrForbidden represents a 403 HTTP error.
+	ErrForbidden = &Error{http.StatusForbidden, "Forbidden", nil}
 	// ErrPreconditionFailed happens when a conditional request condition is not met.
 	ErrPreconditionFailed = &Error{http.StatusPreconditionFailed, "Precondition Failed", nil}
 	// ErrConflict happens when another thread or node modified the data
@@ -58,8 +58,8 @@ func NewError(err error) *Error {
 		return ErrGatewayTimeout
 	case resource.ErrNotFound:
 		return ErrNotFound
-	case resource.ErrUnauthorized:
-		return ErrUnauthorized
+	case resource.ErrForbidden:
+		return ErrForbidden
 	case resource.ErrConflict:
 		return ErrConflict
 	case resource.ErrNotImplemented:
