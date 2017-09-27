@@ -26,7 +26,8 @@ func TestResourceBind(t *testing.T) {
 			"bar": {
 				ReadOnly: true,
 				Validator: &schema.Connection{
-					Path: ".bar",
+					Path:  ".bar",
+					Field: "foo",
 				},
 				Params: schema.Params{
 					"skip": schema.Param{

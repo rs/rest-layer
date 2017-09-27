@@ -143,7 +143,8 @@ func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *
 	r.validator.fallback.Fields[name] = schema.Field{
 		ReadOnly: true,
 		Validator: &schema.Connection{
-			Path: "." + name,
+			Path:  "." + name,
+			Field: field,
 		},
 		Params: schema.Params{
 			"skip": schema.Param{
