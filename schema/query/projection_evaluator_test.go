@@ -78,13 +78,17 @@ func TestProjectionEval(t *testing.T) {
 			"with_params": {
 				Params: schema.Params{
 					"foo": {Validator: schema.Integer{}},
+					"bar": {Validator: schema.Bool{}},
 				},
 				Handler: func(ctx context.Context, value interface{}, params map[string]interface{}) (interface{}, error) {
 					if val, found := params["foo"]; found {
 						if val == -1 {
 							return nil, errors.New("some error")
 						}
-						return fmt.Sprintf("param is %d", val), nil
+						return fmt.Sprintf("param foo is %d", val), nil
+					}
+					if val, found := params["bar"]; found {
+						return fmt.Sprintf("param bar is %t", val), nil
 					}
 					return "no param", nil
 				},
@@ -138,7 +142,21 @@ func TestProjectionEval(t *testing.T) {
 			`with_params(foo:1)`,
 			`{"with_params":"value"}`,
 			nil,
-			`{"with_params":"param is 1"}`,
+			`{"with_params":"param foo is 1"}`,
+		},
+		{
+			"Parmeters",
+			`with_params(bar:true)`,
+			`{"with_params":"value"}`,
+			nil,
+			`{"with_params":"param bar is true"}`,
+		},
+		{
+			"Parmeters",
+			`with_params(bar:false)`,
+			`{"with_params":"value"}`,
+			nil,
+			`{"with_params":"param bar is false"}`,
 		},
 		{
 			"Parmeters/NoParam", // Handler is not called.
