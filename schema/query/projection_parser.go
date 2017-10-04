@@ -213,9 +213,28 @@ func (p *projectionParser) scanParamValue() (interface{}, error) {
 		return p.parseString()
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-':
 		return p.parseNumber()
+	case 't', 'f':
+		return p.parseBool()
 	default:
 		return nil, fmt.Errorf("looking for value at char %d", p.pos)
 	}
+}
+
+// parseBool parses a Boolean value.
+func (p *projectionParser) parseBool() (bool, error) {
+	switch p.peek() {
+	case 't':
+		if p.pos+4 <= len(p.exp) && p.exp[p.pos:p.pos+4] == "true" {
+			p.pos += 4
+			return true, nil
+		}
+	case 'f':
+		if p.pos+5 <= len(p.exp) && p.exp[p.pos:p.pos+5] == "false" {
+			p.pos += 5
+			return false, nil
+		}
+	}
+	return false, errors.New("not a boolean")
 }
 
 // parseNumber parses a number as float.

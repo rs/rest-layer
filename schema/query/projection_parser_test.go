@@ -82,6 +82,16 @@ func TestParseProjection(t *testing.T) {
 			Projection{{Name: "foo", Params: map[string]interface{}{"bar": -0.2}}},
 		},
 		{
+			`foo(baz:true)`,
+			nil,
+			Projection{{Name: "foo", Params: map[string]interface{}{"baz": true}}},
+		},
+		{
+			`foo(baz:false)`,
+			nil,
+			Projection{{Name: "foo", Params: map[string]interface{}{"baz": false}}},
+		},
+		{
 			`foo(bar : -0.2 , baz = "zab")`,
 			nil,
 			Projection{{Name: "foo", Params: map[string]interface{}{"bar": -0.2, "baz": "zab"}}},

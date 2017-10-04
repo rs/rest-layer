@@ -75,6 +75,8 @@ func (pf ProjectionField) String() string {
 				buf.WriteString(strconv.Quote(v))
 			case float64:
 				buf.WriteString(strconv.FormatFloat(v, 'f', -1, 64))
+			case bool:
+				buf.WriteString(fmt.Sprintf("%t", v))
 			default:
 				buf.WriteString(fmt.Sprintf("%q", v))
 			}
