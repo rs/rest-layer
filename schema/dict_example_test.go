@@ -12,9 +12,11 @@ func ExampleDict() {
 						Allowed: []string{"foo", "bar"},
 					},
 					// Allow either string or integer as dict value
-					ValuesValidator: &schema.AnyOf{
-						0: &schema.String{},
-						1: &schema.Integer{},
+					Values: schema.Field{
+						Validator: &schema.AnyOf{
+							0: &schema.String{},
+							1: &schema.Integer{},
+						},
 					},
 				},
 			},

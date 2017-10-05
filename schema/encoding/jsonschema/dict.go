@@ -56,8 +56,8 @@ func (v dictBuilder) BuildJSONSchema() (map[string]interface{}, error) {
 
 	// Retrieve values validator JSON schema.
 	var valuesSchema map[string]interface{}
-	if v.ValuesValidator != nil {
-		b, err := ValidatorBuilder(v.ValuesValidator)
+	if v.Values.Validator != nil {
+		b, err := ValidatorBuilder(v.Values.Validator)
 		if err != nil {
 			return nil, err
 		}
@@ -68,6 +68,7 @@ func (v dictBuilder) BuildJSONSchema() (map[string]interface{}, error) {
 	} else {
 		valuesSchema = map[string]interface{}{}
 	}
+	addFieldProperties(valuesSchema, v.Values)
 
 	// Compose JSON Schema.
 	switch len(patterns) {

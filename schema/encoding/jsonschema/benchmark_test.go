@@ -99,9 +99,7 @@ func complexSchema1() schema.Schema {
 			"m": schema.Field{
 				Description: "m",
 				Validator: &schema.Array{
-					ValuesValidator: &schema.Object{
-						Schema: mSchema,
-					},
+					ValuesValidator: &schema.Object{Schema: mSchema},
 				},
 			},
 		},

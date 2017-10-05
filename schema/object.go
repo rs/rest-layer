@@ -38,6 +38,11 @@ func (v Object) Validate(value interface{}) (interface{}, error) {
 	return dest, nil
 }
 
+// GetField implements the FieldGetter interface.
+func (v Object) GetField(name string) *Field {
+	return v.Schema.GetField(name)
+}
+
 // ErrorMap contains a map of errors by field name.
 type ErrorMap map[string][]interface{}
 
