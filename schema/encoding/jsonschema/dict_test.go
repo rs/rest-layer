@@ -9,7 +9,7 @@ import (
 func TestDictValidatorEncode(t *testing.T) {
 	testCases := []encoderTestCase{
 		{
-			name: `KeysValidator=nil,ValuesValidator=nil}"`,
+			name: `KeysValidator=nil,Values.Validator=nil}"`,
 			schema: schema.Schema{
 				Fields: schema.Fields{
 					"d": {
@@ -46,12 +46,14 @@ func TestDictValidatorEncode(t *testing.T) {
 			customValidate: fieldValidator("d", `{"type": "object", "additionalProperties": true}`),
 		},
 		{
-			name: `ValuesValidator=Integer{}"`,
+			name: `Values.Validator=Integer{}"`,
 			schema: schema.Schema{
 				Fields: schema.Fields{
 					"d": {
 						Validator: &schema.Dict{
-							ValuesValidator: &schema.Integer{},
+							Values: schema.Field{
+								Validator: &schema.Integer{},
+							},
 						},
 					},
 				},
@@ -88,8 +90,10 @@ func TestDictValidatorEncode(t *testing.T) {
 				Fields: schema.Fields{
 					"d": {
 						Validator: &schema.Dict{
-							KeysValidator:   &schema.String{Regexp: "re"},
-							ValuesValidator: &schema.Integer{},
+							KeysValidator: &schema.String{Regexp: "re"},
+							Values: schema.Field{
+								Validator: &schema.Integer{},
+							},
 						},
 					},
 				},
@@ -179,7 +183,9 @@ func TestDictValidatorEncode(t *testing.T) {
 								Regexp:  "tch",
 								Allowed: []string{"match1", "match2"},
 							},
-							ValuesValidator: &schema.Integer{},
+							Values: schema.Field{
+								Validator: &schema.Integer{},
+							},
 						},
 					},
 				},

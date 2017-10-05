@@ -5,12 +5,13 @@ import (
 	"fmt"
 )
 
-// Dict validates array values
+// Dict validates objects with variadic keys.
 type Dict struct {
 	// KeysValidator is the validator to apply on dict keys.
 	KeysValidator FieldValidator
-	// ValuesValidator is the validator to apply on dict values.
-	ValuesValidator FieldValidator
+
+	// Values describes the properties for each dict value.
+	Values Field
 	// MinLen defines the minimum number of fields (default 0).
 	MinLen int
 	// MaxLen defines the maximum number of fields (default no limit).
@@ -23,8 +24,10 @@ func (v *Dict) Compile(rc ReferenceChecker) (err error) {
 		if err = c.Compile(rc); err != nil {
 			return
 		}
+
 	}
-	if c, ok := v.ValuesValidator.(Compiler); ok {
+
+	if c, ok := v.Values.Validator.(Compiler); ok {
 		if err = c.Compile(rc); err != nil {
 			return
 		}
@@ -49,9 +52,9 @@ func (v Dict) Validate(value interface{}) (interface{}, error) {
 				return nil, errors.New("key validator does not return string")
 			}
 		}
-		if v.ValuesValidator != nil {
+		if v.Values.Validator != nil {
 			var err error
-			val, err = v.ValuesValidator.Validate(val)
+			val, err = v.Values.Validator.Validate(val)
 			if err != nil {
 				return nil, fmt.Errorf("invalid value for key `%s': %s", key, err)
 			}
@@ -66,4 +69,12 @@ func (v Dict) Validate(value interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("has more properties than %d", v.MaxLen)
 	}
 	return dest, nil
+}
+
+// GetField implements the FieldGetter interface.
+func (v Dict) GetField(name string) *Field {
+	if _, err := v.KeysValidator.Validate(name); err != nil {
+		return nil
+	}
+	return &v.Values
 }

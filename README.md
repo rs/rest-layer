@@ -28,6 +28,7 @@ The REST Layer framework is composed of several sub-packages:
 
 # Documentation
 
+- [Breaking Changes](#breaking-changes)
 - [Features](#features)
 	- [Extensions](#extensions)
 	- [Storage Handlers](#storage-handlers)
@@ -63,6 +64,16 @@ The REST Layer framework is composed of several sub-packages:
 - [GraphQL](#graphql)
 - [Hystrix](#hystrix)
 - [JSONSchema](#jsonschema)
+
+## Breaking Changes
+
+Until version 1.0 of rest-layer, breaking changes may occur at any time if you rely on the latest master version.
+
+Below is an overview over recent breaking changes, starting from an arbitrary point with PR #151:
+
+- PR #151: `ValuesValidator FieldValidator` attribute in the `scheam.Dict` struct replaced by `Values Field`.
+
+From the next release and onwards (0.2), this list will summarize breaking changes done to master since the last release.
 
 ## Features
 

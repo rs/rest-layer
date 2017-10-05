@@ -5,22 +5,21 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"strings"
 )
 
 type internal struct{}
 
-// Tombstone is used to mark a field for removal
+// Tombstone is used to mark a field for removal.
 var Tombstone = internal{}
 
-// Validator is an interface used to validate schema against actual data
+// Validator is an interface used to validate schema against actual data.
 type Validator interface {
 	GetField(name string) *Field
 	Prepare(ctx context.Context, payload map[string]interface{}, original *map[string]interface{}, replace bool) (changes map[string]interface{}, base map[string]interface{})
 	Validate(changes map[string]interface{}, base map[string]interface{}) (doc map[string]interface{}, errs map[string][]interface{})
 }
 
-// Schema defines fields for a document
+// Schema defines fields for a document.
 type Schema struct {
 	// Description of the object described by this schema.
 	Description string
@@ -50,32 +49,33 @@ func (s Schema) Compile(rc ReferenceChecker) error {
 	return nil
 }
 
-// GetField returns the validator for the field if the given field name is
-// present in the schema.
-//
-// You may reference sub field using dotted notation field.subfield.
+// GetField implements the FieldGetter interface.
 func (s Schema) GetField(name string) *Field {
-	// Split the name to get the current level name on first element and the
-	// rest of the path as second element if dot notation is used (i.e.:
-	// field.subfield.subsubfield -> field, subfield.subsubfield)
-	if i := strings.IndexByte(name, '.'); i != -1 {
-		remaining := name[i+1:]
-		name = name[:i]
-		field, found := s.Fields[name]
-		if !found {
-			// Invalid node
-			return nil
-		}
-		if field.Schema == nil {
-			// Invalid path
-			return nil
-		}
-		// Recursively call has field to consume the whole path.
-		return field.Schema.GetField(remaining)
+	name, remaining, wasSplit := splitFieldPath(name)
+
+	field, found := s.Fields[name]
+
+	if !found {
+		// invalid name.
+		return nil
 	}
-	if field, found := s.Fields[name]; found {
+
+	if !wasSplit {
+		// no remaining, return field.
 		return &field
 	}
+
+	if field.Schema != nil {
+		// Recursively call GetField to consume whole path.
+		// TODO: This will be removed when implementing issue #77.
+		return field.Schema.GetField(remaining)
+	}
+
+	if fg, ok := field.Validator.(FieldGetter); ok {
+		// Recursively call GetField to consume whole path.
+		return fg.GetField(remaining)
+	}
+
 	return nil
 }
 
