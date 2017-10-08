@@ -342,6 +342,25 @@ func (r *Resource) find(ctx context.Context, q *query.Query, forceTotal bool) (l
 	return
 }
 
+// Count implements Storer interface.
+func (r *Resource) Count(ctx context.Context, q *query.Query) (n int, err error) {
+	if LoggerLevel <= LogLevelDebug && Logger != nil {
+		defer func(t time.Time) {
+			found := n
+			Logger(ctx, LogLevelDebug, fmt.Sprintf("%s.Count(...)", r.path), map[string]interface{}{
+				"duration": time.Since(t),
+				"found":    found,
+				"error":    err,
+			})
+		}(time.Now())
+	}
+	if err = r.hooks.onFind(ctx, q); err == nil {
+		n, err = r.storage.Count(ctx, &query.Query{Predicate: q.Predicate})
+	}
+	r.hooks.onFound(ctx, q, nil, &err)
+	return
+}
+
 // Insert implements Storer interface.
 func (r *Resource) Insert(ctx context.Context, items []*Item) (err error) {
 	if LoggerLevel <= LogLevelDebug && Logger != nil {
