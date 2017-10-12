@@ -50,7 +50,8 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 			p = append(p, ProjectionField{Name: fn})
 		}
 	}
-	for _, pf := range p {
+	for i := range p {
+		pf := p[i]
 		name := pf.Name
 		// Handle aliasing
 		if pf.Alias != "" {
