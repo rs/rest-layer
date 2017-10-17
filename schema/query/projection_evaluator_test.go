@@ -200,6 +200,62 @@ func TestProjectionEval(t *testing.T) {
 			nil,
 			`{"connection":[{"name":"third"}]}`,
 		},
+		{
+			"ValidStar",
+			`*`,
+			`{"parent":{"child":"value"},"simple":"value"}`,
+			nil,
+			`{"parent":{"child":"value"},"simple":"value"}`,
+		},
+		{
+			"Double/InvalidStar",
+			`*,*`,
+			`{"parent":{"child":"value"},"simple":"value"}`,
+			errors.New("*,*: invalid value: * must be the only field"),
+			``,
+		},
+		{
+			"Parent/InvalidStar1",
+			`*,parent`,
+			`{"parent":{"child":"value"},"simple":"value"}`,
+			errors.New("*,parent: invalid value: * must be the only field"),
+			``,
+		},
+		{
+			"Parent/InvalidStar2",
+			`parent,*`,
+			`{"parent":{"child":"value"},"simple":"value"}`,
+			errors.New("parent,*: invalid value: * must be the only field"),
+			``,
+		},
+		{
+			"Child/ValidStar",
+			`parent{*}`,
+			`{"parent":{"child":"value"},"simple":"value"}`,
+			nil,
+			`{"parent":{"child":"value"}}`,
+		},
+		{
+			"Child/InvalidStar1",
+			`parent{*,child}`,
+			`{"parent":{"child":"value"},"simple":"value"}`,
+			errors.New("parent.*,child: invalid value: * must be the only field"),
+			``,
+		},
+		{
+			"Child/InvalidStar2",
+			`parent{child,*}`,
+			`{"parent":{"child":"value"},"simple":"value"}`,
+			errors.New("parent.child,*: invalid value: * must be the only field"),
+			``,
+		},
+		{
+			"Parent/Child/InvalidStar",
+			`parent{child,*},*`,
+			`{"parent":{"child":"value"},"simple":"value"}`,
+			errors.New("parent,*: invalid value: * must be the only field"),
+			``,
+		},
 	}
 
 	for i := range cases {

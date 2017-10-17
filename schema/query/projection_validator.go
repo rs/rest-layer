@@ -8,6 +8,10 @@ import (
 
 // Validate validates the projection field against the provided validator.
 func (pf ProjectionField) Validate(validator schema.Validator) error {
+	if pf.Name == "*" && len(pf.Children) == 0 && len(pf.Params) == 0 {
+		return nil
+	}
+
 	def := validator.GetField(pf.Name)
 	if def == nil {
 		return fmt.Errorf("%s: unknown field", pf.Name)

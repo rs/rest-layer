@@ -39,6 +39,27 @@ func (p Projection) Eval(ctx context.Context, payload map[string]interface{}, rs
 	return payload, err
 }
 
+func checkStar(p Projection) (bool, error) {
+	hasStar := false
+	s := ""
+	for i := range p {
+		if i > 0 {
+			s += ","
+		}
+		s += p[i].Name
+
+		if len(p[i].Children) == 0 {
+			if p[i].Name == "*" {
+				hasStar = true
+			}
+			if hasStar && i != 0 {
+				return false, fmt.Errorf("%s: invalid value: * must be the only field", s)
+			}
+		}
+	}
+	return hasStar, nil
+}
+
 func evalProjection(ctx context.Context, p Projection, payload map[string]interface{}, validator schema.Validator, rbr *referenceBatchResolver) (map[string]interface{}, error) {
 	res := map[string]interface{}{}
 	resMu := sync.Mutex{} // XXX use sync.Map once Go 1.9 is out
@@ -50,6 +71,18 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 			p = append(p, ProjectionField{Name: fn})
 		}
 	}
+
+	isStar, err := checkStar(p)
+	if err != nil {
+		return nil, err
+	}
+	if isStar {
+		// When projection is star, it's like saying "all fields".
+		for fn := range payload {
+			p = append(p, ProjectionField{Name: fn})
+		}
+	}
+
 	for i := range p {
 		pf := p[i]
 		name := pf.Name
