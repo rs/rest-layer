@@ -14,6 +14,9 @@ type Window struct {
 // Page creates a Window using pagination.
 func Page(page, perPage, skip int) *Window {
 	if perPage < 0 {
+		if skip > 0 {
+			return &Window{Offset: skip, Limit: perPage}
+		}
 		return nil
 	}
 	if page < 1 {
