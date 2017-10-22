@@ -31,7 +31,9 @@ func getMethodHandler(isItem bool, method string) methodHandler {
 		switch method {
 		case http.MethodOptions:
 			return listOptions
-		case http.MethodHead, http.MethodGet:
+		case http.MethodHead:
+			return listHead
+		case http.MethodGet:
 			return listGet
 		case http.MethodPost:
 			return listPost
