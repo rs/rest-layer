@@ -92,7 +92,7 @@ func TestHandlerDeleteItemEtag(t *testing.T) {
 		Fields: schema.Fields{"foo": {Filterable: true}},
 	}, s, resource.DefaultConf)
 	r, _ := http.NewRequest("DELETE", "/test/2", nil)
-	r.Header.Set("If-Match", "a")
+	r.Header.Set("If-Match", "W/a")
 	rm := &RouteMatch{
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
@@ -123,7 +123,7 @@ func TestHandlerDeleteItemWrongEtag(t *testing.T) {
 		Fields: schema.Fields{"foo": {Filterable: true}},
 	}, s, resource.DefaultConf)
 	r, _ := http.NewRequest("DELETE", "/test/2", nil)
-	r.Header.Set("If-Match", "a")
+	r.Header.Set("If-Match", "W/a")
 	rm := &RouteMatch{
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{

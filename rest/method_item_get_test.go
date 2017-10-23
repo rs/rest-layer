@@ -134,7 +134,7 @@ func TestHandlerGetItemEtagMatch(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, s, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test/2", nil)
-	r.Header.Set("If-None-Match", "a")
+	r.Header.Set("If-None-Match", "W/a")
 	rm := &RouteMatch{
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
@@ -161,7 +161,7 @@ func TestHandlerGetItemEtagDontMatch(t *testing.T) {
 	index := resource.NewIndex()
 	test := index.Bind("test", schema.Schema{}, s, resource.DefaultConf)
 	r, _ := http.NewRequest("GET", "/test/2", nil)
-	r.Header.Set("If-None-Match", "a")
+	r.Header.Set("If-None-Match", "W/a")
 	rm := &RouteMatch{
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{

@@ -141,10 +141,10 @@ func TestSetAllowHeader(t *testing.T) {
 }
 
 func TestCompareEtag(t *testing.T) {
-	assert.True(t, compareEtag(`abc`, `abc`))
-	assert.True(t, compareEtag(`"abc"`, `abc`))
-	assert.False(t, compareEtag(`'abc'`, `abc`))
-	assert.False(t, compareEtag(`"abc`, `abc`))
+	assert.True(t, compareEtag(`W/abc`, `abc`))
+	assert.True(t, compareEtag(`W/"abc"`, `abc`))
+	assert.False(t, compareEtag(`W/'abc'`, `abc`))
+	assert.False(t, compareEtag(`W/"abc`, `abc`))
 	assert.False(t, compareEtag(``, `abc`))
 	assert.False(t, compareEtag(`"cba"`, `abc`))
 }
@@ -219,7 +219,7 @@ func TestRequestCheckIntegrityEtagMissmatch(t *testing.T) {
 
 func TestRequestCheckIntegrityEtagMatch(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/", nil)
-	r.Header.Set("If-Match", "foo")
+	r.Header.Set("If-Match", "W/foo")
 	err := checkIntegrityRequest(r, &resource.Item{ETag: "foo"})
 	assert.Nil(t, err)
 }

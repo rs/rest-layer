@@ -272,7 +272,7 @@ func TestHandlerPutItemReplaceEtagMatch(t *testing.T) {
 	})
 	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
 	r, _ := http.NewRequest("PUT", "/test/1", bytes.NewBufferString(`{"id": "1"}`))
-	r.Header.Set("If-Match", "a")
+	r.Header.Set("If-Match", "W/a")
 	rm := &RouteMatch{
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
@@ -295,7 +295,7 @@ func TestHandlerPutItemReplaceEtagDontMatch(t *testing.T) {
 	})
 	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
 	r, _ := http.NewRequest("PUT", "/test/1", bytes.NewBufferString(`{"id": "1"}`))
-	r.Header.Set("If-Match", "a")
+	r.Header.Set("If-Match", "W/a")
 	rm := &RouteMatch{
 		ResourcePath: []*ResourcePathComponent{
 			&ResourcePathComponent{
