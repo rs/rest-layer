@@ -2,6 +2,7 @@ package rest
 
 import (
 	"context"
+	md5 "crypto/md5"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -71,7 +72,7 @@ func (s DefaultResponseSender) Send(ctx context.Context, w http.ResponseWriter, 
 // FormatItem implements ResponseFormatter.
 func (f DefaultResponseFormatter) FormatItem(ctx context.Context, headers http.Header, i *resource.Item, skipBody bool) (context.Context, interface{}) {
 	if i.ETag != "" {
-		headers.Set("Etag", `"`+i.ETag+`"`)
+		headers.Set("Etag", `W/"`+i.ETag+`"`)
 	}
 	if !i.Updated.IsZero() {
 		headers.Set("Last-Modified", i.Updated.In(time.UTC).Format("Mon, 02 Jan 2006 15:04:05 GMT"))
@@ -92,6 +93,7 @@ func (f DefaultResponseFormatter) FormatList(ctx context.Context, headers http.H
 	}
 	if !skipBody {
 		payload := make([]map[string]interface{}, len(l.Items))
+		hash := md5.New()
 		for i, item := range l.Items {
 			// Clone item payload to add the etag to the items in the list.
 			d := map[string]interface{}{}
@@ -100,9 +102,11 @@ func (f DefaultResponseFormatter) FormatList(ctx context.Context, headers http.H
 			}
 			if item.ETag != "" {
 				d["_etag"] = item.ETag
+				hash.Write([]byte(item.ETag))
 			}
 			payload[i] = d
 		}
+		headers.Set("ETag", `W/"`+fmt.Sprintf("%x", hash.Sum(nil))+`"`)
 		return ctx, payload
 	}
 	return ctx, nil

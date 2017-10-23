@@ -126,11 +126,13 @@ func compareEtag(etag, baseEtag string) bool {
 	if etag == "" {
 		return false
 	}
-	if etag == baseEtag {
-		return true
-	}
-	if l := len(etag); l == len(baseEtag)+2 && l > 3 && etag[0] == '"' && etag[l-1] == '"' && etag[1:l-1] == baseEtag {
-		return true
+	if strings.HasPrefix(etag, "W/") {
+		if etag[2:] == baseEtag {
+			return true
+		}
+		if l := len(etag); l == len(baseEtag)+4 && l > 4 && etag[2] == '"' && etag[l-1] == '"' && etag[3:l-1] == baseEtag {
+			return true
+		}
 	}
 	return false
 }
