@@ -82,7 +82,7 @@ func TestDefaultResponseFormatterFormatItem(t *testing.T) {
 
 	h = http.Header{}
 	rctx, payload = rf.FormatItem(ctx, h, &resource.Item{ETag: "1234"}, false)
-	assert.Equal(t, http.Header{"Etag": []string{`"1234"`}}, h)
+	assert.Equal(t, http.Header{"Etag": []string{`W/"1234"`}}, h)
 	assert.Equal(t, rctx, ctx)
 	assert.Equal(t, map[string]interface{}(nil), payload)
 }
@@ -95,7 +95,7 @@ func TestDefaultResponseFormatterFormatList(t *testing.T) {
 		Total: -1,
 		Items: []*resource.Item{{Payload: map[string]interface{}{"foo": "bar"}}},
 	}, false)
-	assert.Equal(t, http.Header{}, h)
+	assert.Equal(t, http.Header{"Etag": []string{`W/"d41d8cd98f00b204e9800998ecf8427e"`}}, h)
 	assert.Equal(t, rctx, ctx)
 	assert.Equal(t, []map[string]interface{}{{"foo": "bar"}}, payload)
 
@@ -104,7 +104,7 @@ func TestDefaultResponseFormatterFormatList(t *testing.T) {
 		Total: -1,
 		Items: []*resource.Item{{Payload: map[string]interface{}{"foo": "bar"}}},
 	}, true)
-	assert.Equal(t, http.Header{}, h)
+	assert.Equal(t, http.Header{"Etag": []string{`W/"d41d8cd98f00b204e9800998ecf8427e"`}}, h)
 	assert.Equal(t, rctx, ctx)
 	assert.Equal(t, nil, payload)
 
@@ -114,7 +114,7 @@ func TestDefaultResponseFormatterFormatList(t *testing.T) {
 		Offset: 2,
 		Items:  []*resource.Item{{Payload: map[string]interface{}{"foo": "bar"}}},
 	}, false)
-	assert.Equal(t, http.Header{"X-Total": []string{"1"}, "X-Offset": []string{"2"}}, h)
+	assert.Equal(t, http.Header{"X-Total": []string{"1"}, "X-Offset": []string{"2"}, "Etag": []string{`W/"d41d8cd98f00b204e9800998ecf8427e"`}}, h)
 	assert.Equal(t, rctx, ctx)
 	assert.Equal(t, []map[string]interface{}{{"foo": "bar"}}, payload)
 
@@ -123,7 +123,7 @@ func TestDefaultResponseFormatterFormatList(t *testing.T) {
 		Total: -1,
 		Items: []*resource.Item{{ETag: "123", Payload: map[string]interface{}{"foo": "bar"}}},
 	}, false)
-	assert.Equal(t, http.Header{}, h)
+	assert.Equal(t, http.Header{"Etag": []string{`W/"202cb962ac59075b964b07152d234b70"`}}, h)
 	assert.Equal(t, rctx, ctx)
 	assert.Equal(t, []map[string]interface{}{{"foo": "bar", "_etag": "123"}}, payload)
 }

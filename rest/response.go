@@ -91,9 +91,17 @@ func (f DefaultResponseFormatter) FormatList(ctx context.Context, headers http.H
 	if l.Offset > 0 {
 		headers.Set("X-Offset", strconv.Itoa(l.Offset))
 	}
+
+	hash := md5.New()
+	for _, item := range l.Items {
+		if item.ETag != "" {
+			hash.Write([]byte(item.ETag))
+		}
+	}
+	headers.Set("ETag", `W/"`+fmt.Sprintf("%x", hash.Sum(nil))+`"`)
+
 	if !skipBody {
 		payload := make([]map[string]interface{}, len(l.Items))
-		hash := md5.New()
 		for i, item := range l.Items {
 			// Clone item payload to add the etag to the items in the list.
 			d := map[string]interface{}{}
@@ -102,11 +110,9 @@ func (f DefaultResponseFormatter) FormatList(ctx context.Context, headers http.H
 			}
 			if item.ETag != "" {
 				d["_etag"] = item.ETag
-				hash.Write([]byte(item.ETag))
 			}
 			payload[i] = d
 		}
-		headers.Set("ETag", `W/"`+fmt.Sprintf("%x", hash.Sum(nil))+`"`)
 		return ctx, payload
 	}
 	return ctx, nil
