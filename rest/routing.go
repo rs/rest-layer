@@ -195,10 +195,7 @@ func (r *RouteMatch) Query() (*query.Query, *Error) {
 	}
 	// Parse query string params.
 	switch r.Method {
-	case "HEAD":
-		// request empty response
-		q.Window = &query.Window{Offset: 0, Limit: 0}
-	case "GET":
+	case "HEAD", "GET":
 		limit := -1
 		if l, found, err := getUintParam(r.Params, "limit"); found {
 			if err != nil {
