@@ -109,7 +109,7 @@ func (f DefaultResponseFormatter) FormatList(ctx context.Context, headers http.H
 				d[k] = v
 			}
 			if item.ETag != "" {
-				d["_etag"] = item.ETag
+				d["_etag"] = `W/"` + item.ETag + `"`
 			}
 			payload[i] = d
 		}

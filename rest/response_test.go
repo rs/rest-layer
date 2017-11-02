@@ -125,7 +125,7 @@ func TestDefaultResponseFormatterFormatList(t *testing.T) {
 	}, false)
 	assert.Equal(t, http.Header{"Etag": []string{`W/"202cb962ac59075b964b07152d234b70"`}}, h)
 	assert.Equal(t, rctx, ctx)
-	assert.Equal(t, []map[string]interface{}{{"foo": "bar", "_etag": "123"}}, payload)
+	assert.Equal(t, []map[string]interface{}{{"foo": "bar", "_etag": `W/"123"`}}, payload)
 }
 
 func TestDefaultResponseFormatterFormatError(t *testing.T) {
