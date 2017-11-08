@@ -941,7 +941,7 @@ posts.Bind(&quot;comments&quot;, &quot;post&quot;, comment, mem.NewHandler(), re
 <p>In this example, the <code>body</code> field can&#39;t be changed if the <code>published</code> field is not set to <code>true</code>:</p>
 <pre><code class="lang-go">post = schema.Schema{
     Fields: schema.Fields{
-        &quot;publishded&quot;: schema.Field{
+        &quot;published&quot;: schema.Field{
             Validator:  &amp;schema.Bool{},
         },
         &quot;body&quot;: {
