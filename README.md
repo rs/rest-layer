@@ -779,7 +779,7 @@ In this example, the `body` field can't be changed if the `published` field is n
 ```go
 post = schema.Schema{
 	Fields: schema.Fields{
-		"publishded": schema.Field{
+		"published": schema.Field{
 			Validator:  &schema.Bool{},
 		},
 		"body": {
