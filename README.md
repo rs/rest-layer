@@ -11,9 +11,9 @@ Implemented as a `net/http` handler, it plays well with standard middleware like
 
 REST Layer is an opinionated framework. Unlike many API frameworks, you don't directly control the routing and you don't have to write handlers. You just define resources and sub-resources with a [schema](#resource-configuration), the framework automatically figures out what routes need to be generated behind the scene. You don't have to take care of the HTTP headers and response, JSON encoding, etc. either. REST layer handles HTTP [conditional requests](#conditional-requests), caching, [integrity checking](#data-integrity-and-concurrency-control) for you.
 
-A powerful and extensible [validation engine](#resource-configuration) make sure that data comes pre-validated to your [custom storage handlers](#data-storage-handler). Generic resource handlers for [MongoDB](http://github.com/rs/rest-layer-mongo), [ElastiSearch](http://github.com/rs/rest-layer-es) and other databases are also available so you have few to no code to write to get up and running.
+A powerful and extensible [validation engine](#resource-configuration) make sure that data comes pre-validated to your [custom storage handlers](#data-storage-handler). Generic resource handlers for [MongoDB](http://github.com/rs/rest-layer-mongo), [ElasticSearch](http://github.com/rs/rest-layer-es) and other databases are also available so you have few to no code to write to get up and running.
 
-Moreover, REST Layer let you create a graph API by linking resources between them. Thanks to its advanced [field selection](#field-selection) syntax or [GraphQL](#graphql) support, you can gather resources and their dependencies in a single request, saving you from costly network roundtrips.
+Moreover, REST Layer let you create a graph API by linking resources between them. Thanks to its advanced [field selection](#field-selection) syntax or [GraphQL](#graphql) support, you can gather resources and their dependencies in a single request, saving you from costly network round-trips.
 
 The REST Layer framework is composed of several sub-packages:
 
@@ -21,7 +21,7 @@ The REST Layer framework is composed of several sub-packages:
 
 | Package                                                         | Coverage                                                                                                                                       | Description
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------
-| [rest](https://godoc.org/github.com/rs/rest-layer/rest)         | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/rest)](https://gocover.io/github.com/rs/rest-layer/rest) | A `net/http` handler to expose a RESTful API.
+| [rest](https://godoc.org/github.com/rs/rest-layer/rest)         | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/rest)](https://gocover.io/github.com/rs/rest-layer/rest) | A `net/http` handler to expose a REST-ful API.
 | [graphql](https://godoc.org/github.com/rs/rest-layer/graphql)   | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/graphql)](https://gocover.io/github.com/rs/rest-layer/graphql)              | A `net/http` handler to expose your API using the GraphQL protocol.
 | [schema](https://godoc.org/github.com/rs/rest-layer/schema)     | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/schema)](https://gocover.io/github.com/rs/rest-layer/schema)               | A validation framework for the API resources.
 | [resource](https://godoc.org/github.com/rs/rest-layer/resource) | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/resource)](https://gocover.io/github.com/rs/rest-layer/resource)             | Defines resources, manages the resource graph and manages the interface with resource storage handler.
@@ -429,7 +429,7 @@ X-Total: 1
 ]
 ```
 
-Notice the added `_etag` field. This is to let you get etags of multiple items without having to `GET` each one of them throught individual requests.
+Notice the added `_etag` field. This is to let you get etags of multiple items without having to `GET` each one of them through individual requests.
 
 Now, let's get user's information for each posts in a single request:
 
@@ -499,7 +499,7 @@ For REST Layer to be able to expose resources, you have to first define what fie
 
 ### Schema
 
-Resource field configuration is performed throught the [schema](https://godoc.org/github.com/rs/rest-layer/schema) package. A schema is a struct describing a resource. A schema is composed of metadata about the resource and a description of the allowed fields through a map of field name pointing to field definition.
+Resource field configuration is performed through the [schema](https://godoc.org/github.com/rs/rest-layer/schema) package. A schema is a struct describing a resource. A schema is composed of metadata about the resource and a description of the allowed fields through a map of field name pointing to field definition.
 
 Sample resource schema:
 
@@ -686,7 +686,7 @@ The following table shows how REST layer map CRUDL operations to HTTP methods an
 | `Delete`  | DELETE      | Item       | Delete the item by its ID.
 | `Clear`   | DELETE      | Collection | Delete all items from the collection matching the context and/or filters.
 
-Note on GraphQL support and modes: current implementation of GraphQL doesn't suport mutation. Thus only resources with `Read` and `List` modes will be exposed with GraphQL. Support for other modes will be added in the future.
+Note on GraphQL support and modes: current implementation of GraphQL doesn't support mutation. Thus only resources with `Read` and `List` modes will be exposed with GraphQL. Support for other modes will be added in the future.
 
 ### Hooks
 
@@ -808,7 +808,7 @@ In the following example, the query document selects all items in the collection
 {$or: [{quantity: {$gt: 100}}, {price: {$lt: 9.95}}]}
 ```
 
-Match on sub-fields is performed throught field path separated by dots. This example shows an exact match on the subfields `country` and `city` of the `address` sub-document:
+Match on sub-fields is performed through field path separated by dots. This example shows an exact match on the sub-fields `country` and `city` of the `address` sub-document:
 
 ```js
 {address.country: "France", address.city: "Paris"}
@@ -994,7 +994,7 @@ Only parameters listed in the `Params` field will be accepted. You `Handler` fun
 
 ### Embedding
 
-With sub-fields notation you can also request referenced resources or connections (sub-resources). REST Layer will recognize them automatically and fetch the associated resources in order embed their data in the response. This can save a lot of unnecessary sequential roundtrips:
+With sub-fields notation you can also request referenced resources or connections (sub-resources). REST Layer will recognize them automatically and fetch the associated resources in order embed their data in the response. This can save a lot of unnecessary sequential round-trips:
 
 ```http
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts \
@@ -1064,7 +1064,7 @@ Paginate the rest of the list:
 
 REST Layer doesn't provide any kind of support for authentication. Identifying the user is out of the scope of a REST API, it should be performed by an oAuth server. The oAuth endpoints could be either hosted on the same code base as your API or live in a different app. The recommended way to integrate oAuth or any other kind of authentication with REST Layer is through a signed token like [JWT](https://jwt.io).
 
-In this schema, the authentication service indentify the user and store data relevant to the user's identification in a JWT token. This token is sent to the API client as a [bearer token](https://tools.ietf.org/html/rfc6750), thru for instance the `access-token` query-string parameter or the `Authorization` HTTP header. A http middleware then decode and verify this token and extract user info from it, and stores it into the context. In REST layer, user info is now accessible from your [resource hooks](#hooks) so you can change the query lookup or ensure mutated objects are owned by the user in order to handle the authorization part.
+In this schema, the authentication service identify the user and store data relevant to the user's identification in a JWT token. This token is sent to the API client as a [bearer token](https://tools.ietf.org/html/rfc6750), thru for instance the `access-token` query-string parameter or the `Authorization` HTTP header. A http middleware then decode and verify this token and extract user info from it, and stores it into the context. In REST layer, user info is now accessible from your [resource hooks](#hooks) so you can change the query lookup or ensure mutated objects are owned by the user in order to handle the authorization part.
 
 See the [JWT auth example](https://github.com/rs/rest-layer/blob/master/examples/auth-jwt/main.go) for more info.
 
@@ -1098,7 +1098,7 @@ HTTP/1.1 412 Precondition Failed
 
 What went wrong? We provided a `If-Match` header with the last known `ETag`, but it’s value did not match the current `ETag` of the item currently stored on the server, so we got a 412 Precondition Failed.
 
-When this happen, it's up to the client to decide to inform the user of the error and/or refetch the latest version of the document to get the lattest `ETag` before retrying the operation.
+When this happen, it's up to the client to decide to inform the user of the error and/or re-fetch the latest version of the document to get the latest `ETag` before retrying the operation.
 
 ```http
 $ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"80b81f314712932a4d4ea75ab0b76a4eea613012"' \
