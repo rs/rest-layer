@@ -378,7 +378,7 @@ func (e Regex) Match(payload map[string]interface{}) bool {
 
 // Validate implements Expression interface.
 func (e Regex) Validate(validator schema.Validator) error {
-	return validateValue(e.Field, e.Value, validator)
+	return validateValue(e.Field, e.Value.String(), validator)
 }
 
 // String implements Expression interface.
