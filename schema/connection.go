@@ -8,6 +8,7 @@ type Connection struct {
 	Field string
 }
 
+// Validate implements the FieldValidator interface.
 func (v *Connection) Validate(value interface{}) (interface{}, error) {
 	// No validation perform at this time.
 	return value, nil
