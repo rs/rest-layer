@@ -73,8 +73,10 @@ func (v Dict) Validate(value interface{}) (interface{}, error) {
 
 // GetField implements the FieldGetter interface.
 func (v Dict) GetField(name string) *Field {
-	if _, err := v.KeysValidator.Validate(name); err != nil {
-		return nil
+	if v.KeysValidator != nil {
+		if _, err := v.KeysValidator.Validate(name); err != nil {
+			return nil
+		}
 	}
 	return &v.Values
 }

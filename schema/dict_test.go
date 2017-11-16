@@ -3,6 +3,7 @@
 package schema_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/rs/rest-layer/schema"
@@ -115,4 +116,34 @@ func TestDictValidate(t *testing.T) {
 	for i := range testCases {
 		testCases[i].Run(t)
 	}
+}
+
+func TestDictGetField(t *testing.T) {
+	f := schema.Field{Description: "foobar", Filterable: true}
+	t.Run("{KeysValidator=nil}.GetField(valid)", func(t *testing.T) {
+		d := schema.Dict{KeysValidator: nil, Values: f}
+		if gf := d.GetField("something"); !reflect.DeepEqual(f, *gf) {
+			t.Errorf("d.GetField(valid) returned %#v, expected %#v", *gf, f)
+		}
+	})
+
+	t.Run("{KeysValidator=String}.GetField(valid)", func(t *testing.T) {
+		d := schema.Dict{
+			KeysValidator: schema.String{Allowed: []string{"foo", "bar"}},
+			Values:        f,
+		}
+		if gf := d.GetField("foo"); !reflect.DeepEqual(f, *gf) {
+			t.Errorf("d.GetField(valid) returned %#v, expected %#v", *gf, f)
+		}
+	})
+
+	t.Run("{KeysValidator=String}.GetField(invalid)", func(t *testing.T) {
+		d := schema.Dict{
+			KeysValidator: schema.String{Allowed: []string{"foo", "bar"}},
+			Values:        f,
+		}
+		if gf := d.GetField("invalid"); gf != nil {
+			t.Errorf("d.GetField(invalid) returned %#v, expected nil", *gf)
+		}
+	})
 }
