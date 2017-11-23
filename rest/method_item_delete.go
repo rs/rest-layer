@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/rs/rest-layer/resource"
+
 	"github.com/rs/rest-layer/schema/query"
 )
 
@@ -14,7 +16,7 @@ func itemDelete(ctx context.Context, r *http.Request, route *RouteMatch) (status
 		return e.Code, nil, e
 	}
 	q.Window = &query.Window{Limit: 1}
-	l, err := route.Resource().Find(ctx, q)
+	l, err := route.Resource().Find(resource.WithDisableHooks(ctx), q)
 	if err != nil {
 		e = NewError(err)
 		return e.Code, nil, e

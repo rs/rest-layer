@@ -15,6 +15,8 @@ func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		return e.Code, nil, e
 	}
 	rsrc := route.Resource()
+	// FIXME: Calling Find in place of Get causes the resource package to
+	// run the OnFind/OnFound hooks over OnGet/OnGot!
 	q.Window = &query.Window{Limit: 1}
 	list, err := rsrc.Find(ctx, q)
 	if err != nil {

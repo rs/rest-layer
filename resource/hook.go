@@ -259,6 +259,9 @@ func (h *eventHandler) use(e interface{}) error {
 }
 
 func (h *eventHandler) onFind(ctx context.Context, q *query.Query) error {
+	if hooksDisabled(ctx) {
+		return nil
+	}
 	for _, e := range h.onFindH {
 		if err := e.OnFind(ctx, q); err != nil {
 			return err
@@ -268,12 +271,18 @@ func (h *eventHandler) onFind(ctx context.Context, q *query.Query) error {
 }
 
 func (h *eventHandler) onFound(ctx context.Context, q *query.Query, list **ItemList, err *error) {
+	if hooksDisabled(ctx) {
+		return
+	}
 	for _, e := range h.onFoundH {
 		e.OnFound(ctx, q, list, err)
 	}
 }
 
 func (h *eventHandler) onGet(ctx context.Context, id interface{}) error {
+	if hooksDisabled(ctx) {
+		return nil
+	}
 	for _, e := range h.onGetH {
 		if err := e.OnGet(ctx, id); err != nil {
 			return err
@@ -283,12 +292,18 @@ func (h *eventHandler) onGet(ctx context.Context, id interface{}) error {
 }
 
 func (h *eventHandler) onGot(ctx context.Context, item **Item, err *error) {
+	if hooksDisabled(ctx) {
+		return
+	}
 	for _, e := range h.onGotH {
 		e.OnGot(ctx, item, err)
 	}
 }
 
 func (h *eventHandler) onInsert(ctx context.Context, items []*Item) error {
+	if hooksDisabled(ctx) {
+		return nil
+	}
 	for _, e := range h.onInsertH {
 		if err := e.OnInsert(ctx, items); err != nil {
 			return err
@@ -298,12 +313,18 @@ func (h *eventHandler) onInsert(ctx context.Context, items []*Item) error {
 }
 
 func (h *eventHandler) onInserted(ctx context.Context, items []*Item, err *error) {
+	if hooksDisabled(ctx) {
+		return
+	}
 	for _, e := range h.onInsertedH {
 		e.OnInserted(ctx, items, err)
 	}
 }
 
 func (h *eventHandler) onUpdate(ctx context.Context, item *Item, original *Item) error {
+	if hooksDisabled(ctx) {
+		return nil
+	}
 	for _, e := range h.onUpdateH {
 		if err := e.OnUpdate(ctx, item, original); err != nil {
 			return err
@@ -313,12 +334,18 @@ func (h *eventHandler) onUpdate(ctx context.Context, item *Item, original *Item)
 }
 
 func (h *eventHandler) onUpdated(ctx context.Context, item *Item, original *Item, err *error) {
+	if hooksDisabled(ctx) {
+		return
+	}
 	for _, e := range h.onUpdatedH {
 		e.OnUpdated(ctx, item, original, err)
 	}
 }
 
 func (h *eventHandler) onDelete(ctx context.Context, item *Item) error {
+	if hooksDisabled(ctx) {
+		return nil
+	}
 	for _, e := range h.onDeleteH {
 		if err := e.OnDelete(ctx, item); err != nil {
 			return err
@@ -328,12 +355,18 @@ func (h *eventHandler) onDelete(ctx context.Context, item *Item) error {
 }
 
 func (h *eventHandler) onDeleted(ctx context.Context, item *Item, err *error) {
+	if hooksDisabled(ctx) {
+		return
+	}
 	for _, e := range h.onDeletedH {
 		e.OnDeleted(ctx, item, err)
 	}
 }
 
 func (h *eventHandler) onClear(ctx context.Context, q *query.Query) error {
+	if hooksDisabled(ctx) {
+		return nil
+	}
 	for _, e := range h.onClearH {
 		if err := e.OnClear(ctx, q); err != nil {
 			return err
@@ -343,6 +376,9 @@ func (h *eventHandler) onClear(ctx context.Context, q *query.Query) error {
 }
 
 func (h *eventHandler) onCleared(ctx context.Context, q *query.Query, deleted *int, err *error) {
+	if hooksDisabled(ctx) {
+		return
+	}
 	for _, e := range h.onClearedH {
 		e.OnCleared(ctx, q, deleted, err)
 	}
