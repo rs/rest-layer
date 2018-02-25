@@ -166,7 +166,7 @@ func main() {
 
 	// Serve it
 	fmt.Println("Serving API on http://localhost:8080")
-	fmt.Println(`
+	fmt.Print(`
 Create a user:
 
 	http PUT :8080/api/users/john name="John Doe"
