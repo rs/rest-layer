@@ -11,13 +11,13 @@ import (
 func TestArrayValidatorCompile(t *testing.T) {
 	testCases := []referenceCompilerTestCase{
 		{
-			Name:             "ValuesValidator=&String{}",
-			Compiler:         &schema.Array{ValuesValidator: &schema.String{}},
+			Name:             "Values.Validator=&String{}",
+			Compiler:         &schema.Array{Values: schema.Field{Validator: &schema.String{}}},
 			ReferenceChecker: fakeReferenceChecker{},
 		},
 		{
-			Name:             "ValuesValidator=&String{Regexp:invalid}",
-			Compiler:         &schema.Array{ValuesValidator: &schema.String{Regexp: "[invalid re"}},
+			Name:             "Values.Validator=&String{Regexp:invalid}",
+			Compiler:         &schema.Array{Values: schema.Field{Validator: &schema.String{Regexp: "[invalid re"}}},
 			ReferenceChecker: fakeReferenceChecker{},
 			Error:            "invalid regexp: error parsing regexp: missing closing ]: `[invalid re`",
 		},
@@ -30,50 +30,50 @@ func TestArrayValidatorCompile(t *testing.T) {
 func TestArrayValidator(t *testing.T) {
 	testCases := []fieldValidatorTestCase{
 		{
-			Name:      `ValuesValidator=nil,Validate([]interface{}{true,"value"})`,
+			Name:      `Values.Validator=nil,Validate([]interface{}{true,"value"})`,
 			Validator: &schema.Array{},
 			Input:     []interface{}{true, "value"},
 			Expect:    []interface{}{true, "value"},
 		},
 		{
-			Name:      `ValuesValidator=&schema.Bool{},Validate([]interface{}{true,false})`,
-			Validator: &schema.Array{ValuesValidator: &schema.Bool{}},
+			Name:      `Values.Validator=&schema.Bool{},Validate([]interface{}{true,false})`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}},
 			Input:     []interface{}{true, false},
 			Expect:    []interface{}{true, false},
 		},
 		{
-			Name:      `ValuesValidator=&schema.Bool{},Validate([]interface{}{true,"value"})`,
-			Validator: &schema.Array{ValuesValidator: &schema.Bool{}},
+			Name:      `Values.Validator=&schema.Bool{},Validate([]interface{}{true,"value"})`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}},
 			Input:     []interface{}{true, "value"},
 			Error:     "invalid value at #2: not a Boolean",
 		},
 		{
-			Name:      `ValuesValidator=&String{},Validate("value")`,
-			Validator: &schema.Array{ValuesValidator: &schema.String{}},
+			Name:      `Values.Validator=&String{},Validate("value")`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.String{}}},
 			Input:     "value",
 			Error:     "not an array",
 		},
 		{
 			Name:      `MinLen=2,Validate([]interface{}{true,false})`,
-			Validator: &schema.Array{ValuesValidator: &schema.Bool{}, MinLen: 2},
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}, MinLen: 2},
 			Input:     []interface{}{true, false},
 			Expect:    []interface{}{true, false},
 		},
 		{
 			Name:      `MinLen=3,Validate([]interface{}{true,false})`,
-			Validator: &schema.Array{ValuesValidator: &schema.Bool{}, MinLen: 3},
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}, MinLen: 3},
 			Input:     []interface{}{true, false},
 			Error:     "has fewer items than 3",
 		},
 		{
 			Name:      `MaxLen=2,Validate([]interface{}{true,false})`,
-			Validator: &schema.Array{ValuesValidator: &schema.Bool{}, MaxLen: 2},
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}, MaxLen: 2},
 			Input:     []interface{}{true, false},
 			Expect:    []interface{}{true, false},
 		},
 		{
 			Name:      `MaxLen=1,Validate([]interface{}{true,false})`,
-			Validator: &schema.Array{ValuesValidator: &schema.Bool{}, MaxLen: 1},
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}, MaxLen: 1},
 			Input:     []interface{}{true, false},
 			Error:     "has more items than 1",
 		},

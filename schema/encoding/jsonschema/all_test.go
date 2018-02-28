@@ -295,7 +295,9 @@ func TestEncoder(t *testing.T) {
 				Fields: schema.Fields{
 					"students": {
 						Validator: &schema.Array{
-							ValuesValidator: &schema.Object{},
+							Values: schema.Field{
+								Validator: &schema.Object{},
+							},
 						},
 					},
 				},

@@ -285,7 +285,7 @@ func TestHandlerPostList(t *testing.T) {
 				index.Bind("bar", schema.Schema{Fields: schema.Fields{
 					"id": {},
 					"foos": {Validator: &schema.Array{
-						ValuesValidator: &schema.Reference{Path: "foo"},
+						Values: schema.Field{Validator: &schema.Reference{Path: "foo"}},
 					}},
 				}}, s, resource.DefaultConf)
 				return &requestTestVars{Index: index}
@@ -312,7 +312,7 @@ func TestHandlerPostList(t *testing.T) {
 				index.Bind("bar", schema.Schema{Fields: schema.Fields{
 					"id": {},
 					"foos": {Validator: &schema.Array{
-						ValuesValidator: &schema.Reference{Path: "foo"},
+						Values: schema.Field{Validator: &schema.Reference{Path: "foo"}},
 					}},
 				}}, s, resource.DefaultConf)
 				return &requestTestVars{Index: index}

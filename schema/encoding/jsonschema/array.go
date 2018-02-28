@@ -14,16 +14,25 @@ func (v arrayBuilder) BuildJSONSchema() (map[string]interface{}, error) {
 	if v.MaxLen > 0 {
 		m["maxItems"] = v.MaxLen
 	}
-	if v.ValuesValidator != nil {
-		builder, err := ValidatorBuilder(v.ValuesValidator)
+
+	// Retrieve values validator JSON schema.
+	var valuesSchema map[string]interface{}
+	if v.Values.Validator != nil {
+		b, err := ValidatorBuilder(v.Values.Validator)
 		if err != nil {
 			return nil, err
 		}
-		items, err := builder.BuildJSONSchema()
+		valuesSchema, err = b.BuildJSONSchema()
 		if err != nil {
 			return nil, err
 		}
-		m["items"] = items
+	} else {
+		valuesSchema = map[string]interface{}{}
 	}
+	addFieldProperties(valuesSchema, v.Values)
+	if len(valuesSchema) > 0 {
+		m["items"] = valuesSchema
+	}
+
 	return m, nil
 }

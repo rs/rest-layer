@@ -123,8 +123,8 @@ var (
 			"students": {
 				Description: "Array of students",
 				Validator: &schema.Array{
-					ValuesValidator: &schema.Object{
-						Schema: &simpleSchema,
+					Values: schema.Field{
+						Validator: &schema.Object{Schema: &simpleSchema},
 					},
 				},
 			},

@@ -11,7 +11,7 @@ import (
 func TestArray(t *testing.T) {
 	testCases := []encoderTestCase{
 		{
-			name: "ValuesValidator=nil",
+			name: "Values.Validator=nil",
 			schema: schema.Schema{
 				Fields: schema.Fields{
 					"a": schema.Field{
@@ -22,11 +22,13 @@ func TestArray(t *testing.T) {
 			customValidate: fieldValidator("a", `{"type": "array"}`),
 		},
 		{
-			name: "ValuesValidator=&schema.Bool{}",
+			name: "Values.Validator=&schema.Bool{}",
 			schema: schema.Schema{
 				Fields: schema.Fields{
 					"a": schema.Field{
-						Validator: &schema.Array{ValuesValidator: &schema.Bool{}},
+						Validator: &schema.Array{Values: schema.Field{
+							Validator: &schema.Bool{},
+						}},
 					},
 				},
 			},
