@@ -65,7 +65,7 @@ type Expression interface {
 }
 
 // Value represents any kind of value to use in query.
-type Value interface{}
+type Value = interface{}
 
 // And joins query clauses with a logical AND, returns all documents that match
 // the conditions of both clauses.
