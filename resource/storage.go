@@ -203,7 +203,7 @@ func (s storageWrapper) Find(ctx context.Context, q *query.Query) (list *ItemLis
 				// When query pattern is a list of documents request by their
 				// ids, use the multi get API.
 				if op.Field == "id" && (q.Window == nil || q.Window.Limit == len(op.Values)) {
-					return wrapMgetList(mg.MultiGet(ctx, valuesToInterface(op.Values)))
+					return wrapMgetList(mg.MultiGet(ctx, op.Values))
 				}
 			}
 		}
