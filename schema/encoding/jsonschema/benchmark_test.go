@@ -99,7 +99,9 @@ func complexSchema1() schema.Schema {
 			"m": schema.Field{
 				Description: "m",
 				Validator: &schema.Array{
-					ValuesValidator: &schema.Object{Schema: mSchema},
+					Values: schema.Field{
+						Validator: &schema.Object{Schema: mSchema},
+					},
 				},
 			},
 		},
@@ -177,8 +179,8 @@ func complexSchema2() schema.Schema {
 				Description: "c",
 				Required:    true,
 				Validator: &schema.Array{
-					ValuesValidator: &schema.Object{
-						Schema: cSchema,
+					Values: schema.Field{
+						Validator: &schema.Object{Schema: cSchema},
 					},
 				},
 			},
@@ -186,8 +188,8 @@ func complexSchema2() schema.Schema {
 				Description: "d",
 				Required:    true,
 				Validator: &schema.Array{
-					ValuesValidator: &schema.Object{
-						Schema: dSchema,
+					Values: schema.Field{
+						Validator: &schema.Object{Schema: dSchema},
 					},
 				},
 			},

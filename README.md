@@ -71,7 +71,8 @@ Until version 1.0 of rest-layer, breaking changes may occur at any time if you r
 
 Below is an overview over recent breaking changes, starting from an arbitrary point with PR #151:
 
-- PR #151: `ValuesValidator FieldValidator` attribute in the `scheam.Dict` struct replaced by `Values Field`.
+- PR #151: `ValuesValidator FieldValidator` attribute in `schema.Dict` struct replaced by `Values Field`.
+- PR #179: `ValuesValidator FieldValidator` attribute in `schema.Array` struct replaced by `Values Field`.
 
 From the next release and onwards (0.2), this list will summarize breaking changes done to master since the last release.
 
@@ -391,7 +392,7 @@ Vary: Origin
     "id": "ar6ejs6kj5lflgc28es0",
     "created": "2015-07-27T21:46:55.355857401+02:00",
     "updated": "2015-07-27T21:46:55.355857989+02:00",
-	"title": "My first post",
+    "title": "My first post",
     "user": "ar6ejgmkj5lfl98r67p0"
 }
 ```
@@ -434,7 +435,7 @@ X-Total: 1
         "_etag": "307ae92df6c3dd54847bfc7d72422e07",
         "created": "2015-07-27T21:46:55.355857401+02:00",
         "updated": "2015-07-27T21:46:55.355857989+02:00",
-		"title": "My first post",
+        "title": "My first post",
         "user": "ar6ejgmkj5lfl98r67p0"
     }
 ]
@@ -459,7 +460,7 @@ X-Total: 1
         "_etag": "307ae92df6c3dd54847bfc7d72422e07",
         "created": "2015-07-27T21:46:55.355857401+02:00",
         "updated": "2015-07-27T21:46:55.355857989+02:00",
-		"title": "My first post",
+        "title": "My first post",
         "user": {
             "id": "ar6ejgmkj5lfl98r67p0",
             "name": "John Doe"
@@ -491,11 +492,11 @@ Vary: Origin
         "posts": [
             {
                 "id": "ar6ejs6kj5lflgc28es0",
-				"title": "My first post"
+                "title": "My first post"
             },
             {
                 "id": "ar6ek26kj5lfljgh84qg",
-				"title": "My second post"
+                "title": "My second post"
             }
         ]
     }
@@ -516,7 +517,7 @@ Sample resource schema:
 
 ```go
 foo = schema.Schema{
-	Description: "A foo object",
+    Description: "A foo object",
     Fields: schema.Fields{
         "field_name": {
             Required: true,
@@ -667,7 +668,7 @@ The `resource.Conf` type has the following customizable properties:
 | ------------------------ | -------------
 | `AllowedModes`           | A list of `resource.Mode` allowed for the resource.
 | `PaginationDefaultLimit` | If set, pagination is enabled by default with a number of item per page defined here.
-| `ForceTotal`			   | Control the behavior of the computation of `X-Total` header and the `total` query-string parameter. See `resource.ForceTotalMode` for available options.
+| `ForceTotal`             | Control the behavior of the computation of `X-Total` header and the `total` query-string parameter. See `resource.ForceTotalMode` for available options.
 
 ### Modes
 
@@ -772,10 +773,8 @@ Here we would get all post with their respective 5 last comments embedded in the
                 },
                 "message": "Last comment"
             },
-            ...
         ]
     },
-    ...
 ]
 ```
 
