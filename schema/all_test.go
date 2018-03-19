@@ -56,6 +56,34 @@ func (tc fieldValidatorTestCase) Run(t *testing.T) {
 	})
 }
 
+type fieldSerializerTestCase struct {
+	Name             string
+	Serializer       schema.FieldSerializer
+	ReferenceChecker schema.ReferenceChecker
+	Input, Expect    interface{}
+	Error            string
+}
+
+func (tc fieldSerializerTestCase) Run(t *testing.T) {
+	t.Run(tc.Name, func(t *testing.T) {
+		t.Parallel()
+
+		if cmp, ok := tc.Serializer.(schema.Compiler); ok {
+			err := cmp.Compile(tc.ReferenceChecker)
+			assert.NoError(t, err, "Validator.Compile(%v)", tc.ReferenceChecker)
+		}
+
+		s, err := tc.Serializer.Serialize(tc.Input)
+		if tc.Error == "" {
+			assert.NoError(t, err, "Serializer.Serialize(%v)", tc.Input)
+			assert.Equal(t, tc.Expect, s, "Serializer.Serialize(%v)", tc.Input)
+		} else {
+			assert.EqualError(t, err, tc.Error, "Serializer.Serialize(%v)", tc.Input)
+			assert.Nil(t, s, "Serializer.Serialize(%v)", tc.Input)
+		}
+	})
+}
+
 type fakeReferenceChecker map[string]struct {
 	IDs       []interface{}
 	Validator schema.FieldValidator
