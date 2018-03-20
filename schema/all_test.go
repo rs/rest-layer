@@ -2,10 +2,10 @@ package schema_test
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/rs/rest-layer/schema"
-	"github.com/stretchr/testify/assert"
 )
 
 type referenceCompilerTestCase struct {
@@ -21,9 +21,13 @@ func (tc referenceCompilerTestCase) Run(t *testing.T) {
 
 		err := tc.Compiler.Compile(tc.ReferenceChecker)
 		if tc.Error == "" {
-			assert.NoError(t, err, "Compiler.Compile(%v)", tc.ReferenceChecker)
+			if err != nil {
+				t.Errorf("Compiler.Compile(%v): unexpected error: %v", tc.ReferenceChecker, err)
+			}
 		} else {
-			assert.EqualError(t, err, tc.Error, "Compiler.Compile(%v)", tc.ReferenceChecker)
+			if err == nil || err.Error() != tc.Error {
+				t.Errorf("Compiler.Compile(%v): expected error: %v, got: %v", tc.ReferenceChecker, tc.Error, err)
+			}
 		}
 	})
 }
@@ -42,16 +46,26 @@ func (tc fieldValidatorTestCase) Run(t *testing.T) {
 
 		if cmp, ok := tc.Validator.(schema.Compiler); ok {
 			err := cmp.Compile(tc.ReferenceChecker)
-			assert.NoError(t, err, "Validator.Compile(%v)", tc.ReferenceChecker)
+			if err != nil {
+				t.Errorf("Validator.Compile(%v): unexpected error: %v", tc.ReferenceChecker, err)
+			}
 		}
 
 		v, err := tc.Validator.Validate(tc.Input)
 		if tc.Error == "" {
-			assert.NoError(t, err, "Validator.Validate(%v)", tc.Input)
-			assert.Equal(t, tc.Expect, v, "Validator.Validate(%v)", tc.Input)
+			if err != nil {
+				t.Errorf("Validator.Validate(%v): unexpected error: %v", tc.ReferenceChecker, err)
+			}
+			if !reflect.DeepEqual(v, tc.Expect) {
+				t.Errorf("Validator.Validate(%v): expected: %v, got: %v", tc.Input, tc.Expect, v)
+			}
 		} else {
-			assert.EqualError(t, err, tc.Error, "Validator.Validate(%v)", tc.Input)
-			assert.Nil(t, v, "Validator.Validate(%v)", tc.Input)
+			if err == nil || err.Error() != tc.Error {
+				t.Errorf("Validator.Validate(%v): expected error: %v, got: %v", tc.ReferenceChecker, tc.Error, err)
+			}
+			if v != nil {
+				t.Errorf("Validator.Validate(%v): expected: nil, got: %v", tc.Input, v)
+			}
 		}
 	})
 }
@@ -70,16 +84,26 @@ func (tc fieldSerializerTestCase) Run(t *testing.T) {
 
 		if cmp, ok := tc.Serializer.(schema.Compiler); ok {
 			err := cmp.Compile(tc.ReferenceChecker)
-			assert.NoError(t, err, "Validator.Compile(%v)", tc.ReferenceChecker)
+			if err != nil {
+				t.Errorf("Validator.Compile(%v): unexpected error: %v", tc.ReferenceChecker, err)
+			}
 		}
 
 		s, err := tc.Serializer.Serialize(tc.Input)
 		if tc.Error == "" {
-			assert.NoError(t, err, "Serializer.Serialize(%v)", tc.Input)
-			assert.Equal(t, tc.Expect, s, "Serializer.Serialize(%v)", tc.Input)
+			if err != nil {
+				t.Errorf("Serializer.Serialize(%v): unexpected error: %v", tc.ReferenceChecker, err)
+			}
+			if s != tc.Expect {
+				t.Errorf("Serializer.Serialize(%v): expected: %v, got: %v", tc.Input, tc.Expect, s)
+			}
 		} else {
-			assert.EqualError(t, err, tc.Error, "Serializer.Serialize(%v)", tc.Input)
-			assert.Nil(t, s, "Serializer.Serialize(%v)", tc.Input)
+			if err == nil || err.Error() != tc.Error {
+				t.Errorf("Serializer.Serialize(%v): expected error: %v, got: %v", tc.ReferenceChecker, tc.Error, err)
+			}
+			if s != nil {
+				t.Errorf("Serializer.Serialize(%v): expected: nil, got: %v", tc.Input, s)
+			}
 		}
 	})
 }
