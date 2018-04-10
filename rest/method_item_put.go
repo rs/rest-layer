@@ -41,7 +41,8 @@ func itemPut(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		mode = resource.Replace
 	}
 	if !rsrc.Conf().IsModeAllowed(mode) {
-		return 405, nil, &Error{405, "Invalid method", nil}
+		status := http.StatusMethodNotAllowed
+		return status, nil, &Error{status, http.StatusText(status), nil}
 	}
 	// If-Match / If-Unmodified-Since handling.
 	if err := checkIntegrityRequest(r, original); err != nil {

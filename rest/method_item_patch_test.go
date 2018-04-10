@@ -1,12 +1,10 @@
-package rest
+package rest_test
 
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
+	"reflect"
 	"testing"
 	"time"
 
@@ -14,373 +12,244 @@ import (
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/rest-layer/schema/query"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestHandlerPatchItem(t *testing.T) {
-	i := resource.NewIndex()
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Payload: map[string]interface{}{"id": "1", "foo": "bar", "bar": "baz"}},
-	})
-	i.Bind("foo", schema.Schema{Fields: schema.Fields{"id": {}, "foo": {}, "bar": {}}}, s, resource.DefaultConf)
-	h, _ := NewHandler(i)
-	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("PATCH", "/foo/1", bytes.NewBufferString(`{"foo": "baz"}`))
-	h.ServeHTTP(w, r)
-	assert.Equal(t, 200, w.Code)
-	b, _ := ioutil.ReadAll(w.Body)
-	assert.Equal(t, `{"bar":"baz","foo":"baz","id":"1"}`, string(b))
-	q := &query.Query{
-		Predicate: query.Predicate{query.Equal{Field: "id", Value: "1"}},
-		Window:    &query.Window{Limit: 1},
-	}
-	l, err := s.Find(context.TODO(), q)
-	assert.NoError(t, err)
-	if assert.Len(t, l.Items, 1) {
-		assert.Equal(t, map[string]interface{}{"id": "1", "foo": "baz", "bar": "baz"}, l.Items[0].Payload)
-	}
-}
-
-func TestHandlerPatchItemBadPayload(t *testing.T) {
-	r, _ := http.NewRequest("PATCH", "/test/1", bytes.NewBufferString("{invalid json"))
-	status, headers, body := itemPatch(context.TODO(), r, nil)
-	assert.Equal(t, http.StatusBadRequest, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, http.StatusBadRequest, err.Code)
-		assert.Equal(t, "Malformed body: invalid character 'i' looking for beginning of object key string", err.Message)
-	}
-}
-
-func TestHandlerPatchItemInvalidQueryFields(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/test/2", bytes.NewBufferString("{}"))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "2",
-				Resource: test,
-			},
-		},
-		Params: url.Values{
-			"fields": []string{"invalid"},
-		},
-	}
-	status, headers, body := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `fields` parameter: invalid: unknown field", err.Message)
-	}
-}
-
-func TestHandlerPatchItemFound(t *testing.T) {
-	index := resource.NewIndex()
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Payload: map[string]interface{}{"id": "1", "foo": "bar"}},
-		{ID: "2", Payload: map[string]interface{}{"id": "2", "foo": "bar"}},
-		{ID: "3", Payload: map[string]interface{}{"id": "3", "foo": "bar"}},
-	})
-	test := index.Bind("test", schema.Schema{Fields: schema.Fields{
-		"id":  {},
-		"foo": {},
-	}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/test/2", bytes.NewBufferString(`{"id": "2", "foo": "baz"}`))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "2",
-				Resource: test,
-			},
-		},
-	}
-	status, headers, body := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusOK, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &resource.Item{}) {
-		i := body.(*resource.Item)
-		assert.Equal(t, "2", i.ID)
-		assert.Equal(t, map[string]interface{}{"id": "2", "foo": "baz"}, i.Payload)
-	}
-}
-
-func TestHandlerPatchItemNotFound(t *testing.T) {
-	index := resource.NewIndex()
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Payload: map[string]interface{}{"id": "1", "foo": "bar"}},
-		{ID: "2", Payload: map[string]interface{}{"id": "2", "foo": "bar"}},
-		{ID: "3", Payload: map[string]interface{}{"id": "3", "foo": "bar"}},
-	})
-	test := index.Bind("test", schema.Schema{Fields: schema.Fields{
-		"id":  {},
-		"foo": {},
-	}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/test/2", bytes.NewBufferString(`{"id": "2", "foo": "baz"}`))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "4",
-				Resource: test,
-			},
-		},
-	}
-	status, _, _ := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusNotFound, status)
-}
-
-func TestHandlerPatchItemInvalidField(t *testing.T) {
-	index := resource.NewIndex()
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Payload: map[string]interface{}{"id": "1"}},
-	})
-	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/test/2", bytes.NewBufferString(`{"foo": "baz"}`))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
-			},
-		},
-	}
-	status, headers, body := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Document contains error(s)", err.Message)
-		assert.Equal(t, map[string][]interface{}{
-			"foo": []interface{}{"invalid field"}}, err.Issues)
-	}
-}
-
-func TestHandlerPatchItemCannotChangeID(t *testing.T) {
-	index := resource.NewIndex()
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Payload: map[string]interface{}{"id": "1"}},
-	})
-	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/test/1", bytes.NewBufferString(`{"id": "2"}`))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
-			},
-		},
-	}
-	status, headers, body := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Cannot change document ID", err.Message)
-	}
-}
-
-func TestHandlerPatchItemReplaceEtagMatch(t *testing.T) {
-	index := resource.NewIndex()
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", ETag: "a", Payload: map[string]interface{}{"id": "1"}},
-	})
-	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/test/1", bytes.NewBufferString(`{"id": "1"}`))
-	r.Header.Set("If-Match", "W/a")
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
-			},
-		},
-	}
-	status, _, _ := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusOK, status)
-}
-
-func TestHandlerPatchItemReplaceEtagDontMatch(t *testing.T) {
-	index := resource.NewIndex()
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", ETag: "b", Payload: map[string]interface{}{"id": "1"}},
-	})
-	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/test/1", bytes.NewBufferString(`{"id": "1"}`))
-	r.Header.Set("If-Match", "W/a")
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
-			},
-		},
-	}
-	status, _, _ := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusPreconditionFailed, status)
-}
-
-func TestHandlerPatchItemReplaceModifiedSinceMatch(t *testing.T) {
-	index := resource.NewIndex()
-	s := mem.NewHandler()
-	yesterday := time.Now().Add(-24 * time.Hour)
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Updated: yesterday, Payload: map[string]interface{}{"id": "1"}},
-	})
-	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/test/1", bytes.NewBufferString(`{"id": "1"}`))
-	r.Header.Set("If-Unmodified-Since", yesterday.Format(time.RFC1123))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
-			},
-		},
-	}
-	status, _, _ := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusOK, status)
-}
-
-func TestHandlerPatchItemReplaceModifiedSinceDontMatch(t *testing.T) {
-	index := resource.NewIndex()
-	s := mem.NewHandler()
+func TestPatchItem(t *testing.T) {
 	now := time.Now()
 	yesterday := now.Add(-24 * time.Hour)
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Updated: now, Payload: map[string]interface{}{"id": "1"}},
-	})
-	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/test/1", bytes.NewBufferString(`{"id": "1"}`))
-	r.Header.Set("If-Unmodified-Since", yesterday.Format(time.RFC1123))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
-			},
-		},
-	}
-	status, _, _ := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusPreconditionFailed, status)
-}
 
-func TestHandlerPatchItemReplaceInvalidModifiedSinceDate(t *testing.T) {
-	index := resource.NewIndex()
-	s := mem.NewHandler()
-	now := time.Now()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Updated: now, Payload: map[string]interface{}{"id": "1"}},
-	})
-	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/test/1", bytes.NewBufferString(`{"id": "1"}`))
-	r.Header.Set("If-Unmodified-Since", "invalid date")
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
-			},
-		},
-	}
-	status, _, body := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusBadRequest, status)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, http.StatusBadRequest, err.Code)
-		assert.Equal(t, "Invalid If-Unmodified-Since header", err.Message)
-	}
-}
+	sharedInit := func() *requestTestVars {
+		s1 := mem.NewHandler()
+		s1.Insert(context.Background(), []*resource.Item{
+			{ID: "1", ETag: "a", Updated: now, Payload: map[string]interface{}{"id": "1", "foo": "odd", "bar": "baz"}},
+			{ID: "2", ETag: "b", Updated: yesterday, Payload: map[string]interface{}{"id": "2", "foo": "even", "bar": "baz"}},
+			{ID: "3", ETag: "c", Updated: yesterday, Payload: map[string]interface{}{"id": "3", "foo": "odd", "bar": "baz"}},
+		})
+		s2 := mem.NewHandler()
+		s2.Insert(context.Background(), []*resource.Item{
+			{ID: "1", ETag: "d", Updated: now, Payload: map[string]interface{}{"id": "1", "foo": "3"}},
+		})
 
-func TestHandlerPatchItemNoStorage(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{Fields: schema.Fields{"id": {}}}, nil, resource.Conf{
-		AllowedModes: []resource.Mode{resource.Replace},
-	})
-	r, _ := http.NewRequest("PATCH", "/test/1", bytes.NewBufferString(`{}`))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
+		idx := resource.NewIndex()
+		foo := idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"id":  {Sortable: true, Filterable: true},
+				"foo": {Filterable: true},
+				"bar": {Filterable: true},
 			},
-		},
-	}
-	status, headers, body := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusNotImplemented, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, http.StatusNotImplemented, err.Code)
-		assert.Equal(t, "No Storage Defined", err.Message)
-	}
-}
+		}, s1, resource.DefaultConf)
+		foo.Bind("sub", "foo", schema.Schema{
+			Fields: schema.Fields{
+				"id":  {Sortable: true, Filterable: true},
+				"foo": {Filterable: true, Validator: &schema.Reference{Path: "foo"}},
+			},
+		}, s2, resource.DefaultConf)
 
-func TestHandlerPatchItemChangePathValue(t *testing.T) {
-	index := resource.NewIndex()
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Payload: map[string]interface{}{"id": "1", "foo": "2"}},
-		{ID: "2", Payload: map[string]interface{}{"id": "2"}},
-	})
-	parent := index.Bind("foo", schema.Schema{Fields: schema.Fields{"id": {}}}, s, resource.DefaultConf)
-	test := parent.Bind("test", "foo", schema.Schema{Fields: schema.Fields{"id": {}, "foo": {}}}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("PATCH", "/foo/2/test/1", bytes.NewBufferString(`{"id": "1", "foo": "3"}`))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "foo",
-				Field:    "foo",
-				Value:    "2",
-				Resource: parent,
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s1, "foo.sub": s2},
+		}
+	}
+	checkPayload := func(name string, id interface{}, payload map[string]interface{}) requestCheckerFunc {
+		return func(t *testing.T, vars *requestTestVars) {
+			var item *resource.Item
+
+			s := vars.Storers[name]
+			q := query.Query{Predicate: query.Predicate{query.Equal{Field: "id", Value: id}}, Window: &query.Window{Limit: 1}}
+			if items, err := s.Find(context.Background(), &q); err != nil {
+				t.Errorf("s.Find failed: %s", err)
+				return
+			} else if len(items.Items) != 1 {
+				t.Errorf("item with ID %v not found", id)
+				return
+			} else {
+				item = items.Items[0]
+			}
+			if !reflect.DeepEqual(payload, item.Payload) {
+				t.Errorf("Unexpected stored payload for item %v:\nexpect: %#v\ngot: %#v", id, payload, item.Payload)
+			}
+		}
+	}
+
+	tests := map[string]requestTest{
+		`NoStorage`: {
+			// FIXME: For NoStorage, it's probably better to error early (during Bind).
+			Init: func() *requestTestVars {
+				index := resource.NewIndex()
+				index.Bind("foo", schema.Schema{}, nil, resource.DefaultConf)
+				return &requestTestVars{Index: index}
 			},
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("PATCH", "/foo/1", nil)
 			},
+			ResponseCode: http.StatusNotImplemented,
+			ResponseBody: `{"code": 501, "message": "No Storage Defined"}`,
+		},
+		`pathID:not-found`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PATCH", `/foo/66`, body)
+			},
+			ResponseCode: http.StatusNotFound,
+			ResponseBody: `{"code": 404, "message": "Not Found"}`,
+		},
+		`pathID:found,body:invalid-json`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`invalid`))
+				return http.NewRequest("PATCH", "/foo/2", body)
+			},
+			ResponseCode: http.StatusBadRequest,
+			ResponseBody: `{
+				"code": 400,
+				"message": "Malformed body: invalid character 'i' looking for beginning of value"
+			}`,
+			ExtraTest: checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "even", "bar": "baz"}),
+		},
+		`pathID:found,body:invalid-field`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"invalid": true}`))
+				return http.NewRequest("PATCH", "/foo/2", body)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{
+				"code":422,
+				"message": "Document contains error(s)",
+				"issues": {
+					"invalid": ["invalid field"]
+				}
+			}`,
+			ExtraTest: checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "even", "bar": "baz"}),
+		},
+		`pathID:found,body:alter-id`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"id": "3"}`))
+				return http.NewRequest("PATCH", "/foo/2", body)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{
+				"code":422,
+				"message": "Cannot change document ID"
+			}`,
+			ExtraTest: checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "even", "bar": "baz"}),
+		},
+		`pathID:found,body:valid`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PATCH", "/foo/2", body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "2", "foo": "baz", "bar": "baz"}`,
+			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "baz"}),
+		},
+		`pathID:found,body:valid,fields:invalid`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PATCH", "/foo/2?fields=invalid", body)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"fields": ["invalid: unknown field"]
+				}
+			}`,
+			ExtraTest: checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "even", "bar": "baz"}),
+		},
+		`pathID:found,body:valid,fields:valid`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PATCH", "/foo/2?fields=foo", body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"foo": "baz"}`,
+			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "baz"}),
+		},
+		`pathID:found,body:valid,header["If-Match"]:not-matching`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				r, err := http.NewRequest("PATCH", "/foo/2", body)
+				if err != nil {
+					return nil, err
+				}
+				r.Header.Set("If-Match", "W/x")
+				return r, nil
+			},
+			ResponseCode: http.StatusPreconditionFailed,
+			ResponseBody: `{"code": 412, "message": "Precondition Failed"}`,
+			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "even", "bar": "baz"}),
+		},
+		`pathID:found,body:valid,header["If-Match"]:matching`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				r, err := http.NewRequest("PATCH", "/foo/2", body)
+				if err != nil {
+					return nil, err
+				}
+				r.Header.Set("If-Match", "W/b")
+				return r, nil
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "2", "foo": "baz", "bar": "baz"}`,
+			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "baz"}),
+		},
+		`pathID:found,body:valid,header["If-Unmodified-Since"]:invalid`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				r, err := http.NewRequest("PATCH", "/foo/1", body)
+				if err != nil {
+					return nil, err
+				}
+				r.Header.Set("If-Unmodified-Since", "invalid")
+				return r, nil
+			},
+			ResponseCode: http.StatusBadRequest,
+			ResponseBody: `{"code": 400, "message": "Invalid If-Unmodified-Since header"}`,
+			ExtraTest:    checkPayload("foo", "1", map[string]interface{}{"id": "1", "foo": "odd", "bar": "baz"}),
+		},
+		`pathID:found,body:valid,header["If-Unmodified-Since"]:not-matching`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				r, err := http.NewRequest("PATCH", "/foo/1", body)
+				if err != nil {
+					return nil, err
+				}
+				r.Header.Set("If-Unmodified-Since", yesterday.Format(time.RFC1123))
+				return r, nil
+			},
+			ResponseCode: http.StatusPreconditionFailed,
+			ResponseBody: `{"code": 412, "message": "Precondition Failed"}`,
+			ExtraTest:    checkPayload("foo", "1", map[string]interface{}{"id": "1", "foo": "odd", "bar": "baz"}),
+		},
+		`parentPathID:found,pathID:found,body:alter-parent-id`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "2"}`))
+				r, err := http.NewRequest("PATCH", "/foo/3/sub/1", body)
+				if err != nil {
+					return nil, err
+				}
+				return r, nil
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "1", "foo": "2"}`,
+			ExtraTest:    checkPayload("foo.sub", "1", map[string]interface{}{"id": "1", "foo": "2"}),
 		},
 	}
-	status, headers, body := itemPatch(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusOK, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &resource.Item{}) {
-		i := body.(*resource.Item)
-		assert.Equal(t, "1", i.ID)
-		assert.Equal(t, map[string]interface{}{"id": "1", "foo": "3"}, i.Payload)
+
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
 	}
 }
