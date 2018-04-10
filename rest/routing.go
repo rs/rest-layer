@@ -2,7 +2,6 @@ package rest
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -182,82 +181,36 @@ func (r *RouteMatch) ResourceID() interface{} {
 
 // Query builds a query object from the matched route
 func (r *RouteMatch) Query() (*query.Query, *Error) {
-	q := &query.Query{}
+	qp := queryParser{rsc: r.Resource()}
+	if qp.rsc == nil {
+		return nil, &Error{500, "missing resource", nil}
+	}
+
 	// Append route fields to the query
 	for _, rp := range r.ResourcePath {
 		if rp.Value != nil {
-			q.Predicate = append(q.Predicate, query.Equal{Field: rp.Field, Value: rp.Value})
+			qp.q.Predicate = append(qp.q.Predicate, query.Equal{Field: rp.Field, Value: rp.Value})
 		}
 	}
-	rsc := r.Resource()
-	if rsc == nil {
-		return nil, &Error{500, "missing resource", nil}
-	}
+
 	// Parse query string params.
 	switch r.Method {
+	case "DELETE":
+		qp.parsePredicate(r.Params)
+		qp.parseWindow(r.Params, false)
+		qp.parseSort(r.Params)
 	case "HEAD", "GET":
-		limit := -1
-		if l, found, err := getUintParam(r.Params, "limit"); found {
-			if err != nil {
-				return nil, &Error{422, err.Error(), nil}
-			}
-			limit = l
-		} else if l := rsc.Conf().PaginationDefaultLimit; l > 0 {
-			limit = l
-		}
-		skip := 0
-		if s, found, err := getUintParam(r.Params, "skip"); found {
-			if err != nil {
-				return nil, &Error{422, err.Error(), nil}
-			}
-			skip = s
-		}
-		page := 1
-		if p, found, err := getUintParam(r.Params, "page"); found {
-			if err != nil {
-				return nil, &Error{422, err.Error(), nil}
-			}
-			page = p
-		}
-		if page > 1 && limit <= 0 {
-			return nil, &Error{422, "Cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size", nil}
-		}
-		q.Window = query.Page(page, limit, skip)
+		qp.parsePredicate(r.Params)
+		qp.parseWindow(r.Params, true)
+		qp.parseSort(r.Params)
+		qp.parseProjection(r.Params)
+	case "POST", "PUT", "PATCH":
+		// Allow projection to be applied on mutation responses that return
+		// the mutated item.
+		qp.parseProjection(r.Params)
 	}
-	if sort := r.Params.Get("sort"); sort != "" {
-		s, err := query.ParseSort(sort)
-		if err == nil {
-			err = s.Validate(rsc.Validator())
-		}
-		if err != nil {
-			return nil, &Error{422, fmt.Sprintf("Invalid `sort` parameter: %s", err), nil}
-		}
-		q.Sort = s
-	}
-	if filters, found := r.Params["filter"]; found {
-		// If several filter parameters are present, merge them using $and
-		for _, filter := range filters {
-			p, err := query.ParsePredicate(filter)
-			if err == nil {
-				err = p.Validate(rsc.Validator())
-			}
-			if err != nil {
-				return nil, &Error{422, fmt.Sprintf("Invalid `filter` parameter: %s", err), nil}
-			}
-			q.Predicate = append(q.Predicate, p...)
-		}
-	}
-	if fields := r.Params.Get("fields"); fields != "" {
-		p, err := query.ParseProjection(fields)
-		if err == nil {
-			err = p.Validate(rsc.Validator())
-		}
-		if err != nil {
-			return nil, &Error{422, fmt.Sprintf("Invalid `fields` parameter: %s", err), nil}
-		}
-		q.Projection = p
-	}
-	return q, nil
+
+	return qp.results()
 }
 
 // Release releases the route so it can be reused.
@@ -266,4 +219,101 @@ func (r *RouteMatch) Release() {
 	r.Method = ""
 	r.ResourcePath.clear()
 	routePool.Put(r)
+}
+
+// queryParser is a small helper type that parses query parameters, while also
+// storing any potential query issues for a combined error result.
+type queryParser struct {
+	q      query.Query
+	issues map[string][]interface{}
+	rsc    *resource.Resource
+}
+
+func (qp *queryParser) results() (*query.Query, *Error) {
+	if len(qp.issues) > 0 {
+		return nil, &Error{422, "URL parameters contain error(s)", qp.issues}
+	}
+	return &qp.q, nil
+}
+
+func (qp *queryParser) addIssue(field string, err interface{}) {
+	if qp.issues == nil {
+		qp.issues = map[string][]interface{}{}
+	}
+	qp.issues[field] = append(qp.issues[field], err)
+}
+
+func (qp *queryParser) parseProjection(params url.Values) {
+	if fields := params.Get("fields"); fields != "" {
+		if p, err := query.ParseProjection(fields); err != nil {
+			qp.addIssue("fields", err.Error())
+		} else if err := p.Validate(qp.rsc.Validator()); err != nil {
+			qp.addIssue("fields", err.Error())
+		} else {
+			qp.q.Projection = p
+		}
+	}
+}
+
+func (qp *queryParser) parsePredicate(params url.Values) {
+	if filters, found := params["filter"]; found {
+		// If several filter parameters are present, merge them using $and
+		for _, filter := range filters {
+			if p, err := query.ParsePredicate(filter); err != nil {
+				qp.addIssue("filter", err.Error())
+			} else if err := p.Validate(qp.rsc.Validator()); err != nil {
+				qp.addIssue("filter", err.Error())
+			} else {
+				qp.q.Predicate = append(qp.q.Predicate, p...)
+			}
+		}
+	}
+}
+
+func (qp *queryParser) parseSort(params url.Values) {
+	if sort := params.Get("sort"); sort != "" {
+		if s, err := query.ParseSort(sort); err != nil {
+			qp.addIssue("sort", err.Error())
+		} else if err := s.Validate(qp.rsc.Validator()); err != nil {
+			qp.addIssue("sort", err.Error())
+		} else {
+			qp.q.Sort = s
+		}
+	}
+}
+
+func (qp *queryParser) parseWindow(params url.Values, allowDefaultLimit bool) {
+	limit := -1
+	if l, found, err := getUintParam(params, "limit"); found {
+		if err != nil {
+			qp.addIssue("limit", err.Error())
+		} else {
+			limit = l
+		}
+	} else if allowDefaultLimit {
+		if l := qp.rsc.Conf().PaginationDefaultLimit; l > 0 {
+			limit = l
+		}
+	}
+	skip := 0
+	if s, found, err := getUintParam(params, "skip"); found {
+		if err != nil {
+			qp.addIssue("skip", err.Error())
+		} else {
+			skip = s
+		}
+	}
+	page := 1
+	if p, found, err := getUintParam(params, "page"); found {
+		if err != nil {
+			qp.addIssue("page", err.Error())
+		} else {
+			page = p
+		}
+	}
+	if page > 1 && limit <= 0 {
+		qp.addIssue("limit", "required when page is set and there is no resource default")
+	}
+
+	qp.q.Window = query.Page(page, limit, skip)
 }

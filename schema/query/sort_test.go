@@ -59,9 +59,9 @@ func TestSortValidate(t *testing.T) {
 		sort string
 		err  error
 	}{
-		{"foo", errors.New("field is not sortable: foo")},
+		{"foo", errors.New("foo: field is not sortable")},
 		{"bar", nil},
-		{"baz", errors.New("invalid sort field: baz")},
+		{"baz", errors.New("baz: unknown sort field")},
 	}
 	for i := range tests {
 		tt := tests[i]

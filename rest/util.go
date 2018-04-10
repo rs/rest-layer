@@ -143,6 +143,9 @@ func decodePayload(r *http.Request, payload *map[string]interface{}) *Error {
 	if ct := r.Header.Get("Content-Type"); ct != "" && strings.TrimSpace(strings.SplitN(ct, ";", 2)[0]) != "application/json" {
 		return &Error{501, fmt.Sprintf("Invalid Content-Type header: `%s' not supported", ct), nil}
 	}
+	if r.Body == nil {
+		return nil
+	}
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 	if err := decoder.Decode(payload); err != nil {

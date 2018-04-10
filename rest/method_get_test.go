@@ -1,297 +1,276 @@
-package rest
+package rest_test
 
 import (
 	"context"
 	"errors"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/schema"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestHandlerGetListInvalidQueryFields(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Resource: test,
-			},
-		},
-		Params: url.Values{
-			"fields": []string{"invalid"},
-		},
-	}
-	status, headers, body := listGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `fields` parameter: invalid: unknown field", err.Message)
-	}
-}
+func TestGetListInvalidQuery(t *testing.T) {
+	sharedInit := func() *requestTestVars {
+		s := mem.NewHandler()
 
-func TestHandlerGetListInvalidQuerySort(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Resource: test,
-			},
-		},
-		Params: url.Values{
-			"sort": []string{"invalid"},
-		},
-	}
-	status, headers, body := listGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `sort` parameter: invalid sort field: invalid", err.Message)
-	}
-}
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{}, s, resource.Conf{AllowedModes: resource.ReadWrite})
 
-func TestHandlerGetListInvalidQueryFilter(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Resource: test,
-			},
-		},
-		Params: url.Values{
-			"filter": []string{"invalid"},
-		},
-	}
-	status, headers, body := listGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `filter` parameter: char 0: expected '{' got 'i'", err.Message)
-	}
-}
-
-func TestHandlerGetListInvalidPage(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		Method: "GET",
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Resource: test,
-			},
-		},
-		Params: url.Values{
-			"page": []string{"invalid"},
-		},
-	}
-	status, headers, body := listGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `page` parameter", err.Message)
-	}
-
-	rm.Params.Set("page", "-1")
-
-	status, headers, body = listGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `page` parameter", err.Message)
-	}
-}
-
-func TestHandlerGetListInvalidLimit(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		Method: "GET",
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Resource: test,
-			},
-		},
-		Params: url.Values{
-			"limit": []string{"invalid"},
-		},
-	}
-	status, headers, body := listGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `limit` parameter", err.Message)
-	}
-
-	rm.Params.Set("limit", "-1")
-
-	status, headers, body = listGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `limit` parameter", err.Message)
-	}
-}
-
-func TestHandlerGetListPageWithNoLimit(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.Conf{})
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		Method: "GET",
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Resource: test,
-			},
-		},
-		Params: url.Values{
-			"page": []string{"2"},
-		},
-	}
-	status, headers, body := listGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Cannot use `page' parameter with no `limit' parameter on a resource with no default pagination size", err.Message)
-	}
-}
-
-func TestHandlerGetListPagination(t *testing.T) {
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1"},
-		{ID: "2"},
-		{ID: "3"},
-		{ID: "4"},
-		{ID: "5"},
-	})
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		Method: "GET",
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Resource: test,
-			},
-		},
-		Params: url.Values{
-			"page":  []string{"2"},
-			"limit": []string{"2"},
-		},
-	}
-	status, headers, body := listGet(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusOK, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &resource.ItemList{}) {
-		l := body.(*resource.ItemList)
-		if assert.Len(t, l.Items, 2) {
-			assert.Equal(t, "3", l.Items[0].ID)
-			assert.Equal(t, "4", l.Items[1].ID)
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s},
 		}
-		assert.Equal(t, 2, l.Offset)
-		assert.Equal(t, 5, l.Total)
 	}
 
-	rm.Params.Set("page", "3")
-
-	status, headers, body = listGet(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusOK, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &resource.ItemList{}) {
-		l := body.(*resource.ItemList)
-		if assert.Len(t, l.Items, 1) {
-			assert.Equal(t, "5", l.Items[0].ID)
-		}
-		assert.Equal(t, 4, l.Offset)
-		assert.Equal(t, 5, l.Total)
+	tests := map[string]requestTest{
+		"fields:invalid": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?fields=invalid", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"fields": ["invalid: unknown field"]
+				}
+			}`,
+		},
+		"sort:invalid": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?sort=invalid", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"sort": ["invalid: unknown sort field"]
+				}
+			}`,
+		},
+		"filter:invalid": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?filter=invalid", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"filter": ["char 0: expected '{' got 'i'"]
+				}
+			}`,
+		},
+		"page:invalid": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?page=invalid", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"page": ["must be positive integer"]
+				}
+			}`,
+		},
+		"page:-1": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?page=-1", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"page": ["must be positive integer"]
+				}
+			}`,
+		},
+		"page:2,limit:missing": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?page=2", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"limit": ["required when page is set and there is no resource default"]
+				}
+			}`,
+		},
+		"limit:invalid": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?limit=invalid", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"limit": ["must be positive integer"]
+				}
+			}`,
+		},
+		"limit:-1": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?limit=-1", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"limit": ["must be positive integer"]
+				}
+			}`,
+		},
 	}
 
-	rm.Params.Set("skip", "1")
-	rm.Params.Set("page", "2")
-
-	status, headers, body = listGet(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusOK, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &resource.ItemList{}) {
-		l := body.(*resource.ItemList)
-		if assert.Len(t, l.Items, 2) {
-			assert.Equal(t, "4", l.Items[0].ID)
-			assert.Equal(t, "5", l.Items[1].ID)
-		}
-		assert.Equal(t, 3, l.Offset)
-		assert.Equal(t, 5, l.Total)
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
 	}
 }
 
-func TestHandlerGetListFieldHandlerError(t *testing.T) {
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{{ID: "1", Payload: map[string]interface{}{"foo": "bar"}}})
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{
-		Fields: schema.Fields{
-			"foo": {
-				Params: map[string]schema.Param{
-					"bar": {},
-				},
-				Handler: func(ctx context.Context, value interface{}, params map[string]interface{}) (interface{}, error) {
-					return nil, errors.New("error")
+func TestGetListPagination(t *testing.T) {
+	sharedInit := func() *requestTestVars {
+		s := mem.NewHandler()
+		s.Insert(context.TODO(), []*resource.Item{
+			{ID: "1", Payload: map[string]interface{}{"id": "1"}},
+			{ID: "2", Payload: map[string]interface{}{"id": "2"}},
+			{ID: "3", Payload: map[string]interface{}{"id": "3"}},
+			{ID: "4", Payload: map[string]interface{}{"id": "4"}},
+			{ID: "5", Payload: map[string]interface{}{"id": "5"}},
+		})
+
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{}, s, resource.DefaultConf)
+
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s},
+		}
+	}
+
+	tests := map[string]requestTest{
+		"page:2,limit:2": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?page=2&limit=2", nil)
+			},
+			ResponseCode: 200,
+			ResponseBody: `[{"id": "3"}, {"id": "4"}]`,
+			ResponseHeader: http.Header{
+				"X-Offset": []string{"2"},
+				"X-Total":  []string{"5"},
+			},
+		},
+		"page:3,limit:2": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?page=3&limit=2", nil)
+			},
+			ResponseCode: 200,
+			ResponseBody: `[{"id": "5"}]`,
+			ResponseHeader: http.Header{
+				"X-Offset": []string{"4"},
+				"X-Total":  []string{"5"},
+			},
+		},
+		"skip:1,page:2,limit:2": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo?skip=1&page=2&limit=2", nil)
+			},
+			ResponseCode: 200,
+			ResponseBody: `[{"id": "4"},{"id": "5"}]`,
+			ResponseHeader: http.Header{
+				"X-Offset": []string{"3"},
+				"X-Total":  []string{"5"},
+			},
+		},
+	}
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
+	}
+}
+func TestGetListFieldHandler(t *testing.T) {
+	sharedInit := func() *requestTestVars {
+		s := mem.NewHandler()
+		s.Insert(context.TODO(), []*resource.Item{
+			{ID: "1", Payload: map[string]interface{}{"id": 1, "foo": "bar"}},
+		})
+
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"foo": {
+					Params: map[string]schema.Param{
+						"bar": {},
+					},
+					Handler: func(ctx context.Context, value interface{}, params map[string]interface{}) (interface{}, error) {
+						if s, _ := params["bar"].(string); s != "baz" {
+							return nil, errors.New("error")
+						}
+						return "baz", nil
+					},
 				},
 			},
-		},
-	}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		Method: "GET",
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Resource: test,
+		}, s, resource.DefaultConf)
+
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s},
+		}
+	}
+
+	tests := map[string]requestTest{
+		`fields:foo`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?fields=foo`, nil)
 			},
+			ResponseCode: 200,
+			ResponseBody: `[{"foo": "bar"}]`,
 		},
-		Params: url.Values{
-			"fields": []string{`foo(bar="baz")`},
+		`fields:foo(bar:baz)`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?fields=foo(bar:"baz")`, nil)
+			},
+			ResponseCode: 200,
+			ResponseBody: `[{"foo": "baz"}]`,
+		},
+		`fields:foo(bar:invalid)`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?fields=foo(bar:"invalid")`, nil)
+			},
+			// FIXME: 520 is mostly used for HTTP protocol errors, and seams inappropriate.
+			// should probably use 422, or possibly 500.
+			ResponseCode: 520,
+			ResponseBody: `{
+				"code": 520,
+				"message": "foo: error"
+			}`,
 		},
 	}
-	status, headers, body := listGet(context.TODO(), r, rm)
-	assert.Equal(t, 520, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 520, err.Code)
-		assert.Equal(t, "foo: error", err.Message)
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
 	}
 }

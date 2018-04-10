@@ -50,16 +50,16 @@ func ParseSort(sort string) (Sort, error) {
 	return s, nil
 }
 
-// Validate validates the sort againast the provided validator.
+// Validate validates the sort against the provided validator.
 func (s Sort) Validate(validator schema.Validator) error {
 	for _, sf := range s {
 		// Make sure the field exists.
-		field := validator.GetField(sf.Name)
-		if field == nil {
-			return fmt.Errorf("invalid sort field: %s", sf.Name)
+		f := validator.GetField(sf.Name)
+		if f == nil {
+			return fmt.Errorf("%s: unknown sort field", sf.Name)
 		}
-		if !field.Sortable {
-			return fmt.Errorf("field is not sortable: %s", sf.Name)
+		if !f.Sortable {
+			return fmt.Errorf("%s: field is not sortable", sf.Name)
 		}
 	}
 	return nil

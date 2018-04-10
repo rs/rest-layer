@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/rest-layer/schema/query"
@@ -75,7 +75,10 @@ func TestHandlerPostList(t *testing.T) {
 			ResponseCode: http.StatusUnprocessableEntity,
 			ResponseBody: `{
 				"code": 422,
-				"message": "Invalid ` + "`fields`" + ` parameter: invalid: unknown field"
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"fields": ["invalid: unknown field"]
+				}
 			}`,
 		},
 		"Dup": {
@@ -148,7 +151,7 @@ func TestHandlerPostList(t *testing.T) {
 				return http.NewRequest("POST", "/test", bytes.NewBufferString(`{}`))
 			},
 			// FIXME: The HTTP 520 code is usually used for protocol errors, and
-			// seems unaprporiate. This should most likely be a 422 error.
+			// seems inappropriate. This should most likely be a 422 error.
 			ResponseCode: 520,
 			ResponseBody: `{
 				"code": 520,

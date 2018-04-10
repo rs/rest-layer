@@ -1,339 +1,302 @@
-package rest
+package rest_test
 
 import (
 	"context"
 	"errors"
 	"net/http"
-	"net/url"
 	"testing"
 	"time"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/schema"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestHandlerGetItemInvalidQueryFields(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test/1", nil)
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
+func TestGetItem(t *testing.T) {
+	sharedInit := func() *requestTestVars {
+		s := mem.NewHandler()
+		s.Insert(context.TODO(), []*resource.Item{
+			{ID: "1", Payload: map[string]interface{}{"id": "1", "foo": "bar"}},
+			{ID: "2", Payload: map[string]interface{}{"id": "2", "foo": "baz"}},
+			{ID: "3", Payload: map[string]interface{}{"id": "3"}},
+		})
+
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"id":  {Filterable: true},
+				"foo": {Filterable: true},
 			},
+		}, s, resource.DefaultConf)
+
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s},
+		}
+	}
+
+	tests := map[string]requestTest{
+		"fields:invalid": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo/1?fields=invalid", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"fields": ["invalid: unknown field"]
+				}
+			}`,
 		},
-		Params: url.Values{
-			"fields": []string{"invalid"},
+		// sort is currently allowed by rest-layer on a single item fetch by ID.
+		"sort:invalid": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo/1?sort=invalid", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"sort": ["invalid: unknown sort field"]
+				}
+			}`,
+		},
+		// filter is currently allowed by rest-layer on a single item fetch by ID.
+		"filter:invalid": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo/1?filter=invalid", nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{
+				"code": 422,
+				"message": "URL parameters contain error(s)",
+				"issues": {
+					"filter": ["char 0: expected '{' got 'i'"]
+				}
+			}`,
+		},
+		"pathID:found": {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", "/foo/2", nil)
+
+			},
+			ResponseCode: 200,
+			ResponseBody: `{"id": "2", "foo": "baz"}`,
+		},
+		`pathID:found,filter:match`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo/2?filter={foo:"baz"}`, nil)
+			},
+			ResponseCode: 200,
+			ResponseBody: `{"id": "2", "foo": "baz"}`,
+		},
+		`pathID:found,filter:no-match`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo/2?filter={foo:"bar"}`, nil)
+			},
+			ResponseCode: 404,
+			ResponseBody: `{"code": 404, "message": "Not Found"}`,
 		},
 	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `fields` parameter: invalid: unknown field", err.Message)
+
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
 	}
 }
 
-func TestHandlerGetItemInvalidQuerySort(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
-			},
-		},
-		Params: url.Values{
-			"sort": []string{"invalid"},
-		},
-	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `sort` parameter: invalid sort field: invalid", err.Message)
-	}
-}
-
-func TestHandlerGetItemInvalidQueryFilter(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
-			},
-		},
-		Params: url.Values{
-			"filter": []string{"invalid"},
-		},
-	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, 422, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 422, err.Code)
-		assert.Equal(t, "Invalid `filter` parameter: char 0: expected '{' got 'i'", err.Message)
-	}
-}
-
-func TestHandlerGetItem(t *testing.T) {
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Payload: map[string]interface{}{"id": "1"}},
-		{ID: "2", Payload: map[string]interface{}{"id": "2"}},
-		{ID: "3", Payload: map[string]interface{}{"id": "3"}},
-	})
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test/2", nil)
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "2",
-				Resource: test,
-			},
-		},
-	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusOK, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &resource.Item{}) {
-		i := body.(*resource.Item)
-		assert.Equal(t, "2", i.ID)
-	}
-}
-
-func TestHandlerGetItemEtagMatch(t *testing.T) {
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", ETag: "a", Payload: map[string]interface{}{"id": "1"}},
-		{ID: "2", ETag: "a", Payload: map[string]interface{}{"id": "2"}},
-		{ID: "3", ETag: "a", Payload: map[string]interface{}{"id": "3"}},
-	})
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test/2", nil)
-	r.Header.Set("If-None-Match", "W/a")
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "2",
-				Resource: test,
-			},
-		},
-	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusNotModified, status)
-	assert.Nil(t, headers)
-	assert.Nil(t, body)
-}
-
-func TestHandlerGetItemEtagDontMatch(t *testing.T) {
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", ETag: "a", Payload: map[string]interface{}{"id": "1"}},
-		{ID: "2", ETag: "b", Payload: map[string]interface{}{"id": "2"}},
-		{ID: "3", ETag: "a", Payload: map[string]interface{}{"id": "3"}},
-	})
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test/2", nil)
-	r.Header.Set("If-None-Match", "W/a")
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "2",
-				Resource: test,
-			},
-		},
-	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusOK, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &resource.Item{}) {
-		i := body.(*resource.Item)
-		assert.Equal(t, "2", i.ID)
-	}
-}
-
-func TestHandlerGetItemModifiedMatch(t *testing.T) {
-	s := mem.NewHandler()
+func TestGetItemConditionally(t *testing.T) {
 	now := time.Now()
 	yesterday := now.Add(-24 * time.Hour)
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Updated: yesterday, Payload: map[string]interface{}{"id": "1"}},
-		{ID: "2", Updated: yesterday, Payload: map[string]interface{}{"id": "2"}},
-		{ID: "3", Updated: yesterday, Payload: map[string]interface{}{"id": "3"}},
-	})
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test/2", nil)
-	r.Header.Set("If-Modified-Since", now.Format(time.RFC1123))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "2",
-				Resource: test,
+
+	sharedInit := func() *requestTestVars {
+		s := mem.NewHandler()
+		s.Insert(context.TODO(), []*resource.Item{
+			{ID: "1", ETag: "a", Updated: now, Payload: map[string]interface{}{"id": "1", "foo": "bar"}},
+			{ID: "2", ETag: "b", Updated: yesterday, Payload: map[string]interface{}{"id": "2", "foo": "baz"}},
+		})
+
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{}, s, resource.DefaultConf)
+
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s},
+		}
+	}
+
+	tests := map[string]requestTest{
+		`header["If-None-Match"]:matching`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				r, err := http.NewRequest("GET", `/foo/2`, nil)
+				if err != nil {
+					return nil, err
+				}
+				r.Header.Set("If-None-Match", "W/b")
+				return r, nil
 			},
+			ResponseCode: http.StatusNotModified,
+			ResponseBody: ``,
+		},
+		`header["If-None-Match"]:not-matching`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				r, err := http.NewRequest("GET", `/foo/2`, nil)
+				if err != nil {
+					return nil, err
+				}
+				r.Header.Set("If-None-Match", "W/x")
+				return r, nil
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "2", "foo": "baz"}`,
+		},
+		`header["If-Modified-Since"]:invalid`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				r, err := http.NewRequest("GET", `/foo/1`, nil)
+				if err != nil {
+					return nil, err
+				}
+				r.Header.Set("If-Modified-Since", "invalid")
+				return r, nil
+			},
+			ResponseCode: http.StatusBadRequest,
+			ResponseBody: `{"code": 400, "message": "Invalid If-Modified-Since header"}`,
+		},
+		`header["If-Modified-Since"]:not-matching`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				r, err := http.NewRequest("GET", `/foo/2`, nil)
+				if err != nil {
+					return nil, err
+				}
+				r.Header.Set("If-Modified-Since", now.Format(time.RFC1123))
+				return r, nil
+			},
+			ResponseCode: http.StatusNotModified,
+			ResponseBody: ``,
+		},
+		`header["If-Modified-Since"]:exact-match`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				r, err := http.NewRequest("GET", `/foo/2`, nil)
+				if err != nil {
+					return nil, err
+				}
+				r.Header.Set("If-Modified-Since", yesterday.Format(time.RFC1123))
+				return r, nil
+			},
+			ResponseCode: http.StatusNotModified,
+			ResponseBody: ``,
+		},
+		`header["If-Modified-Since"]:matching`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				r, err := http.NewRequest("GET", `/foo/1`, nil)
+				if err != nil {
+					return nil, err
+				}
+				r.Header.Set("If-Modified-Since", yesterday.Format(time.RFC1123))
+				return r, nil
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "1", "foo": "bar"}`,
 		},
 	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusNotModified, status)
-	assert.Nil(t, headers)
-	assert.Nil(t, body)
-}
 
-func TestHandlerGetItemModifiedDontMatch(t *testing.T) {
-	s := mem.NewHandler()
-	now := time.Now()
-	yesterday := now.Add(-24 * time.Hour)
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Updated: now, Payload: map[string]interface{}{"id": "1"}},
-		{ID: "2", Updated: now, Payload: map[string]interface{}{"id": "2"}},
-		{ID: "3", Updated: now, Payload: map[string]interface{}{"id": "3"}},
-	})
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test/2", nil)
-	r.Header.Set("If-Modified-Since", yesterday.Format(time.RFC1123))
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "2",
-				Resource: test,
-			},
-		},
-	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusOK, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &resource.Item{}) {
-		i := body.(*resource.Item)
-		assert.Equal(t, "2", i.ID)
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
 	}
 }
+func TestGetItemFieldHandler(t *testing.T) {
+	sharedInit := func() *requestTestVars {
+		s := mem.NewHandler()
+		s.Insert(context.TODO(), []*resource.Item{
+			{ID: "1", Payload: map[string]interface{}{"id": "1", "foo": "bar"}},
+		})
 
-func TestHandlerGetItemInvalidIfModifiedSince(t *testing.T) {
-	s := mem.NewHandler()
-	now := time.Now()
-	s.Insert(context.TODO(), []*resource.Item{
-		{ID: "1", Updated: now, Payload: map[string]interface{}{"id": "1"}},
-		{ID: "2", Updated: now, Payload: map[string]interface{}{"id": "2"}},
-		{ID: "3", Updated: now, Payload: map[string]interface{}{"id": "3"}},
-	})
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test/2", nil)
-	r.Header.Set("If-Modified-Since", "invalid date")
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "2",
-				Resource: test,
-			},
-		},
-	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusBadRequest, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, http.StatusBadRequest, err.Code)
-		assert.Equal(t, "Invalid If-Modified-Since header", err.Message)
-	}
-}
-
-func TestHandlerGetItemFieldHandlerError(t *testing.T) {
-	s := mem.NewHandler()
-	s.Insert(context.TODO(), []*resource.Item{{ID: "1", Payload: map[string]interface{}{"id": "1", "foo": "bar"}}})
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{
-		Fields: schema.Fields{
-			"foo": {
-				Params: map[string]schema.Param{
-					"bar": {},
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"foo": {
+					Params: map[string]schema.Param{
+						"bar": {},
+					},
+					Handler: func(ctx context.Context, value interface{}, params map[string]interface{}) (interface{}, error) {
+						if s, _ := params["bar"].(string); s != "baz" {
+							return nil, errors.New("error")
+						}
+						return "baz", nil
+					},
 				},
-				Handler: func(ctx context.Context, value interface{}, params map[string]interface{}) (interface{}, error) {
-					return nil, errors.New("error")
-				},
 			},
-		},
-	}, s, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test", nil)
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
+		}, s, resource.DefaultConf)
+
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s},
+		}
+	}
+
+	tests := map[string]requestTest{
+		`fields:foo(bar:invalid)`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo/1?fields=foo(bar:"invalid")`, nil)
 			},
+			ResponseCode: 520,
+			ResponseBody: `{"code": 520, "message": "foo: error"}`,
 		},
-		Params: url.Values{
-			"fields": []string{`foo(bar="baz")`},
+		`fields:foo(bar:baz)`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo/1?fields=foo(bar:"baz")`, nil)
+			},
+			ResponseCode: 200,
+			ResponseBody: `{"foo": "baz"}`,
+		},
+		`fields:foo`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo/1?fields=foo`, nil)
+			},
+			ResponseCode: 200,
+			ResponseBody: `{"foo": "bar"}`,
 		},
 	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, 520, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, 520, err.Code)
-		assert.Equal(t, "foo: error", err.Message)
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
 	}
 }
 
 func TestHandlerGetItemNoStorage(t *testing.T) {
-	index := resource.NewIndex()
-	test := index.Bind("test", schema.Schema{}, nil, resource.DefaultConf)
-	r, _ := http.NewRequest("GET", "/test/1", nil)
-	rm := &RouteMatch{
-		ResourcePath: []*ResourcePathComponent{
-			&ResourcePathComponent{
-				Name:     "test",
-				Field:    "id",
-				Value:    "1",
-				Resource: test,
-			},
+	sharedInit := func() *requestTestVars {
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{}, nil, resource.DefaultConf)
+		return &requestTestVars{
+			Index: idx,
+		}
+	}
+
+	tc := requestTest{
+		Init: sharedInit,
+		NewRequest: func() (*http.Request, error) {
+			return http.NewRequest("GET", "/foo/1", nil)
 		},
+		ResponseCode: http.StatusNotImplemented,
+		ResponseBody: `{"code": 501, "message": "No Storage Defined"}`,
 	}
-	status, headers, body := itemGet(context.TODO(), r, rm)
-	assert.Equal(t, http.StatusNotImplemented, status)
-	assert.Nil(t, headers)
-	if assert.IsType(t, body, &Error{}) {
-		err := body.(*Error)
-		assert.Equal(t, http.StatusNotImplemented, err.Code)
-		assert.Equal(t, "No Storage Defined", err.Message)
-	}
+	tc.Test(t)
 }

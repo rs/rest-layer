@@ -2,7 +2,7 @@ package rest
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -56,7 +56,7 @@ func getUintParam(params url.Values, name string) (int, bool, error) {
 	if v := params.Get(name); v != "" {
 		i, err := strconv.ParseUint(v, 10, 32)
 		if err != nil {
-			return 0, true, &Error{422, fmt.Sprintf("Invalid `%s` parameter", name), nil}
+			return 0, true, errors.New("must be positive integer")
 		}
 		return int(i), true, nil
 	}

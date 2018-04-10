@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/rs/rest-layer/internal/testutil"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
-	"github.com/stretchr/testify/assert"
 )
 
 // requestTest is a reusable type for testing POST, PUT, PATCH or GET requests. Best used in a map, E.g.:
@@ -19,8 +19,10 @@ type requestTest struct {
 	ResponseCode   int
 	ResponseHeader http.Header // Only checks provided headers, not that all headers are equal.
 	ResponseBody   string
-	ExtraTest      func(*testing.T, *requestTestVars)
+	ExtraTest      requestCheckerFunc
 }
+
+type requestCheckerFunc func(*testing.T, *requestTestVars)
 
 // requestTestVars provodes test runtime variables.
 type requestTestVars struct {
@@ -34,23 +36,40 @@ func (tt *requestTest) Test(t *testing.T) {
 	t.Parallel()
 	vars := tt.Init()
 	h, err := rest.NewHandler(vars.Index)
-	if !assert.NoError(t, err, "rest.NewHandler(vars.Index)") {
+	if err != nil {
+		t.Errorf("rest.NewHandler failed: %s", err)
 		return
 	}
 	r, err := tt.NewRequest()
-	if !assert.NoError(t, err, "tt.NewRequest()") {
+	if err != nil || r == nil {
+		t.Errorf("tt.NewRequest failed: %s", err)
 		return
 	}
 	w := httptest.NewRecorder()
 
 	h.ServeHTTP(w, r)
-	assert.Equal(t, tt.ResponseCode, w.Code, "h.ServeHTTP(w, r); w.Code")
-	headers := w.Header()
-	for k, v := range tt.ResponseHeader {
-		assert.Equal(t, v, headers[k], "h.ServeHTTP(w, r); w.Header()[%q]", k)
+	if tt.ResponseCode != w.Code {
+		t.Errorf("Expected HTTP response code %d, got %d", tt.ResponseCode, w.Code)
+	}
+	header := w.Header()
+	for k, evs := range tt.ResponseHeader {
+		if eCnt, aCnt := len(evs), len(header[k]); eCnt != aCnt {
+			t.Errorf("expected HTTP Header %q to have %d items, got %d items", k, eCnt, aCnt)
+			continue
+		}
+		for i, ev := range evs {
+			if av := header[k][i]; ev != av {
+				t.Errorf("Expected HTTP header[%q][%d] to equal %q, got %q", k, i, ev, av)
+			}
+		}
+
 	}
 	b, _ := ioutil.ReadAll(w.Body)
-	assert.JSONEq(t, tt.ResponseBody, string(b), "h.ServeHTTP(w, r); w.Body")
+	if len(tt.ResponseBody) > 0 {
+		testutil.JSONEq(t, []byte(tt.ResponseBody), b)
+	} else if len(b) > 0 {
+		t.Errorf("Expected empty response body, got:\n%s", b)
+	}
 
 	if tt.ExtraTest != nil {
 		tt.ExtraTest(t, vars)
