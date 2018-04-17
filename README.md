@@ -129,7 +129,7 @@ As REST Layer is a simple `net/http` handler. You can use standard middleware to
 
 ### Storage Handlers
 
-- [x] [Memory](http://github.com/rs/rest-layer-mem) (test only)
+- [x] [Memory](http://github.com/rs/rest-layer/tree/master/resource/testing/mem) (test only)
 - [x] [MongoDB](http://github.com/rs/rest-layer-mongo)
 - [x] [ElasticSearch](http://github.com/rs/rest-layer-es)
 - [x] [SQLite3](https://github.com/jxstanford/rest-layer-sqlite3) (third party)
@@ -147,7 +147,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/rs/rest-layer-mem"
+	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
@@ -1322,7 +1322,7 @@ func main() {
 
 ## Data Storage Handler
 
-REST Layer doesn't handle storage of resources directly. A [mem.MemoryHandler](https://godoc.org/github.com/rs/rest-layer-mem#MemoryHandler) is provided as an example but should be used for testing only.
+REST Layer doesn't handle storage of resources directly. A [mem.MemoryHandler](https://godoc.org/github.com/rs/rest-layer/resource/testing/mem#MemoryHandler) is provided as an example but should be used for testing only.
 
 A resource storage handler is easy to write though. Some handlers for [popular databases are available](#storage-handlers), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the [resource.Storer](https://godoc.org/github.com/rs/rest-layer/resource#Storer) interface:
 

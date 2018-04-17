@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/rs/rest-layer-mem"
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
 )
