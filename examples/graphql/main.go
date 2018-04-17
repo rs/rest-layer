@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/justinas/alice"
-	"github.com/rs/rest-layer-mem"
+	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/graphql"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"

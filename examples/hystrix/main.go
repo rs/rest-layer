@@ -13,7 +13,7 @@ import (
 	"github.com/afex/hystrix-go/hystrix"
 	"github.com/justinas/alice"
 	"github.com/rs/rest-layer-hystrix"
-	"github.com/rs/rest-layer-mem"
+	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
