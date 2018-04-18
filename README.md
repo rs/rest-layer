@@ -667,7 +667,7 @@ The `resource.Conf` type has the following customizable properties:
 | Property                 | Description
 | ------------------------ | -------------
 | `AllowedModes`           | A list of `resource.Mode` allowed for the resource.
-| `PaginationDefaultLimit` | If set, pagination is enabled by default with a number of item per page defined here.
+| `PaginationDefaultLimit` | If set, pagination is enabled for list requests by default with the number of item per page as defined here. Note that the default ony applies to list (GET) requests, i.e. it does _not_ apply for clear (DELETE) requests.
 | `ForceTotal`             | Control the behavior of the computation of `X-Total` header and the `total` query-string parameter. See `resource.ForceTotalMode` for available options.
 
 ### Modes
@@ -802,7 +802,7 @@ post = schema.Schema{
 
 ## Filtering
 
-To filter resources, you use the `filter` query-string parameter. The format of the parameter is inspired the [MongoDB query format](http://docs.mongodb.org/manual/tutorial/query-documents/). The `filter` parameter can be used with `GET` and `DELETE` methods on collection URLs.
+To filter resources, you use the `filter` query-string parameter. The format of the parameter is inspired the [MongoDB query format](http://docs.mongodb.org/manual/tutorial/query-documents/). The `filter` parameter can be used with `GET` and `DELETE` methods on resource URLs.
 
 To use a resource field with the `filter` parameter, the field must be defined on the resource and the `Filterable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
 
@@ -885,7 +885,7 @@ An error of `ErrNotImplemented` will be returned for those storage backends whic
 
 ## Sorting
 
-Sorting of resource items is defined through the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix its name with a minus (`-`) character.
+Sorting of resource items is defined through the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix its name with a minus (`-`) character. The `sort` parameter can be used with `GET` and `DELETE` methods on resource URLs.
 
 To use a resource field with the `sort` parameter, the field must be defined on the resource and the `Sortable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
 
@@ -895,9 +895,9 @@ Here we sort the result by ascending quantity and descending date:
 
 ## Field Selection
 
-REST APIs tend to grow over time. Resources get more and more fields to fulfill the needs for new features. But each time fields are added, all existing API clients automatically gets the additional cost. This tend to lead to huge wast of bandwidth and added latency due to the transfer of unnecessary data.
+REST APIs tend to grow over time. Resources get more and more fields to fulfill the needs for new features. But each time fields are added, all existing API clients automatically gets the additional cost. This tend to lead to huge wast of bandwidth and added latency due to the transfer of unnecessary data. To workaround this, the `field` parameter can be used to minimize and customize the response body from requests with a `GET`, `PATCH` or `PUT` method on resource URLs.
 
-To workaround this issue, REST Layer provides a powerful fields selection (also named projection) system. If you provide the `fields` parameter with a list of fields for the resource you are interested in separated by comas, only those fields will be returned in the document:
+REST Layer provides a powerful fields selection (also named projection) system. If you provide the `fields` parameter with a list of fields for the resource you are interested in separated by comas, only those fields will be returned in the document:
 
 ```http
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name'
@@ -1042,15 +1042,13 @@ Such request can quickly generate a lot of queries on the storage handler. To en
 
 ## Pagination
 
-Pagination is supported on collection URLs using `page` and `limit` query-string parameters. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated until you provide the `limit` query-string parameter.
+Pagination is supported on collection URLs using the `page` and `limit` query-string parameters, and can be used for resource list view URLs with request method `GET` and `DELETE`. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated for list `GET` requests until you provide the `limit` query-string parameter. The `PaginationDefaultLimit` does not apply to list `DELETE` requests, but the `limit` and `page` parameters may still be used to delete a subset of items.
 
 If your collections are large enough, failing to define a reasonable `PaginationDefaultLimit` parameter may quickly render your API unusable.
 
 ## Skipping
 
-Skipping of resource items is defined through the `skip` query-string parameter. The `skip` value is a positive integer defining the number of items to skip when querying for items.
-
-To use a resource field with the `skip` parameter, the field must be defined on the resource.
+Skipping of resource items is defined through the `skip` query-string parameter. The `skip` value is a positive integer defining the number of items to skip when querying for items, and can be applied for requests with method `GET` or `DELETE`.
 
 Skip the first 10 items of the result:
 
@@ -1068,7 +1066,7 @@ Show the first 2 elements:
 
 Paginate the rest of the list:
 
-	/posts?skip=2&page=1&limit=10
+    /posts?skip=2&page=1&limit=10
 
 ## Authentication and Authorization
 
