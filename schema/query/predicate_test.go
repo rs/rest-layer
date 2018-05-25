@@ -106,6 +106,12 @@ func TestMatch(t *testing.T) {
 				{map[string]interface{}{"bar": float64(1)}, false},
 			},
 		},
+		{
+			`{"foo.bar": "baz"}`, []test{
+				{map[string]interface{}{"foo": map[string]interface{}{"bar": "baz"}}, true},
+				{map[string]interface{}{"foo": map[string]interface{}{"bar": "bar"}}, false},
+			},
+		},
 	}
 	for i := range tests {
 		tt := tests[i]
@@ -143,6 +149,7 @@ func TestString(t *testing.T) {
 		`{"$and": [{"foo": "bar"}, {"foo": "baz"}]}`:              `{$and: [{foo: "bar"}, {foo: "baz"}]}`,
 		`{"foo": "bar", "$or": [{"bar": "baz"}, {"bar": "foo"}]}`: `{foo: "bar", $or: [{bar: "baz"}, {bar: "foo"}]}`,
 		`{"foo": ["bar", "baz"]}`:                                 `{foo: ["bar","baz"]}`,
+		`{"foo.bar": "baz"}`:                                      `{foo.bar: "baz"}`,
 	}
 	for query, want := range tests {
 		q, err := ParsePredicate(query)
