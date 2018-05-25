@@ -34,3 +34,23 @@ func TestIsNumber(t *testing.T) {
 		})
 	}
 }
+
+func TestGetField(t *testing.T) {
+	cases := []struct {
+		name      string
+		payload   map[string]interface{}
+		fieldName string
+		want      string
+	}{
+		{"foo", map[string]interface{}{"foo": "bar"}, "foo", "bar"},
+		{"foo.bar", map[string]interface{}{"foo": map[string]interface{}{"bar": "baz"}}, "foo.bar", "baz"},
+	}
+	for i := range cases {
+		tc := cases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			if res := getField(tc.payload, tc.fieldName); res != tc.want {
+				t.Errorf("field = %v, wanted %v", res, tc.want)
+			}
+		})
+	}
+}
