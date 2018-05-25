@@ -140,11 +140,27 @@ type In struct {
 // Match implements Expression interface.
 func (e In) Match(payload map[string]interface{}) bool {
 	value := getField(payload, e.Field)
-	for _, v := range e.Values {
-		if reflect.DeepEqual(v, value) {
-			return true
+
+	// The $in operator in MongoDB allows matching both single values and an
+	// array of values.
+	// https://docs.mongodb.com/manual/reference/operator/query/in/
+	switch vt := value.(type) {
+	case []interface{}:
+		for _, v := range e.Values {
+			for _, vv := range vt {
+				if reflect.DeepEqual(v, vv) {
+					return true
+				}
+			}
+		}
+	default:
+		for _, v := range e.Values {
+			if reflect.DeepEqual(v, value) {
+				return true
+			}
 		}
 	}
+
 	return false
 }
 
@@ -171,9 +187,24 @@ type NotIn struct {
 // Match implements Expression interface.
 func (e NotIn) Match(payload map[string]interface{}) bool {
 	value := getField(payload, e.Field)
-	for _, v := range e.Values {
-		if reflect.DeepEqual(v, value) {
-			return false
+
+	// The $nin operator in MongoDB allows matching both single values and an
+	// array of values.
+	// https://docs.mongodb.com/manual/reference/operator/query/nin/
+	switch vt := value.(type) {
+	case []interface{}:
+		for _, v := range e.Values {
+			for _, vv := range vt {
+				if reflect.DeepEqual(v, vv) {
+					return false
+				}
+			}
+		}
+	default:
+		for _, v := range e.Values {
+			if reflect.DeepEqual(v, value) {
+				return false
+			}
 		}
 	}
 	return true
