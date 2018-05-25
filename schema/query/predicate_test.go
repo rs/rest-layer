@@ -69,9 +69,21 @@ func TestMatch(t *testing.T) {
 			},
 		},
 		{
+			`{"foo": {"$in": ["baz"]}}`, []test{
+				{map[string]interface{}{"foo": []interface{}{"baz"}}, true},
+				{map[string]interface{}{"foo": []interface{}{"bar"}}, false},
+			},
+		},
+		{
 			`{"foo": {"$nin": ["bar", "baz"]}}`, []test{
 				{map[string]interface{}{"foo": "bar"}, false},
 				{map[string]interface{}{"foo": "foo"}, true},
+			},
+		},
+		{
+			`{"foo": {"$nin": ["baz"]}}`, []test{
+				{map[string]interface{}{"foo": []interface{}{"baz"}}, false},
+				{map[string]interface{}{"foo": []interface{}{"bar"}}, true},
 			},
 		},
 		{
