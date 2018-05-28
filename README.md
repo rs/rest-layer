@@ -100,7 +100,7 @@ From the next release and onwards (0.2), this list will summarize breaking chang
 - [x] Extensible data validation and transformation
 - [x] Conditional requests (Last-Modified / Etag)
 - [x] Data integrity and concurrency control (If-Match)
-- [x] Timeout and request cancellation thru [context](https://godoc.org/context)
+- [x] Timeout and request cancellation through [context](https://godoc.org/context)
 - [x] Logging
 - [x] Multi-GET
 - [ ] Bulk inserts
@@ -160,7 +160,7 @@ var (
 		Fields: schema.Fields{
 			"id": {
 				Required: true,
-				// When a field is read-only, on default values or hooks can
+				// When a field is read-only, only default values or hooks can
 				// set their value. The client can't change it.
 				ReadOnly: true,
 				// This is a field hook called when a new user is created.
@@ -190,7 +190,7 @@ var (
 				Sortable:   true,
 				OnInit:     schema.Now,
 				// The OnUpdate hook is called when the item is edited. Here we use
-				// provided Now hook which just return the current time.
+				// provided Now hook which returns the current time.
 				OnUpdate:  schema.Now,
 				Validator: &schema.Time{},
 			},
@@ -544,7 +544,7 @@ The field definitions contains the following properties:
 | Field        | Description
 | ------------ | -------------
 | `Required`   | If `true`, the field must be provided when the resource is created and can't be set to `null`. The client may be able to omit a required field if a `Default` or a hook sets its content.
-| `ReadOnly`   | If `true`, the field can not be set by the client, only a `Default` or a hook can alter its value. You may specify a value for a read-only field in your mutation request if the value is equal to the old value, REST Layer won't complain about it. This let your client to `PUT` the same document it has `GET` without having to take care of removing the read-only fields.
+| `ReadOnly`   | If `true`, the field can not be set by the client, only a `Default` or a hook can alter its value. You may specify a value for a read-only field in your mutation request if the value is equal to the old value, REST Layer won't complain about it. This lets your client `PUT` the same document it got with `GET` without having to take care of removing the read-only fields.
 | `Hidden`     | Hidden allows writes but hides the field's content from the client. When this field is enabled, PUTing the document without the field would not remove the field but use the previous document's value if any.
 | `Default`    | The value to be set when resource is created and the client didn't provide a value for the field. The content of this variable must still pass validation.
 | `OnInit`     | A function to be executed when the resource is created. The function gets the current value of the field (after `Default` has been set if any) and returns the new value to be set.
@@ -660,7 +660,7 @@ posts := index.Bind("posts", post, mem.NewHandler(), resource.DefaultConf)
 
 This tells the `resource.Index` to bind the `post` schema at the `posts` endpoint. The resource collection URL is then `/posts` and item URLs are `/posts/<post_id>`.
 
-The [resource.DefaultConf](https://godoc.org/github.com/rs/rest-layer/resource#pkg-variables) variable is a pre-defined [resource.Conf](https://godoc.org/github.com/rs/rest-layer/resource#Conf) type with sensible default. You can customize the resource behavior using a custom configuration.
+The [resource.DefaultConf](https://godoc.org/github.com/rs/rest-layer/resource#pkg-variables) variable is a pre-defined [resource.Conf](https://godoc.org/github.com/rs/rest-layer/resource#Conf) type with sensible defaults. You can customize the resource behavior using a custom configuration.
 
 The `resource.Conf` type has the following customizable properties:
 
@@ -672,9 +672,9 @@ The `resource.Conf` type has the following customizable properties:
 
 ### Modes
 
-REST Layer handles mapping of HTTP methods to your resource URLs automatically. With REST, there is two kind of resource URL pathes: collection and item URLs. Collection URLs (`/<resource>`) are pointing to the collection of items while item URL (`/<resource>/<item_id>`) points to a specific item in that collection. HTTP methods are used to perform [CRUDL](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete) operations on those resource.
+REST Layer handles mapping of HTTP methods to your resource URLs automatically. With REST, there is two kind of resource URL paths: collection and item URLs. Collection URLs (`/<resource>`) are pointing to the collection of items, while item URL (`/<resource>/<item_id>`) points to a specific item in that collection. HTTP methods are used to perform [CRUDL](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete) operations on those resources.
 
-You can easily dis/allow operation on a per resource basis using `resource.Conf`'s `AllowedModes` property. The use of modes instead of HTTP methods in the configuration adds a layer of abstraction necessary to handle specific cases like `PUT` HTTP method performing a `create` if the specified item does not exist or a `replace` if it does. This gives you precise control of what you want to allow or not.
+You can easily dis/allow an operation on a per resource basis using `resource.Conf`'s `AllowedModes` property. The use of modes instead of HTTP methods in the configuration adds a layer of abstraction necessary to handle specific cases like `PUT` HTTP method performing a `create` if the specified item does not exist or a `replace` if it does. This gives you precise control of what you want to allow or not.
 
 Modes are passed as configuration to resources as follow:
 
@@ -684,7 +684,7 @@ users := index.Bind("users", user, mem.NewHandler(), resource.Conf{
 })
 ```
 
-The following table shows how REST layer map CRUDL operations to HTTP methods and `modes`:
+The following table shows how REST layer maps CRUDL operations to HTTP methods and `modes`:
 
 
 | Mode      | HTTP Method | Context    | Description
@@ -732,13 +732,13 @@ Hooks are piece of code you can attach before or after an operation is performed
 [ClearEventHandler]:    https://godoc.org/github.com/rs/rest-layer/resource#ClearEventHandler
 [ClearedEventHandler]:  https://godoc.org/github.com/rs/rest-layer/resource#ClearedEventHandler
 
-All hooks functions get a `context.Context` as first argument. If a network call must be performed from the hook, the context's deadline must be respected. If a hook return an error, the whole request is aborted with that error.
+All hooks functions get a `context.Context` as first argument. If a network call must be performed from the hook, the context's deadline must be respected. If a hook returns an error, the whole request is aborted with that error.
 
 You can also use the context to pass data to your hooks from a middleware executed before REST Layer. This can be used to manage authentication for instance. See [examples/auth](https://github.com/rs/rest-layer/blob/master/examples/auth/main.go) to see an example.
 
 ### Sub Resources
 
-Sub resources can be used to express a one-to-may parent-child relationship between two resources. A sub-resource is automatically filtered by it's parent on the field specified as second argument of the `Bind` method.
+Sub resources can be used to express a one-to-may parent-child relationship between two resources. A sub-resource is automatically filtered by its parent on the field specified as second argument of the `Bind` method.
 
 To create a sub-resource, you bind you resource on the object returned by the binding of the parent resource. For instance, here we bind a `comments` resource to a `posts` resource:
 
@@ -748,7 +748,7 @@ posts := index.Bind("posts", post, mem.NewHandler(), resource.DefaultConf)
 posts.Bind("comments", "post", comment, mem.NewHandler(), resource.DefaultConf)
 ```
 
-The second argument `"post"` defines the field in the `comments` resource that refers to the parent. This field must be present in the resource and the backend storage must support filtering on it. As a result, we get a new hierarchical route as follow:
+The second argument `post` defines the field in the `comments` resource that refers to the parent. This field must be present in the resource and the backend storage must support filtering on it. As a result, we get a new hierarchical route as follow:
 
 	/posts/:post_id/comments[/:comment_id]
 
@@ -782,7 +782,7 @@ See [embedding](#embedding) for more information.
 
 ### Dependency
 
-Fields can depends on other fields in order to be changed. To configure dependency, set a filter on the `Dependency` property of the field using the [schema.MustParse()](https://godoc.org/github.com/rs/rest-layer/schema#Q) method.
+Fields can depend on other fields in order to be changed. To configure a dependency, set a filter on the `Dependency` property of the field using the [schema.MustParse()](https://godoc.org/github.com/rs/rest-layer/schema#Q) method.
 
 In this example, the `body` field can't be changed if the `published` field is not set to `true`:
 
@@ -802,7 +802,7 @@ post = schema.Schema{
 
 ## Filtering
 
-To filter resources, you use the `filter` query-string parameter. The format of the parameter is inspired the [MongoDB query format](http://docs.mongodb.org/manual/tutorial/query-documents/). The `filter` parameter can be used with `GET` and `DELETE` methods on resource URLs.
+To filter resources, you use the `filter` query-string parameter. The format of the parameter is inspired by the [MongoDB query format](http://docs.mongodb.org/manual/tutorial/query-documents/). The `filter` parameter can be used with `GET` and `DELETE` methods on resource URLs.
 
 To use a resource field with the `filter` parameter, the field must be defined on the resource and the `Filterable` field property must be set to `true`. You may want to ensure the backend database has this field indexed when enabled.
 
@@ -843,14 +843,16 @@ The `$exists` operator matches documents containing the field, even if this fiel
 You can invert the operator by passing `false`.
 
 There is also a `$regex` operator that matches documents containing the field given as a regular expression. In general, the syntax of the regular expressions accepted is the same general syntax used by Perl, Python, and other languages.
-More precisely, it is the syntax accepted by RE2 and described at https://golang.org/s/re2syntax, except for \C.
+More precisely, it is the syntax accepted by RE2 and described at https://golang.org/s/re2syntax, except for `\C`.
 
 Flags are supported for more control over regular expressions. Flag syntax is xyz (set) or -xyz (clear) or xy-z (set xy, clear z).
 The flags are:
-i              case-insensitive (default false)
-m              multi-line mode: ^ and $ match begin/end line in addition to begin/end text (default false)
-s              let . match \n (default false)
-U              ungreedy: swap meaning of x* and x*?, x+ and x+?, etc (default false)
+|Flag  |Mode                                                                       | Default
+| ---- | ------------------------------------------------------------------------- | -----
+|`i`   |case-insensitive                                                           | false
+|`m`   |multi-line mode: ^ and $ match begin/end line in addition to begin/end text| false
+|`s`   |let . match \n                                                             | false
+|`U`   |ungreedy: swap meaning of x\* and x\*?, x+ and x+?, etc                    | false
 
 For example the following regular expression would match any document with a field `type` and its value `rest-layer`.
 
@@ -895,9 +897,9 @@ Here we sort the result by ascending quantity and descending date:
 
 ## Field Selection
 
-REST APIs tend to grow over time. Resources get more and more fields to fulfill the needs for new features. But each time fields are added, all existing API clients automatically gets the additional cost. This tend to lead to huge wast of bandwidth and added latency due to the transfer of unnecessary data. To workaround this, the `field` parameter can be used to minimize and customize the response body from requests with a `GET`, `PATCH` or `PUT` method on resource URLs.
+REST APIs tend to grow over time. Resources get more and more fields to fulfill the needs for new features. But each time fields are added, all existing API clients automatically get the additional cost. This tend to lead to huge waste of bandwidth and added latency due to the transfer of unnecessary data. As a workaround, the `field` parameter can be used to minimize and customize the response body from requests with a `GET`, `PATCH` or `PUT` method on resource URLs.
 
-REST Layer provides a powerful fields selection (also named projection) system. If you provide the `fields` parameter with a list of fields for the resource you are interested in separated by comas, only those fields will be returned in the document:
+REST Layer provides a powerful fields selection (also named projection) system. If you provide the `fields` parameter with a list of fields for the resource you are interested in separated by commas, only those fields will be returned in the document:
 
 ```http
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name'
@@ -935,7 +937,7 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name,n:name'
 }
 ```
 
-As you see, you can specify several time the same field. It's doesn't seem useful in this example, but with [fields parameters](#field-parameters), it becomes very powerful (see below).
+As you see, you can specify the same field several times. It doesn't seem useful in this example, but with [fields parameters](#field-parameters), it becomes very powerful (see below).
 
 Aliasing works with sub-fields as well:
 
@@ -1042,7 +1044,7 @@ Such request can quickly generate a lot of queries on the storage handler. To en
 
 ## Pagination
 
-Pagination is supported on collection URLs using the `page` and `limit` query-string parameters, and can be used for resource list view URLs with request method `GET` and `DELETE`. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated for list `GET` requests until you provide the `limit` query-string parameter. The `PaginationDefaultLimit` does not apply to list `DELETE` requests, but the `limit` and `page` parameters may still be used to delete a subset of items.
+Pagination is supported on collection URLs using the `page` and `limit` query-string parameters and can be used for resource list view URLs with request method `GET` and `DELETE`. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated for list `GET` requests until you provide the `limit` query-string parameter. The `PaginationDefaultLimit` does not apply to list `DELETE` requests, but the `limit` and `page` parameters may still be used to delete a subset of items.
 
 If your collections are large enough, failing to define a reasonable `PaginationDefaultLimit` parameter may quickly render your API unusable.
 
@@ -1070,9 +1072,9 @@ Paginate the rest of the list:
 
 ## Authentication and Authorization
 
-REST Layer doesn't provide any kind of support for authentication. Identifying the user is out of the scope of a REST API, it should be performed by an oAuth server. The oAuth endpoints could be either hosted on the same code base as your API or live in a different app. The recommended way to integrate oAuth or any other kind of authentication with REST Layer is through a signed token like [JWT](https://jwt.io).
+REST Layer doesn't provide any kind of support for authentication. Identifying the user is out of the scope of a REST API, it should be performed by an OAuth server. The OAuth endpoints could be either hosted on the same code base as your API or live in a different app. The recommended way to integrate OAuth or any other kind of authentication with REST Layer is through a signed token like [JWT](https://jwt.io).
 
-In this schema, the authentication service identify the user and store data relevant to the user's identification in a JWT token. This token is sent to the API client as a [bearer token](https://tools.ietf.org/html/rfc6750), thru for instance the `access-token` query-string parameter or the `Authorization` HTTP header. A http middleware then decode and verify this token and extract user info from it, and stores it into the context. In REST layer, user info is now accessible from your [resource hooks](#hooks) so you can change the query lookup or ensure mutated objects are owned by the user in order to handle the authorization part.
+In this schema, the authentication service identifies the user and stores data relevant to the user's identification in a JWT token. This token is sent to the API client as a [bearer token](https://tools.ietf.org/html/rfc6750), through the `access-token` query-string parameter or the `Authorization` HTTP header. A http middleware then decodes and verifies this token, extracts user's info from it and stores it into the context. In REST layer, user info is now accessible from your [resource hooks](#hooks) so you can change the query lookup or ensure mutated objects are owned by the user in order to handle the authorization part.
 
 See the [JWT auth example](https://github.com/rs/rest-layer/blob/master/examples/auth-jwt/main.go) for more info.
 
@@ -1104,9 +1106,9 @@ $ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"12345678901234567890123
 HTTP/1.1 412 Precondition Failed
 ```
 
-What went wrong? We provided a `If-Match` header with the last known `ETag`, but it’s value did not match the current `ETag` of the item currently stored on the server, so we got a 412 Precondition Failed.
+What went wrong? We provided a `If-Match` header with the last known `ETag`, but its value did not match the current `ETag` of the item currently stored on the server, so we got a 412 Precondition Failed.
 
-When this happen, it's up to the client to decide to inform the user of the error and/or re-fetch the latest version of the document to get the latest `ETag` before retrying the operation.
+When this happens, it's up to the client to decide whether to inform the user of the error and/or re-fetch the latest version of the document to get the latest `ETag` before retrying the operation.
 
 ```http
 $ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"80b81f314712932a4d4ea75ab0b76a4eea613012"' \
@@ -1116,7 +1118,7 @@ Etag: "7bb7a71b0f66197aa07c4c8fc9564616"
 Last-Modified: Mon, 27 Jul 2015 19:36:19 GMT
 ```
 
-This time the update operation has been accepted and we've got a new `ETag` for the updated resource.
+This time the update operation was accepted and we got a new `ETag` for the updated resource.
 
 Concurrency control header `If-Match` can be used with all mutation methods on item URLs: `PATCH` (update), `PUT` (replace) and `DELETE` (delete).
 
@@ -1146,7 +1148,7 @@ Vary: Origin
 }
 ```
 
-In the example above, the document did not validate so the request has been rejected with description of the errors for each fields.
+In the example above, the document did not validate so the request was rejected with description of the errors for each fields.
 
 ### Nullable Values
 
@@ -1181,9 +1183,9 @@ type Compiler interface {
 }
 ```
 
-When a field validator implements this interface, the `Compile` method is called at the server initialization. It's a good place to pre-compute some data (i.e.: compile regexp) and verify validator configuration. If validator configuration contains issue, the `Compile` method must return an error, so the initialization of the resource will generate un fatal error.
+When a field validator implements this interface, the `Compile` method is called at the server initialization. It's a good place to pre-compute some data (i.e.: compile regexp) and verify validator configuration. If validator configuration contains issues, the `Compile` method must return an error, so the initialization of the resource will generate a fatal error.
 
-Last but not least, a validator may implement some advanced serialization or transformation of the data to optimize it's storage. In order to read this data back and put it in a format suitable for JSON representation, a validator can implement the [schema.FieldSerializer](https://godoc.org/github.com/rs/rest-layer/schema#FieldSerializer) interface:
+A validator may implement some advanced serialization or transformation of the data to optimize its storage. In order to read this data back and put it in a format suitable for JSON representation, a validator can implement the [schema.FieldSerializer](https://godoc.org/github.com/rs/rest-layer/schema#FieldSerializer) interface:
 
 ```go
 type FieldSerializer interface {
@@ -1197,7 +1199,7 @@ See [schema.IP](https://godoc.org/github.com/rs/rest-layer/schema#IP) validator 
 
 ## Timeout and Request Cancellation
 
-REST Layer respects [context](https://godoc.org/context) deadline from end to end. Timeout and request cancellation are thus handled throught `context`. Since Go 1.8, context is cancelled automatically if the user closes the connection.
+REST Layer respects [context](https://godoc.org/context) deadline from end to end. Timeout and request cancellation are thus handled through `context`. Since Go 1.8, context is cancelled automatically if the user closes the connection.
 
 When a request is stopped because the client closed the connection (context cancelled), the response HTTP status is set to `499 Client Closed Request` (for logging purpose). When a timeout is set and the request has reached this timeout, the response HTTP status is set to `509 Gateway Timeout`.
 
@@ -1244,7 +1246,7 @@ See [zerolog](https://github.com/rs/zerolog) documentation for more info.
 
 ## CORS
 
-REST Layer doesn't support CORS by internally but rely on external middleware to do so. You may use the [CORS](http://github.com/rs/cors) middleware to add CORS support to REST Layer if needed. Here is a basic example:
+REST Layer doesn't support CORS internally but relies on an external middleware to do so. You may use the [CORS](http://github.com/rs/cors) middleware to add CORS support to REST Layer if needed. Here is a basic example:
 
 ```go
 package main
@@ -1334,7 +1336,7 @@ type Storer interface {
 }
 ```
 
-Mutation methods like `Update` and `Delete` must ensure they are atomically mutating the same item as specified in argument by checking their `ETag` (the stored `ETag` must match the `ETag` of the provided item). In case the handler can't guarantee that, the storage must be left untouched, and a [resource.ErrConflict](https://godoc.org/github.com/rs/rest-layer/resource#pkg-variables) must be returned.
+Mutation methods like `Update` and `Delete` must ensure they are atomically mutating the same item as specified in argument by checking their `ETag` (the stored `ETag` must match the `ETag` of the provided item). In case the handler can't guarantee that, the storage must be left untouched and a [resource.ErrConflict](https://godoc.org/github.com/rs/rest-layer/resource#pkg-variables) must be returned.
 
 If the operation is not immediate, the method must listen for cancellation on the passed `ctx`. If the operation is stopped due to context cancellation, the function must return the result of the [ctx.Err()](https://godoc.org/golang.org/x/net/context#Context) method. See [this blog post](https://blog.golang.org/context) for more information about how `context` works.
 
@@ -1344,7 +1346,7 @@ See [resource.Storer](https://godoc.org/github.com/rs/rest-layer/resource#Storer
 
 ## Custom Response Formatter / Sender
 
-REST Layer let you extend or replace the default response formatter and sender. To write a new response format, you need to implement the [rest.ResponseFormatter](https://godoc.org/github.com/rs/rest-layer/rest#ResponseFormatter) interface:
+REST Layer lets you extend or replace the default response formatter and sender. To write a new response format, you need to implement the [rest.ResponseFormatter](https://godoc.org/github.com/rs/rest-layer/rest#ResponseFormatter) interface:
 
 ```go
 // ResponseFormatter defines an interface responsible for formatting a the different types of response objects
@@ -1358,7 +1360,7 @@ type ResponseFormatter interface {
 }
 ```
 
-You can also customize the response sender, responsible for the serialization of the formatted payload:
+You can also customize the response sender responsible for the serialization of the formatted payload:
 
 ```go
 // ResponseSender defines an interface responsible for serializing and sending the response
@@ -1401,7 +1403,7 @@ func (r myResponseFormatter) FormatList(ctx context.Context, headers http.Header
 
 In parallel with the REST API handler, REST Layer is also able to handle GraphQL queries (mutation will come later). GraphQL is a query language created by Facebook which provides a common interface to fetch and manipulate data. REST Layer's GraphQL handler is able to read a [resource.Index](https://godoc.org/github.com/rs/rest-layer/resource#Index) and create a corresponding GraphQL schema.
 
-GraphQL doesn't expose resources directly, but queries. REST Layer take all the resources defined at the root of the `resource.Index` and create two GraphQL queries for each one. One query is just the name of the endpoint, so `/users` would result in `users` and another is the name of the endpoint suffixed with `List`, as `usersList`. The item queries takes an `id` parameter and the list queries take `skip`, `page`, `limit`, `filter` and `sort` parameters. All sub-resources are accessible using GraphQL sub-selection syntax.
+GraphQL doesn't expose resources directly, but queries. REST Layer take all the resources defined at the root of the `resource.Index` and create two GraphQL queries for each one. One query is just the name of the endpoint, so `/users` would result in `users` and another is the name of the endpoint suffixed with `List`, as `usersList`. The item query takes an `id` parameter and the list queries takes `skip`, `page`, `limit`, `filter` and `sort` parameters. All sub-resources are accessible using GraphQL sub-selection syntax.
 
 If your resource defines aliases, some additional GraphQL queries are exposed with their name constructed as the name of the resource suffixed with the name of the alias with a capital. So for `users` with an alias `admin`, the query would be `usersAdmin`.
 
@@ -1501,13 +1503,13 @@ Sub-schemas only get converted to JSON Schema, if you specify a sub-schema via s
 
 ### schema.Dict Limitations
 
-`schema.Dict` only support `nil` and `schema.String` as `KeysValidator` values. Note that some less common combinations of `schema.String` attributes will lead to usage of an `allOf` construct with duplicated schemas for values. This is to avoid usage of regular expression expansions that only a subset of implementations actually support.
+`schema.Dict` only supports `nil` and `schema.String` as `KeysValidator` values. Note that some less common combinations of `schema.String` attributes will lead to usage of an `allOf` construct with duplicated schemas for values. This is to avoid usage of regular expression expansions that only a subset of implementations actually support.
 
 The limitation in `KeysValidator` values arise because JSON Schema draft 4 (and draft 5) support for key validation is limited to [properties, patternProperties and additionalProperties](https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.4.4). This essentially means that there can be no JSON Schema object supplied for key validation, but that we need to rely on exact match (properties), regular expressions (patternProperties) or no key validation (additionalProperties).
 
 ### schema.Reference Provisional Support
 
-The support for `schema.Reference` is purely provisional, and simply returns an empty object `{}`, meaning it does not give any hint as to which validation the server might use.
+The support for `schema.Reference` is purely provisional and simply returns an empty object `{}`, meaning it does not give any hint as to which validation the server might use.
 
 With a potential later implantation of the [OpenAPI Specification](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md) (a.k.a. the Swagger 2.0 Specification), the goal is to refer to the ID field of the linked resource via an object `{"$ref": "#/definitions/<unique schema title>/id"}`. This is tracked via issue [#36](https://github.com/rs/rest-layer/issues/36).
 
