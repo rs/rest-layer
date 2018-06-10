@@ -67,8 +67,8 @@ func (v validatorFallback) GetField(name string) *schema.Field {
 	return v.fallback.GetField(name)
 }
 
-// new creates a new resource with provided spec, handler and config.
-func new(name string, s schema.Schema, h Storer, c Conf) *Resource {
+// newResource creates a new resource with provided spec, handler and config.
+func newResource(name string, s schema.Schema, h Storer, c Conf) *Resource {
 	return &Resource{
 		name:   name,
 		path:   name,
@@ -136,7 +136,7 @@ func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *
 	if f := s.GetField(field); f == nil {
 		logPanicf(nil, "Cannot bind `%s' as sub-resource: field `%s' does not exist in the sub-resource'", name, field)
 	}
-	sr := new(name, s, h, c)
+	sr := newResource(name, s, h, c)
 	sr.parentField = field
 	sr.path = r.path + "." + name
 	r.resources.add(sr)

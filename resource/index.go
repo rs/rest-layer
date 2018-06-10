@@ -48,7 +48,7 @@ func NewIndex() Index {
 // Bind a resource at the specified endpoint name.
 func (i *index) Bind(name string, s schema.Schema, h Storer, c Conf) *Resource {
 	assertNotBound(name, i.resources, nil)
-	sr := new(name, s, h, c)
+	sr := newResource(name, s, h, c)
 	i.resources.add(sr)
 	return sr
 }
