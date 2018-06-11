@@ -97,7 +97,7 @@ func TestSubResources(t *testing.T) {
 }
 
 func TestResourceBindDupViaAlias(t *testing.T) {
-	r := new("name", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
+	r := newResource("name", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
 	r.Alias("foo", url.Values{})
 	log.SetOutput(ioutil.Discard)
 	assert.Panics(t, func() {
@@ -106,7 +106,7 @@ func TestResourceBindDupViaAlias(t *testing.T) {
 }
 
 func TestResourceBindOnMissingField(t *testing.T) {
-	r := new("name", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
+	r := newResource("name", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
 	log.SetOutput(ioutil.Discard)
 	assert.Panics(t, func() {
 		r.Bind("foo", "m", schema.Schema{Fields: schema.Fields{"f": {}}}, nil, DefaultConf)
