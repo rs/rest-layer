@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/rest-layer/schema/query"
 )
