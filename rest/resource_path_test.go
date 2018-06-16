@@ -3,8 +3,8 @@ package rest
 import (
 	"testing"
 
-	mem "github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/resource"
+	mem "github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
 )
