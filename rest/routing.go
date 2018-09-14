@@ -67,9 +67,8 @@ func IndexFromContext(ctx context.Context) (resource.Index, bool) {
 func FindRoute(index resource.Index, req *http.Request) (*RouteMatch, error) {
 	route := routePool.Get().(*RouteMatch)
 	route.Method = req.Method
-	if req.URL.RawQuery != "" {
-		route.Params = req.URL.Query()
-	}
+	route.Params = req.URL.Query()
+
 	err := findRoute(req.URL.Path, index, route)
 	if err != nil {
 		route.Release()
