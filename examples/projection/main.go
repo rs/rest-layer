@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/justinas/alice"
-	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/zerolog"
@@ -126,7 +126,7 @@ func main() {
 	// Create API HTTP handler for the resource graph
 	api, err := rest.NewHandler(index)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Invalid API configuration: %s")
+		log.Fatal().Err(err).Msg("Invalid API configuration")
 	}
 
 	// Setup logger

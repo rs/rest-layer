@@ -12,8 +12,8 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"
 	"github.com/justinas/alice"
-	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/resource/testing/mem"
 	"github.com/rs/rest-layer/rest"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/rest-layer/schema/query"
@@ -82,7 +82,8 @@ func NewJWTHandler(users *resource.Resource, jwtKeyFunc jwt.Keyfunc) func(next h
 			// Store it into the request's context
 			ctx = NewContextWithUser(ctx, user)
 			// Add the user to log context (using zerolog)
-			ctx = hlog.FromRequest(r).With().Interface("user_id", user.ID).Logger().WithContext(ctx)
+			l := hlog.FromRequest(r).With().Interface("user_id", user.ID).Logger()
+			ctx = l.WithContext(ctx)
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
 		})
