@@ -238,7 +238,7 @@ var (
 			"body": {
 				// Dependency defines that body field can't be changed if
 				// the published field is not "false".
-				Dependency: schema.MustParse(`{"published": false}`),
+				Dependency: query.MustParsePredicate(`{"published": false}`),
 				Validator: &schema.String{
 					MaxLen: 100000,
 				},
@@ -547,7 +547,7 @@ The field definitions contains the following properties:
 | `Params`     | Params defines the list of parameters allowed for this field. See [Field Parameters](#field-parameters) section for some examples.
 | `Handler`    | Handler defines a function able to change the field's value depending on the passed parameters. See [Field Parameters](#field-parameters) section for some examples.
 | `Validator`  | A `schema.FieldValidator` to validate the content of the field.
-| `Dependency` | A query using `filter` format created with ``schema.MustParse(`{"field": "value"}`)``. If the query doesn't match the document, the field generates a dependency error.
+| `Dependency` | A query using `filter` format created with ``query.MustParsePredicate(`{"field": "value"}`)``. If the query doesn't match the document, the field generates a dependency error.
 | `Filterable` | If `true`, the field can be used with the `filter` parameter. You may want to ensure the backend database has this field indexed when enabled. Some storage handlers may not support all the operators of the filter parameter, see their documentation for more information.
 | `Sortable`   | If `true`, the field can be used with the `sort` parameter. You may want to ensure the backend database has this field indexed when enabled.
 | `Schema`     | An optional sub schema to validate hierarchical documents.
@@ -727,9 +727,32 @@ Hooks are piece of code you can attach before or after an operation is performed
 [ClearEventHandler]:    https://godoc.org/github.com/rs/rest-layer/resource#ClearEventHandler
 [ClearedEventHandler]:  https://godoc.org/github.com/rs/rest-layer/resource#ClearedEventHandler
 
-All hooks functions get a `context.Context` as first argument. If a network call must be performed from the hook, the context's deadline must be respected. If a hook returns an error, the whole request is aborted with that error.
+Note that these are resource level hooks, and do not correspond one-to-one to `rest` or `graphql` operation. For the `rest` package in particular, note that a HTTP request to `GET` an item by ID, will result in a `Find` and not a `Get` call which will triggering the `OnFind` and `OnFound` hooks to be called, not `OnGet` and `OnGot`. Similarly, a `PATCH` or `PUT` request will call `Find` before it calls `Update`, which will trigger the same hooks. If your hooks logic require knowing which rest-level operation is performed see [rest.RouteFromContext](https://godoc.org/github.com/rs/rest-layer/rest#RouteFromContext)
 
-You can also use the context to pass data to your hooks from a middleware executed before REST Layer. This can be used to manage authentication for instance. See [examples/auth](https://github.com/rs/rest-layer/blob/master/examples/auth/main.go) to see an example.
+All hooks functions get a `context.Context` as first argument. If a network call must be performed from the hook, the context's deadline must be respected. If a hook returns an error, the whole request is aborted with that error. You can also use the context to pass data to your hooks from a middleware executed before REST Layer. This can be used to manage authentication for instance. See [examples/auth](https://github.com/rs/rest-layer/blob/master/examples/auth/main.go) to see an example.
+
+Hooks that get passed both an an error and/or an item, such as [GotEventHandler], [UpdatedEventHandler], [DeletedEventHandler] should insert guards to handle the error being set and/or the item not being set; both can be true in some cases. It's also allowed to set items or errors to nil, which is why double pointers are often used.
+
+```go
+func (hook Hook) OnGot(ctx context.Context, item **resource.Item, err *error) {
+	// Guard.
+	if *err != nil || *item == nil {
+		return
+	}
+	// ...
+}
+```
+
+```go
+func (hook Hook) OnGot(ctx context.Context, item **resource.Item, err *error) {
+	// Overriding an error response.
+	if *err != nil || *item == nil {
+		(*err) = nil
+		(*item) = fallbackItem()
+	}
+	// ...
+}
+```
 
 ### Sub Resources
 
@@ -777,7 +800,7 @@ See [embedding](#embedding) for more information.
 
 ### Dependency
 
-Fields can depend on other fields in order to be changed. To configure a dependency, set a filter on the `Dependency` property of the field using the [schema.MustParse()](https://godoc.org/github.com/rs/rest-layer/schema#Q) method.
+Fields can depend on other fields in order to be changed. To configure a dependency, set a filter on the `Dependency` property of the field using the [query.MustParsePredicate()](https://godoc.org/github.com/rs/rest-layer/schema/queru#MustParsePredicate) method.
 
 In this example, the `body` field can't be changed if the `published` field is not set to `true`:
 
@@ -788,7 +811,7 @@ post = schema.Schema{
 			Validator:  &schema.Bool{},
 		},
 		"body": {
-			Dependency: schema.MustParse(`{"published": true}`),
+			Dependency: query.MustParsePredicate(`{"published": true}`),
 			Validator:  &schema.String{},
 		},
 	},
@@ -804,6 +827,15 @@ To use a resource field with the `filter` parameter, the field must be defined o
 To specify equality condition, use the query `{<field>: <value>}` to select all items with `<field>` equal `<value>`. REST Layer will complain with a `422` HTTP error if any field queried is not defined in the resource schema or is using an operator incompatible with field type (i.e.: `$lt` on a string field).
 
 A query can specify conditions for more than one field. Implicitly, a logical `AND` conjunction connects the clauses so that the query selects the items that match all the conditions.
+
+It is also possible to use an explicit `$and` operator to join each clause with a logical `AND`. There are sometimes good use-cases for this, such as when joining two independent `$or` queries that must both match, or when programmatically merging multiple queries with potentially overlapping fields.
+
+```js
+{$and: [
+  {$or: [{quantity: {$gt: 100}}, {price: {$lt: 9.95}}]},
+  {$or: [{length: {$lt: 1000}}, {width: {$lt: 1000}}
+]}
+```
 
 Using the the `$or` operator, you can specify a compound query that joins each clause with a logical `OR` conjunction so that the query selects the items that match at least one condition.
 
@@ -829,7 +861,7 @@ The opposite `$nin` is also available.
 
 The following numeric comparisons operators are supported: `$lt`, `$lte`, `$gt`, `$gte`.
 
-The `$exists` operator matches documents containing the field, even if this field is `null`
+The `$exists` operator matches documents containing the field, even if this field is `null`.
 
 ```js
 {type: {$exists: true}}
@@ -870,6 +902,7 @@ An error of `ErrNotImplemented` will be returned for those storage backends whic
 | Operator  | Usage                           | Description
 | --------- | ------------------------------- | ------------
 | `$or`     | `{$or: [{a: "b"}, {a: "c"}]}`   | Join two clauses with a logical `OR` conjunction.
+| `$and`    | `{$and: [{a: "b"}, {b: "c"}]}`  | Join two clauses with a logical `AND` conjunction.
 | `$in`     | `{a: {$in: ["b", "c"]}}`        | Match a field against several values.
 | `$nin`    | `{a: {$nin: ["b", "c"]}}`       | Opposite of `$in`.
 | `$lt`     | `{a: {$lt: 10}}`                | Fields value is lower than specified number.
@@ -1324,11 +1357,11 @@ A resource storage handler is easy to write though. Some handlers for [popular d
 
 ```go
 type Storer interface {
-	Find(ctx context.Context, lookup *resource.Lookup, offset, limit int) (*resource.ItemList, error)
-	Insert(ctx context.Context, items []*resource.Item) error
-	Update(ctx context.Context, item *resource.Item, original *resource.Item) error
-	Delete(ctx context.Context, item *resource.Item) error
-	Clear(ctx context.Context, lookup *resource.Lookup) (int, error)
+	Find(ctx context.Context, q *query.Query) (*ItemList, error)
+	Insert(ctx context.Context, items []*Item) error
+	Update(ctx context.Context, item *Item, original *Item) error
+	Delete(ctx context.Context, item *Item) error
+	Clear(ctx context.Context, q *query.Query) (int, error)
 }
 ```
 
