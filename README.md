@@ -2,8 +2,7 @@
 
 REST APIs made easy.
 
-[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer) [![Go Report Card](https://goreportcard.com/badge/github.com/rs/rest-layer)](https://goreportcard.com/report/github.com/rs/rest-layer) <iframe src="https://ghbtns.com/github-btn.html?user=rs&repo=rest-layer&type=star&count=true" frameborder="0" scrolling="0" width="170px" height="20px"></iframe>
-
+[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer) [![Go Report Card](https://goreportcard.com/badge/github.com/rs/rest-layer)](https://goreportcard.com/report/github.com/rs/rest-layer)
 
 REST Layer is an API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable [backend storages](#storage-handlers) with no boiler plate code so you can focus on your business logic.
 
@@ -17,7 +16,7 @@ Moreover, REST Layer let you create a graph API by linking resources between the
 
 The REST Layer framework is composed of several sub-packages:
 
-![](doc/schema.png)
+![package layout](doc/schema.png)
 
 | Package                                                         | Coverage                                                                                                                                       | Description
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------
@@ -26,35 +25,35 @@ The REST Layer framework is composed of several sub-packages:
 | [schema](https://godoc.org/github.com/rs/rest-layer/schema)     | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/schema)](https://gocover.io/github.com/rs/rest-layer/schema)               | A validation framework for the API resources.
 | [resource](https://godoc.org/github.com/rs/rest-layer/resource) | [![Coverage](https://gocover.io/_badge/github.com/rs/rest-layer/resource)](https://gocover.io/github.com/rs/rest-layer/resource)             | Defines resources, manages the resource graph and manages the interface with resource storage handler.
 
-# Documentation
+## Documentation
 
 - [Breaking Changes](#breaking-changes)
 - [Features](#features)
-	- [Extensions](#extensions)
-	- [Storage Handlers](#storage-handlers)
+  - [Extensions](#extensions)
+  - [Storage Handlers](#storage-handlers)
 - [Usage](#usage)
 - [Resource Configuration](#resource-configuration)
-	- [Schema](#schema)
-    - [Field Definition](#field-definition)
-	- [Binding](#binding)
-	- [Modes](#modes)
-    - [Hooks](#hooks)
-	- [Sub Resources](#sub-resources)
-	- [Dependency](#dependency)
+  - [Schema](#schema)
+  - [Field Definition](#field-definition)
+  - [Binding](#binding)
+  - [Modes](#modes)
+  - [Hooks](#hooks)
+  - [Sub Resources](#sub-resources)
+  - [Dependency](#dependency)
 - [Filtering](#filtering)
 - [Sorting](#sorting)
 - [Field Selection](#field-selection)
-	- [Field Aliasing](#field-aliasing)
-	- [Field Parameters](#field-parameters)
-	- [Embedding](#embedding)
+  - [Field Aliasing](#field-aliasing)
+  - [Field Parameters](#field-parameters)
+  - [Embedding](#embedding)
 - [Pagination](#pagination)
 - [Skipping](#skipping)
 - [Authentication & Authorization](#authentication-and-authorization)
 - [Conditional Requests](#conditional-requests)
 - [Data Integrity & Concurrency Control](#data-integrity-and-concurrency-control)
 - [Data Validation](#data-validation)
-	- [Nullable Values](#nullable-values)
-	- [Extensible Data Validation](#extensible-data-validation)
+  - [Nullable Values](#nullable-values)
+  - [Extensible Data Validation](#extensible-data-validation)
 - [Timeout and Request Cancellation](#timeout-and-request-cancellation)
 - [Logging](#logging)
 - [CORS](#cors)
@@ -287,16 +286,17 @@ func main() {
 
 Just run this code (or use the provided [examples/demo](https://github.com/rs/rest-layer/blob/master/examples/demo/main.go)):
 
-	> go run examples/demo/main.go
-	2015/07/27 20:54:55 Serving API on http://localhost:8080
+```sh
+$ go run examples/demo/main.go
+2015/07/27 20:54:55 Serving API on http://localhost:8080
+```
 
 Using [HTTPie](http://httpie.org/), you can now play with your API.
 
 First create a user:
 
-```http
-http POST :8080/api/users name="John Doe"
-
+```sh
+$ http POST :8080/api/users name="John Doe"
 HTTP/1.1 201 Created
 Content-Length: 155
 Content-Location: /api/users/ar6ejgmkj5lfl98r67p0
@@ -320,10 +320,9 @@ Also notice the `Etag` and `Last-Modified` headers. Those guys allow data integr
 
 Here is an example of conditional request:
 
-```http
-http :8080/api/users/ar6ejgmkj5lfl98r67p0 \
+```sh
+$ http :8080/api/users/ar6ejgmkj5lfl98r67p0 \
   If-Modified-Since:"Mon, 27 Jul 2015 19:10:20 GMT"
-
 HTTP/1.1 304 Not Modified
 Date: Mon, 27 Jul 2015 19:17:11 GMT
 Vary: Origin
@@ -331,10 +330,9 @@ Vary: Origin
 
 And here is a data integrity request following the [RFC-5789](http://tools.ietf.org/html/rfc5789) recommendations:
 
-```http
-http PATCH :8080/api/users/ar6ejgmkj5lfl98r67p0 \
+```sh
+$ http PATCH :8080/api/users/ar6ejgmkj5lfl98r67p0 \
   name="Someone Else" If-Match:invalid-etag
-
 HTTP/1.1 412 Precondition Failed
 Content-Length: 58
 Content-Type: application/json
@@ -350,8 +348,8 @@ Vary: Origin
 
 Retry with the valid etag:
 
-```http
-http PATCH :8080/api/users/ar6ejgmkj5lfl98r67p0 \
+```sh
+$ http PATCH :8080/api/users/ar6ejgmkj5lfl98r67p0 \
   name="Someone Else" If-Match:'"1e18e148e1ff3ecdaae5ec03ac74e0e4"'
 
 HTTP/1.1 200 OK
@@ -376,10 +374,9 @@ Another cool thing is sub-resources. We've set our `posts` resource as a child o
 
 Lets create a post:
 
-```http
-http POST :8080/api/users/ar6ejgmkj5lfl98r67p0/posts \
+```sh
+$ http POST :8080/api/users/ar6ejgmkj5lfl98r67p0/posts \
   title="My first post"
-
 HTTP/1.1 200 OK
 Content-Length: 212
 Content-Type: application/json
@@ -401,10 +398,9 @@ Notice how the `user` field has been set with the user id provided in the route,
 
 We defined that we can create posts but we can't modify them, lets verify that:
 
-```http
-http PATCH :8080/api/users/821d…/posts/ar6ejs6kj5lflgc28es0 \
+```sh
+$ http PATCH :8080/api/users/821d…/posts/ar6ejs6kj5lflgc28es0 \
   private=true
-
 HTTP/1.1 405 Method Not Allowed
 Content-Length: 53
 Content-Type: application/json
@@ -420,8 +416,8 @@ Vary: Origin
 
 Let's list posts for that user now:
 
-```http
-http :8080/api/users/ar6ejgmkj5lfl98r67p0/posts
+```sh
+$ http :8080/api/users/ar6ejgmkj5lfl98r67p0/posts
 HTTP/1.1 200 OK
 Content-Length: 257
 Content-Type: application/json
@@ -445,8 +441,8 @@ Notice the added `_etag` field. This is to let you get etags of multiple items w
 
 Now, let's get user's information for each posts in a single request:
 
-```http
-http :8080/api/users/ar6ejgmkj5lfl98r67p0/posts fields=='id,title,user{id,name}'
+```sh
+$ http :8080/api/users/ar6ejgmkj5lfl98r67p0/posts fields=='id,title,user{id,name}'
 HTTP/1.1 200 OK
 Content-Length: 257
 Content-Type: application/json
@@ -473,9 +469,8 @@ Notice how we selected which fields we wanted in the result using the [field sel
 
 We can go even further and embed a sub-request list responses. Let's say we want a list of users with the last two posts:
 
-```http
-http GET :8080/api/users fields='id,name,posts(limit:2){id,title}'
-
+```sh
+$ http GET :8080/api/users fields='id,name,posts(limit:2){id,title}'
 HTTP/1.1 201 Created
 Content-Length: 155
 Content-Location: /api/users/ar6ejgmkj5lfl98r67p0
@@ -517,16 +512,16 @@ Sample resource schema:
 
 ```go
 foo = schema.Schema{
-    Description: "A foo object",
-    Fields: schema.Fields{
-        "field_name": {
-            Required: true,
-            Filterable: true,
-            Validator: &schema.String{
-                MaxLen: 150,
-            },
-        },
-    },
+	Description: "A foo object",
+	Fields: schema.Fields{
+		"field_name": {
+			Required: true,
+			Filterable: true,
+			Validator: &schema.String{
+				MaxLen: 150,
+			},
+		},
+	},
 }
 ```
 
@@ -750,7 +745,7 @@ posts.Bind("comments", "post", comment, mem.NewHandler(), resource.DefaultConf)
 
 The second argument `post` defines the field in the `comments` resource that refers to the parent. This field must be present in the resource and the backend storage must support filtering on it. As a result, we get a new hierarchical route as follow:
 
-	/posts/:post_id/comments[/:comment_id]
+    /posts/:post_id/comments[/:comment_id]
 
 When performing a `GET` on `/posts/:post_id/comments`, it is like adding the filter `{"post":"<post_id>"}` to the request to comments resource.
 
@@ -843,10 +838,11 @@ The `$exists` operator matches documents containing the field, even if this fiel
 You can invert the operator by passing `false`.
 
 There is also a `$regex` operator that matches documents containing the field given as a regular expression. In general, the syntax of the regular expressions accepted is the same general syntax used by Perl, Python, and other languages.
-More precisely, it is the syntax accepted by RE2 and described at https://golang.org/s/re2syntax, except for `\C`.
+More precisely, it is the syntax accepted by RE2 and described at [https://golang.org/s/re2syntax](https://golang.org/s/re2syntax), except for `\C`.
 
 Flags are supported for more control over regular expressions. Flag syntax is xyz (set) or -xyz (clear) or xy-z (set xy, clear z).
 The flags are:
+
 |Flag  |Mode                                                                       | Default
 | ---- | ------------------------------------------------------------------------- | -----
 |`i`   |case-insensitive                                                           | false
@@ -893,7 +889,7 @@ To use a resource field with the `sort` parameter, the field must be defined on 
 
 Here we sort the result by ascending quantity and descending date:
 
-	/posts?sort=quantity,-created
+    /posts?sort=quantity,-created
 
 ## Field Selection
 
@@ -901,7 +897,7 @@ REST APIs tend to grow over time. Resources get more and more fields to fulfill 
 
 REST Layer provides a powerful fields selection (also named projection) system. If you provide the `fields` parameter with a list of fields for the resource you are interested in separated by commas, only those fields will be returned in the document:
 
-```http
+```sh
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name'
 {
     "id": "ar6eimekj5lfktka9mt0",
@@ -911,7 +907,7 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name'
 
 If your document has sub-fields, you can use brackets to select sub-fields:
 
-```http
+```sh
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body}'
 [
     {
@@ -928,7 +924,7 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body}'
 
 It's also possible to rename fields in the response using aliasing. To create an alias, prefix the field name by the wanted alias separated by a colon (`:`):
 
-```http
+```sh
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0 fields=='id,name,n:name'
 {
     "id": "ar6eimekj5lfktka9mt0",
@@ -941,7 +937,7 @@ As you see, you can specify the same field several times. It doesn't seem useful
 
 Aliasing works with sub-fields as well:
 
-```http
+```sh
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,b:body}'
 [
     {
@@ -962,7 +958,7 @@ For instance, if you are using an on demand dynamic image resizer, you may want 
 
 By combining field aliasing and field parameters, we can expose this resizer API as follow:
 
-```http
+```sh
 $ http -b :8080/api/videos fields=='id,
                                     thumb_small_url:thumbnail_url(width:80,height:60),
                                     thumb_large_url:thumbnail_url(width:800,height:600)'
@@ -1008,10 +1004,10 @@ Only parameters listed in the `Params` field will be accepted. You `Handler` fun
 
 With sub-fields notation you can also request referenced resources or connections (sub-resources). REST Layer will recognize them automatically and fetch the associated resources in order embed their data in the response. This can save a lot of unnecessary sequential round-trips:
 
-```http
+```sh
 $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts \
   fields=='meta{title},user{id,name},comments(sort:"-created",limit:10){user{id,name},body}'
-[
+  [
     {
         "_etag": "ar6eimukj5lfl07r0uv0",
         "meta": {
@@ -1082,14 +1078,14 @@ See the [JWT auth example](https://github.com/rs/rest-layer/blob/master/examples
 
 Each stored resource provides information on the last time it was updated (`Last-Modified`), along with a hash value computed on the representation itself (`ETag`). These headers allow clients to perform conditional requests by using the `If-Modified-Since` header:
 
-```http
-> http :8080/users/ar6ej4mkj5lfl688d8lg If-Modified-Since:'Wed, 05 Dec 2012 09:53:07 GMT'
+```sh
+$ http :8080/users/ar6ej4mkj5lfl688d8lg If-Modified-Since:'Wed, 05 Dec 2012 09:53:07 GMT'
 HTTP/1.1 304 Not Modified
 ```
 
 or the `If-None-Match` header:
 
-```http
+```sh
 $ http :8080/users/ar6ej4mkj5lfl688d8lg If-None-Match:'"1234567890123456789012345678901234567890"'
 HTTP/1.1 304 Not Modified
 ```
@@ -1100,7 +1096,7 @@ API responses include a `ETag` header which also allows for proper concurrency c
 
 Consider the following workflow:
 
-```http
+```sh
 $ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' \
     name='John Doe'
 HTTP/1.1 412 Precondition Failed
@@ -1110,7 +1106,7 @@ What went wrong? We provided a `If-Match` header with the last known `ETag`, but
 
 When this happens, it's up to the client to decide whether to inform the user of the error and/or re-fetch the latest version of the document to get the latest `ETag` before retrying the operation.
 
-```http
+```sh
 $ http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"80b81f314712932a4d4ea75ab0b76a4eea613012"' \
     name='John Doe'
 HTTP/1.1 200 OK
@@ -1126,8 +1122,8 @@ Concurrency control header `If-Match` can be used with all mutation methods on i
 
 Data validation is provided out-of-the-box. Your configuration includes a schema definition for every resource managed by the API. Data sent to the API to be inserted/updated will be validated against the schema, and a resource will only be updated if validation passes. See [Field Definition](#field-definition) section to know more about how to configure your validators.
 
-```http
-> http  :8080/api/users name:=1 foo=bar
+```sh
+$ http  :8080/api/users name:=1 foo=bar
 HTTP/1.1 422 status code 422
 Content-Length: 110
 Content-Type: application/json
@@ -1479,7 +1475,7 @@ type Builder interface {
 }
 ```
 
-To easier extend a `FieldValidator` from the `schema` package, you can call `ValidatorBuilder` inside `BuildJSONSchem()`:
+To easier extend a `FieldValidator` from the `schema` package, you can call `ValidatorBuilder` inside `BuildJSONSchema()`:
 
 ```go
 type Email struct {
