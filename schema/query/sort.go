@@ -8,8 +8,10 @@ import (
 	"github.com/rs/rest-layer/schema"
 )
 
+// Sort TODO
 type Sort []SortField
 
+// SortField TODO
 type SortField struct {
 	// Name is the name of the field to sort on.
 	Name string

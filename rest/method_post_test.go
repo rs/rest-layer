@@ -34,7 +34,7 @@ func TestHandlerPostList(t *testing.T) {
 			ResponseBody: `{"foo":"bar","id":"1"}`,
 			ExtraTest: func(t *testing.T, vars *requestTestVars) {
 				q := &query.Query{
-					Predicate: query.Predicate{query.Equal{Field: "id", Value: "1"}},
+					Predicate: query.Predicate{&query.Equal{Field: "id", Value: "1"}},
 					Window:    &query.Window{Limit: 1},
 				}
 				s, ok := vars.Storers["foo"]

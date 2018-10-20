@@ -113,7 +113,7 @@ func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url
 	if filter, ok := p.Args["filter"].(string); ok && filter != "" {
 		p, err := query.ParsePredicate(filter)
 		if err == nil {
-			err = p.Validate(r.Validator())
+			err = p.Prepare(r.Validator())
 		}
 		if err != nil {
 			return nil, fmt.Errorf("invalid `filter` parameter: %v", err)
@@ -124,7 +124,7 @@ func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url
 		if filter := params.Get("filter"); filter != "" {
 			p, err := query.ParsePredicate(filter)
 			if err == nil {
-				err = p.Validate(r.Validator())
+				err = p.Prepare(r.Validator())
 			}
 			if err != nil {
 				return nil, fmt.Errorf("invalid `filter` parameter: %v", err)

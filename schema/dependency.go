@@ -1,13 +1,11 @@
 package schema
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Predicate is an interface matching the query.Predicate type.
 type Predicate interface {
 	Match(payload map[string]interface{}) bool
-	Validate(v Validator) error
+	Prepare(v Validator) error
 }
 
 // Q is deprecated, use query.MustParsePredicate instead.
@@ -20,7 +18,7 @@ func Q() Predicate {
 func compileDependencies(s Schema, v Validator) error {
 	for _, def := range s.Fields {
 		if def.Dependency != nil {
-			if err := def.Dependency.Validate(v); err != nil {
+			if err := def.Dependency.Prepare(v); err != nil {
 				return err
 			}
 		}

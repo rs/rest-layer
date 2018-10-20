@@ -188,7 +188,7 @@ func (r *RouteMatch) Query() (*query.Query, *Error) {
 	// Append route fields to the query
 	for _, rp := range r.ResourcePath {
 		if rp.Value != nil {
-			qp.q.Predicate = append(qp.q.Predicate, query.Equal{Field: rp.Field, Value: rp.Value})
+			qp.q.Predicate = append(qp.q.Predicate, &query.Equal{Field: rp.Field, Value: rp.Value})
 		}
 	}
 
@@ -260,7 +260,7 @@ func (qp *queryParser) parsePredicate(params url.Values) {
 		for _, filter := range filters {
 			if p, err := query.ParsePredicate(filter); err != nil {
 				qp.addIssue("filter", err.Error())
-			} else if err := p.Validate(qp.rsc.Validator()); err != nil {
+			} else if err := p.Prepare(qp.rsc.Validator()); err != nil {
 				qp.addIssue("filter", err.Error())
 			} else {
 				qp.q.Predicate = append(qp.q.Predicate, p...)

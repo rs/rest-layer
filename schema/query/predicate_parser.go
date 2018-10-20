@@ -101,9 +101,11 @@ func (p *predicateParser) parseExpression() (Expression, error) {
 			return nil, fmt.Errorf("%s: two expressions or more required", label)
 		}
 		if label == opAnd {
-			return And(subExp), nil
+			and := And(subExp)
+			return &and, nil
 		}
-		return Or(subExp), nil
+		or := Or(subExp)
+		return &or, nil
 	case opExists, opIn, opNotIn, opNotEqual, opRegex,
 		opLowerThan, opLowerOrEqual, opGreaterThan, opGreaterOrEqual:
 		p.pos = oldPos
@@ -140,7 +142,8 @@ func (p *predicateParser) parseSubExpressions() ([]Expression, error) {
 		case 1:
 			subExps = append(subExps, exps[0])
 		default:
-			subExps = append(subExps, And(exps))
+			and := And(exps)
+			subExps = append(subExps, &and)
 		}
 		p.eatWhitespaces()
 		if !p.expect(',') {
@@ -186,9 +189,9 @@ func (p *predicateParser) parseCommand(field string) (Expression, error) {
 				return nil, fmt.Errorf("%s: expected '}' got %q", label, p.peek())
 			}
 			if v {
-				return Exist{Field: field}, nil
+				return &Exist{Field: field}, nil
 			}
-			return NotExist{Field: field}, nil
+			return &NotExist{Field: field}, nil
 		case opIn, opNotIn:
 			values, err := p.parseValues()
 			if err != nil {
@@ -199,9 +202,9 @@ func (p *predicateParser) parseCommand(field string) (Expression, error) {
 				return nil, fmt.Errorf("%s: expected '}' got %q", label, p.peek())
 			}
 			if label == opIn {
-				return In{Field: field, Values: values}, nil
+				return &In{Field: field, Values: values}, nil
 			}
-			return NotIn{Field: field, Values: values}, nil
+			return &NotIn{Field: field, Values: values}, nil
 		case opNotEqual:
 			value, err := p.parseValue()
 			if err != nil {
@@ -211,9 +214,9 @@ func (p *predicateParser) parseCommand(field string) (Expression, error) {
 			if !p.expect('}') {
 				return nil, fmt.Errorf("%s: expected '}' got %q", label, p.peek())
 			}
-			return NotEqual{Field: field, Value: value}, nil
+			return &NotEqual{Field: field, Value: value}, nil
 		case opLowerThan, opLowerOrEqual, opGreaterThan, opGreaterOrEqual:
-			number, err := p.parseNumber()
+			value, err := p.parseValue()
 			if err != nil {
 				return nil, fmt.Errorf("%s: %v", label, err)
 			}
@@ -223,13 +226,13 @@ func (p *predicateParser) parseCommand(field string) (Expression, error) {
 			}
 			switch label {
 			case opLowerThan:
-				return LowerThan{Field: field, Value: number}, nil
+				return &LowerThan{Field: field, Value: value}, nil
 			case opLowerOrEqual:
-				return LowerOrEqual{Field: field, Value: number}, nil
+				return &LowerOrEqual{Field: field, Value: value}, nil
 			case opGreaterThan:
-				return GreaterThan{Field: field, Value: number}, nil
+				return &GreaterThan{Field: field, Value: value}, nil
 			case opGreaterOrEqual:
-				return GreaterOrEqual{Field: field, Value: number}, nil
+				return &GreaterOrEqual{Field: field, Value: value}, nil
 			}
 		case opRegex:
 			str, err := p.parseString()
@@ -244,7 +247,7 @@ func (p *predicateParser) parseCommand(field string) (Expression, error) {
 			if !p.expect('}') {
 				return nil, fmt.Errorf("%s: expected '}' got %q", label, p.peek())
 			}
-			return Regex{Field: field, Value: re}, nil
+			return &Regex{Field: field, Value: re}, nil
 		}
 	}
 VALUE:
@@ -255,7 +258,7 @@ VALUE:
 	if err != nil {
 		return nil, err
 	}
-	return Equal{Field: field, Value: value}, nil
+	return &Equal{Field: field, Value: value}, nil
 }
 
 // parseLabel parses a label with or without quotes and advance the curser right

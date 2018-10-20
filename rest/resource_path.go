@@ -111,7 +111,7 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 		}
 		// Create a query with the parent path fields + the current path id.
 		q := &query.Query{
-			Predicate: append(predicate[:], query.Equal{Field: "id", Value: p[i].Value}),
+			Predicate: append(predicate[:], &query.Equal{Field: "id", Value: p[i].Value}),
 		}
 		// Execute all intermediate checks concurrently
 		wait.Add(1)
@@ -128,7 +128,7 @@ func (p ResourcePath) ParentsExist(ctx context.Context) error {
 			}
 		}(i)
 		// Push the resource field=value for the next hops.
-		predicate = append(predicate, query.Equal{Field: p[i].Field, Value: p[i].Value})
+		predicate = append(predicate, &query.Equal{Field: p[i].Field, Value: p[i].Value})
 	}
 	// Fail on first error.
 	for i := 0; i < parents; i++ {

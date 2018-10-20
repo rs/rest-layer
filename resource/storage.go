@@ -150,7 +150,7 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 		q := &query.Query{}
 		if len(ids) == 1 {
 			q.Predicate = query.Predicate{
-				query.Equal{Field: "id", Value: ids[0]},
+				&query.Equal{Field: "id", Value: ids[0]},
 			}
 		} else {
 			v := make([]query.Value, len(ids))
@@ -158,7 +158,7 @@ func (s storageWrapper) MultiGet(ctx context.Context, ids []interface{}) (items 
 				v[i] = query.Value(id)
 			}
 			q.Predicate = query.Predicate{
-				query.In{Field: "id", Values: v},
+				&query.In{Field: "id", Values: v},
 			}
 		}
 		q.Window = &query.Window{Limit: len(ids)}
@@ -193,13 +193,13 @@ func (s storageWrapper) Find(ctx context.Context, q *query.Query) (list *ItemLis
 		// pattern that could be converted to multi get.
 		if len(q.Predicate) == 1 && (q.Window == nil || q.Window.Offset == 0) && len(q.Sort) == 0 {
 			switch op := q.Predicate[0].(type) {
-			case query.Equal:
+			case *query.Equal:
 				// When query pattern is a single document request by its id,
 				// use the multi get API.
 				if id, ok := op.Value.(string); ok && op.Field == "id" && (q.Window == nil || q.Window.Limit == 1) {
 					return wrapMgetList(mg.MultiGet(ctx, []interface{}{id}))
 				}
-			case query.In:
+			case *query.In:
 				// When query pattern is a list of documents request by their
 				// ids, use the multi get API.
 				if op.Field == "id" && (q.Window == nil || q.Window.Limit == len(op.Values)) {

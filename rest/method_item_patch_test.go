@@ -55,7 +55,7 @@ func TestPatchItem(t *testing.T) {
 			var item *resource.Item
 
 			s := vars.Storers[name]
-			q := query.Query{Predicate: query.Predicate{query.Equal{Field: "id", Value: id}}, Window: &query.Window{Limit: 1}}
+			q := query.Query{Predicate: query.Predicate{&query.Equal{Field: "id", Value: id}}, Window: &query.Window{Limit: 1}}
 			if items, err := s.Find(context.Background(), &q); err != nil {
 				t.Errorf("s.Find failed: %s", err)
 				return

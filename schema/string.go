@@ -27,6 +27,15 @@ func (v *String) Compile(rc ReferenceChecker) (err error) {
 	return
 }
 
+// ValidateQuery implements schema.FieldQueryValidator interface
+func (v String) ValidateQuery(value interface{}) (interface{}, error) {
+	s, ok := value.(string)
+	if !ok {
+		return nil, errors.New("not a string")
+	}
+	return s, nil
+}
+
 // Validate validates and normalize string based value.
 func (v String) Validate(value interface{}) (interface{}, error) {
 	// Pre-check that compilation was successful.

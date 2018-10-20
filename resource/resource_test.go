@@ -11,9 +11,10 @@ import (
 )
 
 func TestResourceBind(t *testing.T) {
+	barSchema := schema.Schema{Fields: schema.Fields{"foo": {}}}
 	i := NewIndex()
 	foo := i.Bind("foo", schema.Schema{}, nil, DefaultConf)
-	bar := foo.Bind("bar", "foo", schema.Schema{Fields: schema.Fields{"foo": {}}}, nil, DefaultConf)
+	bar := foo.Bind("bar", "foo", barSchema, nil, DefaultConf)
 	assert.Equal(t, "bar", bar.Name())
 	assert.Equal(t, "foo.bar", bar.Path())
 	assert.Equal(t, "foo", bar.ParentField())
@@ -26,8 +27,9 @@ func TestResourceBind(t *testing.T) {
 			"bar": {
 				ReadOnly: true,
 				Validator: &schema.Connection{
-					Path:  ".bar",
-					Field: "foo",
+					Path:      ".bar",
+					Field:     "foo",
+					Validator: barSchema,
 				},
 				Params: schema.Params{
 					"skip": schema.Param{

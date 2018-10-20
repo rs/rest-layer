@@ -42,6 +42,12 @@ func TestArrayValidator(t *testing.T) {
 			Expect:    []interface{}{true, false},
 		},
 		{
+			Name:      `Values.Validator=&schema.Bool{},Validate([]interface{}{})`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}},
+			Input:     []interface{}{},
+			Expect:    []interface{}{},
+		},
+		{
 			Name:      `Values.Validator=&schema.Bool{},Validate([]interface{}{true,"value"})`,
 			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}},
 			Input:     []interface{}{true, "value"},
@@ -76,6 +82,68 @@ func TestArrayValidator(t *testing.T) {
 			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}, MaxLen: 1},
 			Input:     []interface{}{true, false},
 			Error:     "has more items than 1",
+		},
+	}
+	for i := range testCases {
+		testCases[i].Run(t)
+	}
+}
+
+func TestArrayQueryValidator(t *testing.T) {
+	testCases := []fieldQueryValidatorTestCase{
+		{
+			Name:      `Values.Validator=nil,ValidateQuery([]interface{}{true,"value"})`,
+			Validator: &schema.Array{},
+			Input:     []interface{}{true, "value"},
+			Expect:    []interface{}{true, "value"},
+		},
+		{
+			Name:      `Values.Validator=&schema.Bool{},ValidateQuery([]interface{}{true,false})`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}},
+			Input:     []interface{}{true, false},
+			Expect:    []interface{}{true, false},
+		},
+		{
+			Name:      `Values.Validator=&schema.Bool{},ValidateQuery([]interface{}{})`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}},
+			Input:     []interface{}{},
+			Expect:    []interface{}{},
+		},
+		{
+			Name:      `Values.Validator=&schema.Bool{},ValidateQuery([]interface{}{true,"value"})`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}},
+			Input:     []interface{}{true, "value"},
+			Error:     "invalid value at #2: not a Boolean",
+		},
+		{
+			Name:      `Values.Validator=&String{},ValidateQuery("value")`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.String{}}},
+			Input:     "value",
+			Error:     "not an array",
+		},
+		{
+			Name:      `MinLen=2,ValidateQuery([]interface{}{true,false})`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}, MinLen: 2},
+			Input:     []interface{}{true, false},
+			Expect:    []interface{}{true, false},
+		},
+		{
+			Name:      `MinLen=3,ValidateQuery([]interface{}{true,false})`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}, MinLen: 3},
+			Input:     []interface{}{true, false},
+			Expect:    []interface{}{true, false},
+		},
+		{
+			Name:      `MaxLen=2,ValidateQuery([]interface{}{true,false})`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}, MaxLen: 2},
+			Input:     []interface{}{true, false},
+			Expect:    []interface{}{true, false},
+		},
+		{
+			Name:      `MaxLen=1,ValidateQuery([]interface{}{true,false})`,
+			Validator: &schema.Array{Values: schema.Field{Validator: &schema.Bool{}}, MaxLen: 1},
+			Input:     []interface{}{true, false},
+			Expect:    []interface{}{true, false},
 		},
 	}
 	for i := range testCases {
