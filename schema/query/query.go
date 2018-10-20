@@ -87,7 +87,7 @@ func (q *Query) Validate(validator schema.Validator) error {
 	if err := q.Projection.Validate(validator); err != nil {
 		return err
 	}
-	if err := q.Predicate.Validate(validator); err != nil {
+	if err := q.Predicate.Prepare(validator); err != nil {
 		return err
 	}
 	if err := q.Sort.Validate(validator); err != nil {

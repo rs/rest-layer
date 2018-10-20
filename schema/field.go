@@ -126,3 +126,17 @@ type FieldGetter interface {
 	// You may reference a sub-field using dotted notation, e.g. field.subfield.
 	GetField(name string) *Field
 }
+
+// FieldComparator defines an interface for comparing field values, depending
+// on the each value type semantics. Field types need to implement this interface
+// if you want to use $gt, $gte, $lt, $lte for rest-layer-mem store.
+type FieldComparator interface {
+	// Less returns true if "value" is less than "other", otherwise returns true.
+	Less(value, other interface{}) bool
+}
+
+// FieldQueryValidator defines an interface for lightweight validation on field
+// types, without applying constrains on the actual values.
+type FieldQueryValidator interface {
+	ValidateQuery(value interface{}) (interface{}, error)
+}

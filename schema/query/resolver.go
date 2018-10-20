@@ -17,7 +17,7 @@ type referenceBatchResolver struct {
 
 func (rbr *referenceBatchResolver) request(resourcePath string, q *Query, handler referenceResponseHandler) {
 	if len(q.Predicate) == 1 {
-		if eq, ok := q.Predicate[0].(Equal); ok && eq.Field == "id" {
+		if eq, ok := q.Predicate[0].(*Equal); ok && eq.Field == "id" {
 			// Make an optimization for query on a single id so we can coalese them into a single request.
 			id := eq.Value
 			for _, r := range rbr.requests {

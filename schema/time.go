@@ -69,8 +69,7 @@ func (v *Time) Compile(rc ReferenceChecker) error {
 	return nil
 }
 
-// Validate validates and normalize time based value.
-func (v Time) Validate(value interface{}) (interface{}, error) {
+func (v Time) parse(value interface{}) (interface{}, error) {
 	if s, ok := value.(string); ok {
 		for _, layout := range v.layouts {
 			if t, err := time.Parse(layout, s); err == nil {
@@ -83,4 +82,32 @@ func (v Time) Validate(value interface{}) (interface{}, error) {
 		return nil, errors.New("not a time")
 	}
 	return value, nil
+}
+
+// ValidateQuery implements schema.FieldQueryValidator interface
+func (v Time) ValidateQuery(value interface{}) (interface{}, error) {
+	return v.parse(value)
+}
+
+// Validate validates and normalize time based value.
+func (v Time) Validate(value interface{}) (interface{}, error) {
+	return v.parse(value)
+}
+
+func (v Time) get(value interface{}) (time.Time, error) {
+	t, ok := value.(time.Time)
+	if !ok {
+		return t, errors.New("not a time")
+	}
+	return t, nil
+}
+
+// Less implements schema.FieldComparator interface
+func (v Time) Less(value, other interface{}) bool {
+	t, err := v.get(value)
+	o, err1 := v.get(other)
+	if err != nil || err1 != nil {
+		return false
+	}
+	return t.Before(o)
 }

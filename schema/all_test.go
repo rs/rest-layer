@@ -70,6 +70,51 @@ func (tc fieldValidatorTestCase) Run(t *testing.T) {
 	})
 }
 
+type fieldQueryValidatorTestCase struct {
+	Name             string
+	Validator        schema.FieldValidator
+	ReferenceChecker schema.ReferenceChecker
+	Input, Expect    interface{}
+	Error            string
+}
+
+func (tc fieldQueryValidatorTestCase) Run(t *testing.T) {
+	t.Run(tc.Name, func(t *testing.T) {
+		t.Parallel()
+
+		if cmp, ok := tc.Validator.(schema.Compiler); ok {
+			err := cmp.Compile(tc.ReferenceChecker)
+			if err != nil {
+				t.Errorf("Validator.Compile(%v): unexpected error: %v", tc.ReferenceChecker, err)
+			}
+		}
+
+		var v interface{}
+		var err error
+		if queryValidator, ok := tc.Validator.(schema.FieldQueryValidator); ok {
+			v, err = queryValidator.ValidateQuery(tc.Input)
+		} else {
+			v, err = tc.Validator.Validate(tc.Input)
+		}
+
+		if tc.Error == "" {
+			if err != nil {
+				t.Errorf("Validator.ValidateQuery(%v): unexpected error: %v", tc.ReferenceChecker, err)
+			}
+			if !reflect.DeepEqual(v, tc.Expect) {
+				t.Errorf("Validator.ValidateQuery(%v): expected: %v, got: %v", tc.Input, tc.Expect, v)
+			}
+		} else {
+			if err == nil || err.Error() != tc.Error {
+				t.Errorf("Validator.ValidateQuery(%v): expected error: %v, got: %v", tc.ReferenceChecker, tc.Error, err)
+			}
+			if v != nil {
+				t.Errorf("Validator.ValidateQuery(%v): expected: nil, got: %v", tc.Input, v)
+			}
+		}
+	})
+}
+
 type fieldSerializerTestCase struct {
 	Name             string
 	Serializer       schema.FieldSerializer

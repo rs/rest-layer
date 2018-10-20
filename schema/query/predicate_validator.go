@@ -6,9 +6,9 @@ import (
 	"github.com/rs/rest-layer/schema"
 )
 
-func validateExpressions(exps []Expression, validator schema.Validator) error {
+func prepareExpressions(exps []Expression, validator schema.Validator) error {
 	for _, exp := range exps {
-		if err := exp.Validate(validator); err != nil {
+		if err := exp.Prepare(validator); err != nil {
 			return err
 		}
 	}
@@ -31,50 +31,62 @@ func validateField(field string, validator schema.Validator) error {
 	return err
 }
 
-func validateValues(field string, values []Value, validator schema.Validator) error {
+func prepareValues(field string, values []Value, validator schema.Validator) error {
 	f, err := getValidatorField(field, validator)
 	if err != nil {
 		return err
 	}
-	if f.Validator != nil {
-		for _, v := range values {
-			if _, err := f.Validator.Validate(v); err != nil {
-				return fmt.Errorf("%s: invalid query expression `%#v': %v", field, v, err)
-			}
+	if f.Validator == nil {
+		return nil
+	}
+	// use default validation method
+	validateFunc := f.Validator.Validate
+	qv, ok := f.Validator.(schema.FieldQueryValidator)
+	if ok {
+		// if there is explicit validator for quering
+		validateFunc = qv.ValidateQuery
+	}
+	for i, v := range values {
+		nv, err := validateFunc(v)
+		if err != nil {
+			return fmt.Errorf("%s: invalid query expression `%#v': %v", field, v, err)
 		}
+		values[i] = nv
 	}
 	return nil
 }
 
-func validateValue(field string, value Value, validator schema.Validator) error {
+func prepareValue(field string, value Value, validator schema.Validator) (Value, error) {
 	f, err := getValidatorField(field, validator)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if f.Validator != nil {
-		if f.Validator != nil {
-			if _, err := f.Validator.Validate(value); err != nil {
-				return fmt.Errorf("%s: invalid query expression: %s", field, err)
-			}
-		}
+	if f.Validator == nil {
+		return value, nil
 	}
-	return nil
+	// use default validation method
+	validateFunc := f.Validator.Validate
+	qv, ok := f.Validator.(schema.FieldQueryValidator)
+	if ok {
+		// if there is explicit validator for quering
+		validateFunc = qv.ValidateQuery
+	}
+	nv, err := validateFunc(value)
+	if err != nil {
+		return nil, fmt.Errorf("%s: invalid query expression: %s", field, err)
+	}
+	return nv, nil
 }
 
-func validateNumericValue(field string, value Value, op string, validator schema.Validator) error {
+func getComparator(field string, validator schema.Validator) (schema.FieldComparator, error) {
 	f, err := getValidatorField(field, validator)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if f.Validator != nil {
-		switch f.Validator.(type) {
-		case *schema.Integer, *schema.Float, schema.Integer, schema.Float:
-			if _, err := f.Validator.Validate(value); err != nil {
-				return fmt.Errorf("%s: invalid query expression: %v", field, err)
-			}
-		default:
-			return fmt.Errorf("%s: cannot apply %s operation on a non numerical field", field, op)
-		}
+	c, ok := f.Validator.(schema.FieldComparator)
+	if !ok {
+		// XXX. Should we return error, stating that field is non-comparable?
+		return nil, fmt.Errorf("%s: field type doesn't support comparing. Implement `schema.FieldComparator`", field)
 	}
-	return nil
+	return c, nil
 }

@@ -114,6 +114,57 @@ func TestAnyOfValidate(t *testing.T) {
 	}
 }
 
+func TestAnyOfQueryValidate(t *testing.T) {
+	cases := []fieldQueryValidatorTestCase{
+		{
+			Name:      "{Bool,Bool}.Validate(true)",
+			Validator: schema.AnyOf{&schema.Bool{}, &schema.Bool{}},
+			Input:     true,
+			Expect:    true,
+		},
+		{
+			Name:      `{Bool,Bool}.Validate("")`,
+			Validator: schema.AnyOf{&schema.Bool{}, &schema.Bool{}},
+			Input:     "",
+			Error:     "invalid",
+		},
+		{
+			Name:      "{Bool,String}.Validate(true)",
+			Validator: schema.AnyOf{&schema.Bool{}, &schema.String{}},
+			Input:     true,
+			Expect:    true,
+		},
+		{
+			Name:      `{Bool,String}.Validate("")`,
+			Validator: schema.AnyOf{&schema.Bool{}, &schema.String{}},
+			Input:     "",
+			Expect:    "",
+		},
+		{
+			Name: `{Reference{Path:"foo"},Reference{Path:"bar"}}.Validate(validFooReference)`,
+			Validator: schema.AnyOf{
+				&schema.Reference{Path: "foo"},
+				&schema.Reference{Path: "bar"},
+			},
+			ReferenceChecker: fakeReferenceChecker{
+				"foo": {
+					IDs:       []interface{}{"foo1"},
+					Validator: &schema.String{},
+				},
+				"bar": {
+					IDs:       []interface{}{"bar1", "bar2", "bar3"},
+					Validator: &schema.String{},
+				},
+			},
+			Input:  "foo1",
+			Expect: "foo1",
+		},
+	}
+	for i := range cases {
+		cases[i].Run(t)
+	}
+}
+
 func TestAnyOfSerialize(t *testing.T) {
 	cases := []fieldSerializerTestCase{
 		{

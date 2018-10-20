@@ -85,7 +85,7 @@ func (a AuthResourceHook) OnFind(ctx context.Context, q *query.Query, offset, li
 		return resource.ErrForbidden
 	}
 	// Add a predicate to the query to restrict to result on objects owned by this user
-	q.Predicate = append(q.Predicate, query.Equal{Field: a.UserField, Value: user.ID})
+	q.Predicate = append(q.Predicate, &query.Equal{Field: a.UserField, Value: user.ID})
 	return nil
 }
 
@@ -169,7 +169,7 @@ func (a AuthResourceHook) OnClear(ctx context.Context, q *query.Query) error {
 		return resource.ErrForbidden
 	}
 	// Add a predicate to the query to restrict to impact of the clear on objects owned by this user
-	q.Predicate = append(q.Predicate, query.Equal{Field: a.UserField, Value: user.ID})
+	q.Predicate = append(q.Predicate, &query.Equal{Field: a.UserField, Value: user.ID})
 	return nil
 }
 

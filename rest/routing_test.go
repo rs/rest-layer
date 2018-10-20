@@ -209,9 +209,9 @@ func TestRoutePathParentsExists(t *testing.T) {
 		// There's 3 components in the path but only 2 are parents
 		assert.Len(t, h.queries, 2)
 		// query on /foo/1234
-		assert.Contains(t, h.queries, query.Query{Predicate: query.Predicate{query.Equal{Field: "id", Value: "1234"}}})
+		assert.Contains(t, h.queries, query.Query{Predicate: query.Predicate{&query.Equal{Field: "id", Value: "1234"}}})
 		// query on /bar/5678 with foo/1234 context
-		assert.Contains(t, h.queries, query.Query{Predicate: query.Predicate{query.Equal{Field: "f", Value: "1234"}, query.Equal{Field: "id", Value: "5678"}}})
+		assert.Contains(t, h.queries, query.Query{Predicate: query.Predicate{&query.Equal{Field: "f", Value: "1234"}, &query.Equal{Field: "id", Value: "5678"}}})
 	}
 
 	route = newRoute("GET")
@@ -267,7 +267,7 @@ func TestRouteQueryFilter(t *testing.T) {
 		t.Errorf("unexpected error: %v", rErr)
 	}
 	want := &query.Query{
-		Predicate: query.Predicate{query.Equal{Field: "a", Value: "b"}},
+		Predicate: query.Predicate{&query.Equal{Field: "a", Value: "b"}},
 		Window:    query.Page(1, resource.DefaultConf.PaginationDefaultLimit, 0),
 	}
 	if !reflect.DeepEqual(q, want) {

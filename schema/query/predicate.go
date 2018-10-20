@@ -52,15 +52,15 @@ func (e Predicate) String() string {
 	return "{" + strings.Join(s, ", ") + "}"
 }
 
-// Validate implements Expression interface.
-func (e Predicate) Validate(validator schema.Validator) error {
-	return validateExpressions(e, validator)
+// Prepare implements Expression interface.
+func (e Predicate) Prepare(validator schema.Validator) error {
+	return prepareExpressions(e, validator)
 }
 
 // Expression is a query or query component that can be matched against a payload.
 type Expression interface {
 	Match(payload map[string]interface{}) bool
-	Validate(validator schema.Validator) error
+	Prepare(validator schema.Validator) error
 	String() string
 }
 
@@ -82,9 +82,9 @@ func (e And) Match(payload map[string]interface{}) bool {
 	return true
 }
 
-// Validate implements Expression interface.
-func (e And) Validate(validator schema.Validator) error {
-	return validateExpressions(e, validator)
+// Prepare implements Expression interface.
+func (e *And) Prepare(validator schema.Validator) error {
+	return prepareExpressions(*e, validator)
 }
 
 // String implements Expression interface.
@@ -114,9 +114,9 @@ func (e Or) Match(payload map[string]interface{}) bool {
 	return false
 }
 
-// Validate implements Expression interface.
-func (e Or) Validate(validator schema.Validator) error {
-	return validateExpressions(e, validator)
+// Prepare implements Expression interface.
+func (e *Or) Prepare(validator schema.Validator) error {
+	return prepareExpressions(*e, validator)
 }
 
 // String implements Expression interface.
@@ -164,9 +164,9 @@ func (e In) Match(payload map[string]interface{}) bool {
 	return false
 }
 
-// Validate implements Expression interface.
-func (e In) Validate(validator schema.Validator) error {
-	return validateValues(e.Field, e.Values, validator)
+// Prepare implements Expression interface.
+func (e *In) Prepare(validator schema.Validator) error {
+	return prepareValues(e.Field, e.Values, validator)
 }
 
 // String implements Expression interface.
@@ -219,9 +219,9 @@ func (e NotIn) String() string {
 	return quoteField(e.Field) + ": {" + opNotIn + ": [" + strings.Join(s, ", ") + "]}"
 }
 
-// Validate implements Expression interface.
-func (e NotIn) Validate(validator schema.Validator) error {
-	return validateValues(e.Field, e.Values, validator)
+// Prepare implements Expression interface.
+func (e *NotIn) Prepare(validator schema.Validator) error {
+	return prepareValues(e.Field, e.Values, validator)
 }
 
 // Equal matches all values that are equal to a specified value.
@@ -235,9 +235,11 @@ func (e Equal) Match(payload map[string]interface{}) bool {
 	return reflect.DeepEqual(getField(payload, e.Field), e.Value)
 }
 
-// Validate implements Expression interface.
-func (e Equal) Validate(validator schema.Validator) error {
-	return validateValue(e.Field, e.Value, validator)
+// Prepare implements Expression interface.
+func (e *Equal) Prepare(validator schema.Validator) error {
+	value, err := prepareValue(e.Field, e.Value, validator)
+	e.Value = value
+	return err
 }
 
 // String implements Expression interface.
@@ -256,9 +258,11 @@ func (e NotEqual) Match(payload map[string]interface{}) bool {
 	return !reflect.DeepEqual(getField(payload, e.Field), e.Value)
 }
 
-// Validate implements Expression interface.
-func (e NotEqual) Validate(validator schema.Validator) error {
-	return validateValue(e.Field, e.Value, validator)
+// Prepare implements Expression interface.
+func (e *NotEqual) Prepare(validator schema.Validator) error {
+	value, err := prepareValue(e.Field, e.Value, validator)
+	e.Value = value
+	return err
 }
 
 // String implements Expression interface.
@@ -277,8 +281,8 @@ func (e Exist) Match(payload map[string]interface{}) bool {
 	return found
 }
 
-// Validate implements Expression interface.
-func (e Exist) Validate(validator schema.Validator) error {
+// Prepare implements Expression interface.
+func (e *Exist) Prepare(validator schema.Validator) error {
 	return validateField(e.Field, validator)
 }
 
@@ -298,8 +302,8 @@ func (e NotExist) Match(payload map[string]interface{}) bool {
 	return !found
 }
 
-// Validate implements Expression interface.
-func (e NotExist) Validate(validator schema.Validator) error {
+// Prepare implements Expression interface.
+func (e *NotExist) Prepare(validator schema.Validator) error {
 	return validateField(e.Field, validator)
 }
 
@@ -310,19 +314,29 @@ func (e NotExist) String() string {
 
 // GreaterThan matches values that are greater than a specified value.
 type GreaterThan struct {
-	Field string
-	Value float64
+	Field      string
+	Value      Value
+	comparator schema.FieldComparator
 }
 
 // Match implements Expression interface.
 func (e GreaterThan) Match(payload map[string]interface{}) bool {
-	n, ok := isNumber(getField(payload, e.Field))
-	return ok && (n > e.Value)
+	if e.comparator == nil {
+		return false
+	}
+	return e.comparator.Less(e.Value, getField(payload, e.Field))
 }
 
-// Validate implements Expression interface.
-func (e GreaterThan) Validate(validator schema.Validator) error {
-	return validateNumericValue(e.Field, e.Value, opGreaterThan, validator)
+// Prepare implements Expression interface.
+func (e *GreaterThan) Prepare(validator schema.Validator) error {
+	value, err := prepareValue(e.Field, e.Value, validator)
+	if err != nil {
+		return err
+	}
+	e.Value = value
+	c, err := getComparator(e.Field, validator)
+	e.comparator = c
+	return err
 }
 
 // String implements Expression interface.
@@ -332,19 +346,29 @@ func (e GreaterThan) String() string {
 
 // GreaterOrEqual matches values that are greater than or equal to a specified value.
 type GreaterOrEqual struct {
-	Field string
-	Value float64
+	Field      string
+	Value      Value
+	comparator schema.FieldComparator
 }
 
 // Match implements Expression interface
 func (e GreaterOrEqual) Match(payload map[string]interface{}) bool {
-	n, ok := isNumber(getField(payload, e.Field))
-	return ok && (n >= e.Value)
+	if e.comparator == nil {
+		return false
+	}
+	return !e.comparator.Less(getField(payload, e.Field), e.Value)
 }
 
-// Validate implements Expression interface.
-func (e GreaterOrEqual) Validate(validator schema.Validator) error {
-	return validateNumericValue(e.Field, e.Value, opGreaterOrEqual, validator)
+// Prepare implements Expression interface.
+func (e *GreaterOrEqual) Prepare(validator schema.Validator) error {
+	value, err := prepareValue(e.Field, e.Value, validator)
+	if err != nil {
+		return err
+	}
+	e.Value = value
+	c, err := getComparator(e.Field, validator)
+	e.comparator = c
+	return err
 }
 
 // String implements Expression interface.
@@ -354,19 +378,29 @@ func (e GreaterOrEqual) String() string {
 
 // LowerThan matches values that are less than a specified value.
 type LowerThan struct {
-	Field string
-	Value float64
+	Field      string
+	Value      Value
+	comparator schema.FieldComparator
 }
 
 // Match implements Expression interface.
 func (e LowerThan) Match(payload map[string]interface{}) bool {
-	n, ok := isNumber(getField(payload, e.Field))
-	return ok && (n < e.Value)
+	if e.comparator == nil {
+		return false
+	}
+	return e.comparator.Less(getField(payload, e.Field), e.Value)
 }
 
-// Validate implements Expression interface.
-func (e LowerThan) Validate(validator schema.Validator) error {
-	return validateNumericValue(e.Field, e.Value, opLowerThan, validator)
+// Prepare implements Expression interface.
+func (e *LowerThan) Prepare(validator schema.Validator) error {
+	value, err := prepareValue(e.Field, e.Value, validator)
+	if err != nil {
+		return err
+	}
+	e.Value = value
+	c, err := getComparator(e.Field, validator)
+	e.comparator = c
+	return err
 }
 
 // String implements Expression interface.
@@ -376,19 +410,29 @@ func (e LowerThan) String() string {
 
 // LowerOrEqual matches values that are less than or equal to a specified value.
 type LowerOrEqual struct {
-	Field string
-	Value float64
+	Field      string
+	Value      Value
+	comparator schema.FieldComparator
 }
 
 // Match implements Expression interface.
 func (e LowerOrEqual) Match(payload map[string]interface{}) bool {
-	n, ok := isNumber(getField(payload, e.Field))
-	return ok && (n <= e.Value)
+	if e.comparator == nil {
+		return false
+	}
+	return !e.comparator.Less(e.Value, getField(payload, e.Field))
 }
 
-// Validate implements Expression interface.
-func (e LowerOrEqual) Validate(validator schema.Validator) error {
-	return validateNumericValue(e.Field, e.Value, opLowerOrEqual, validator)
+// Prepare implements Expression interface.
+func (e *LowerOrEqual) Prepare(validator schema.Validator) error {
+	value, err := prepareValue(e.Field, e.Value, validator)
+	if err != nil {
+		return err
+	}
+	e.Value = value
+	c, err := getComparator(e.Field, validator)
+	e.comparator = c
+	return err
 }
 
 // String implements Expression interface.
@@ -407,9 +451,10 @@ func (e Regex) Match(payload map[string]interface{}) bool {
 	return e.Value.MatchString(payload[e.Field].(string))
 }
 
-// Validate implements Expression interface.
-func (e Regex) Validate(validator schema.Validator) error {
-	return validateValue(e.Field, e.Value.String(), validator)
+// Prepare implements Expression interface.
+func (e *Regex) Prepare(validator schema.Validator) error {
+	_, err := prepareValue(e.Field, e.Value.String(), validator)
+	return err
 }
 
 // String implements Expression interface.

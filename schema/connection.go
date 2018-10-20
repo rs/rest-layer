@@ -4,8 +4,9 @@ package schema
 // schema. The query.Projection will treat this validator as an external
 // resource, and generate a sub-request to fetch the sub-payload.
 type Connection struct {
-	Path  string
-	Field string
+	Path      string
+	Field     string
+	Validator Validator
 }
 
 // Validate implements the FieldValidator interface.

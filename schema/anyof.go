@@ -20,6 +20,24 @@ func (v AnyOf) Compile(rc ReferenceChecker) error {
 	return nil
 }
 
+// ValidateQuery implements schema.FieldQueryValidator interface
+func (v AnyOf) ValidateQuery(value interface{}) (interface{}, error) {
+	for _, validator := range v {
+		var err error
+		var val interface{}
+		if validatorQuery, ok := validator.(FieldQueryValidator); ok {
+			val, err = validatorQuery.ValidateQuery(value)
+		} else {
+			val, err = validator.Validate(value)
+		}
+		if err == nil {
+			return val, nil
+		}
+	}
+	// TODO: combine errors.
+	return nil, errors.New("invalid")
+}
+
 // Validate ensures that at least one sub-validator validates.
 func (v AnyOf) Validate(value interface{}) (interface{}, error) {
 	for _, validator := range v {

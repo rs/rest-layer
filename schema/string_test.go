@@ -1,10 +1,39 @@
 package schema
 
 import (
+	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestStringQueryValidator(t *testing.T) {
+	cases := []struct {
+		name          string
+		field         String
+		input, expect interface{}
+		err           error
+	}{
+		{`String.ValidateQuery(string)`, String{}, "foo", "foo", nil},
+		{`String.ValidateQuery(string)-ouf range`, String{MaxLen: 2}, "foo", "foo", nil},
+		{`String.ValidateQuery(string)-not allowed`, String{Allowed: []string{"bar", "baz"}}, "foo", "foo", nil},
+		{"String.ValidateQuery(int)", String{}, 1, nil, errors.New("not a string")},
+	}
+	for i := range cases {
+		tt := cases[i]
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := (tt.field).ValidateQuery(tt.input)
+			if !reflect.DeepEqual(err, tt.err) {
+				t.Errorf("unexpected error for `%v`\ngot:  %v\nwant: %v", tt.input, err, tt.err)
+			}
+			if !reflect.DeepEqual(got, tt.expect) {
+				t.Errorf("invalid output for `%v`:\ngot:  %#v\nwant: %#v", tt.input, got, tt.expect)
+			}
+		})
+	}
+}
 
 func TestStringValidator(t *testing.T) {
 	s, err := String{}.Validate("foo")
@@ -40,4 +69,7 @@ func TestStringValidator(t *testing.T) {
 	assert.Nil(t, s)
 	v = String{Regexp: "^bar["}
 	assert.EqualError(t, v.Compile(nil), "invalid regexp: error parsing regexp: missing closing ]: `[`")
+	s, err = String{}.ValidateQuery(1)
+	assert.EqualError(t, err, "not a string")
+	assert.Nil(t, s)
 }

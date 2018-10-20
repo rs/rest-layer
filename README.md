@@ -40,14 +40,15 @@ The REST Layer framework is composed of several sub-packages:
   - [Hooks](#hooks)
   - [Sub Resources](#sub-resources)
   - [Dependency](#dependency)
-- [Filtering](#filtering)
-- [Sorting](#sorting)
-- [Field Selection](#field-selection)
-  - [Field Aliasing](#field-aliasing)
-  - [Field Parameters](#field-parameters)
-  - [Embedding](#embedding)
-- [Pagination](#pagination)
-- [Skipping](#skipping)
+- [Quering](#quering)
+  - [Filtering](#filtering)
+  - [Sorting](#sorting)
+  - [Field Selection](#field-selection)
+    - [Field Aliasing](#field-aliasing)
+    - [Field Parameters](#field-parameters)
+    - [Embedding](#embedding)
+  - [Pagination](#pagination)
+  - [Skipping](#skipping)
 - [Authentication & Authorization](#authentication-and-authorization)
 - [Conditional Requests](#conditional-requests)
 - [Data Integrity & Concurrency Control](#data-integrity-and-concurrency-control)
@@ -72,6 +73,10 @@ Below is an overview over recent breaking changes, starting from an arbitrary po
 
 - PR #151: `ValuesValidator FieldValidator` attribute in `schema.Dict` struct replaced by `Values Field`.
 - PR #179: `ValuesValidator FieldValidator` attribute in `schema.Array` struct replaced by `Values Field`.
+- PR #204: 
+  - Storage drivers need to accept pointer to `Expression` implementer in `query.Predicate`.
+  - `filter` parameters in sub-query will be validated for type match.
+  - `filter` parameters will be validated for type match only, instead of type & constrains.
 
 From the next release and onwards (0.2), this list will summarize breaking changes done to master since the last release.
 
@@ -818,7 +823,11 @@ post = schema.Schema{
 }
 ```
 
-## Filtering
+## Quering
+
+When supplying query parameters be sure to honor URL encoding scheme. If you need to include `+` sign, use `%2B`, etc.
+
+### Filtering
 
 To filter resources, you use the `filter` query-string parameter. The format of the parameter is inspired by the [MongoDB query format](http://docs.mongodb.org/manual/tutorial/query-documents/). The `filter` parameter can be used with `GET` and `DELETE` methods on resource URLs.
 
@@ -897,7 +906,7 @@ The same example with flags:
 However, keep in mind that Storers have to support regular expression and depending on the implementation of the storage handler the accepted syntax may vary.
 An error of `ErrNotImplemented` will be returned for those storage backends which do not support the `$regex` operator.
 
-### Filter operators
+#### Filter operators
 
 | Operator  | Usage                           | Description
 | --------- | ------------------------------- | ------------
@@ -914,7 +923,7 @@ An error of `ErrNotImplemented` will be returned for those storage backends whic
 
 *Some storage handlers may not support all operators. Refer to the storage handler's documentation for more info.*
 
-## Sorting
+### Sorting
 
 Sorting of resource items is defined through the `sort` query-string parameter. The `sort` value is a list of resource's fields separated by comas (`,`). To invert a field's sort, you can prefix its name with a minus (`-`) character. The `sort` parameter can be used with `GET` and `DELETE` methods on resource URLs.
 
@@ -924,7 +933,7 @@ Here we sort the result by ascending quantity and descending date:
 
     /posts?sort=quantity,-created
 
-## Field Selection
+### Field Selection
 
 REST APIs tend to grow over time. Resources get more and more fields to fulfill the needs for new features. But each time fields are added, all existing API clients automatically get the additional cost. This tend to lead to huge waste of bandwidth and added latency due to the transfer of unnecessary data. As a workaround, the `field` parameter can be used to minimize and customize the response body from requests with a `GET`, `PATCH` or `PUT` method on resource URLs.
 
@@ -953,7 +962,7 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body}'
 ]
 ```
 
-### Field Aliasing
+#### Field Aliasing
 
 It's also possible to rename fields in the response using aliasing. To create an alias, prefix the field name by the wanted alias separated by a colon (`:`):
 
@@ -983,7 +992,7 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,b:body}
 ]
 ```
 
-### Field Parameters
+#### Field Parameters
 
 Field parameters are used to apply a transformation on the value of a field using custom logic.
 
@@ -1033,7 +1042,7 @@ schema.Schema{
 
 Only parameters listed in the `Params` field will be accepted. You `Handler` function is called with the current value of the field and parameters sent by the user if any. Your function can apply wanted transformations on the value and return it. If an error is returned, a `422` error will be triggered with your error message associated to the field.
 
-### Embedding
+#### Embedding
 
 With sub-fields notation you can also request referenced resources or connections (sub-resources). REST Layer will recognize them automatically and fetch the associated resources in order embed their data in the response. This can save a lot of unnecessary sequential round-trips:
 
@@ -1071,13 +1080,13 @@ Notice the `sort` and `limit` parameters passed to the `comments` field. Those a
 
 Such request can quickly generate a lot of queries on the storage handler. To ensure a fast response time, REST layer tries to coalesce those storage requests and to execute them concurrently whenever possible.
 
-## Pagination
+### Pagination
 
 Pagination is supported on collection URLs using the `page` and `limit` query-string parameters and can be used for resource list view URLs with request method `GET` and `DELETE`. If you don't define a default pagination limit using `PaginationDefaultLimit` resource configuration parameter, the resource won't be paginated for list `GET` requests until you provide the `limit` query-string parameter. The `PaginationDefaultLimit` does not apply to list `DELETE` requests, but the `limit` and `page` parameters may still be used to delete a subset of items.
 
 If your collections are large enough, failing to define a reasonable `PaginationDefaultLimit` parameter may quickly render your API unusable.
 
-## Skipping
+### Skipping
 
 Skipping of resource items is defined through the `skip` query-string parameter. The `skip` value is a positive integer defining the number of items to skip when querying for items, and can be applied for requests with method `GET` or `DELETE`.
 

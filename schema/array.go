@@ -26,27 +26,57 @@ func (v *Array) Compile(rc ReferenceChecker) (err error) {
 	return
 }
 
-// Validate implements FieldValidator.
-func (v Array) Validate(value interface{}) (interface{}, error) {
-	arr, ok := value.([]interface{})
+func (v Array) validateValues(values []interface{}, query bool) ([]interface{}, error) {
+	if v.Values.Validator == nil {
+		return values, nil
+	}
+
+	var vFunc func(val interface{}) (interface{}, error)
+	if qv, ok := v.Values.Validator.(FieldQueryValidator); ok && query {
+		vFunc = qv.ValidateQuery
+	} else {
+		vFunc = v.Values.Validator.Validate
+	}
+
+	for i, val := range values {
+		val, err := vFunc(val)
+		if err != nil {
+			return nil, fmt.Errorf("invalid value at #%d: %s", i+1, err)
+		}
+		values[i] = val
+	}
+	return values, nil
+}
+
+// ValidateQuery implements FieldQueryValidator.
+func (v Array) ValidateQuery(value interface{}) (interface{}, error) {
+	values, ok := value.([]interface{})
 	if !ok {
 		return nil, errors.New("not an array")
 	}
-	for i, val := range arr {
-		if v.Values.Validator != nil {
-			val, err := v.Values.Validator.Validate(val)
-			if err != nil {
-				return nil, fmt.Errorf("invalid value at #%d: %s", i+1, err)
-			}
-			arr[i] = val
-		}
+	arr, err := v.validateValues(values, true)
+	if err != nil {
+		return nil, err
 	}
-	l := len(arr)
+	return arr, nil
+}
+
+// Validate implements FieldValidator.
+func (v Array) Validate(value interface{}) (interface{}, error) {
+	values, ok := value.([]interface{})
+	if !ok {
+		return nil, errors.New("not an array")
+	}
+	l := len(values)
 	if l < v.MinLen {
 		return nil, fmt.Errorf("has fewer items than %d", v.MinLen)
 	}
 	if v.MaxLen > 0 && l > v.MaxLen {
 		return nil, fmt.Errorf("has more items than %d", v.MaxLen)
+	}
+	arr, err := v.validateValues(values, false)
+	if err != nil {
+		return nil, err
 	}
 	return arr, nil
 }

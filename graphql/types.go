@@ -96,7 +96,7 @@ func getSubResourceResolver(r *resource.Resource) graphql.FieldResolveFn {
 			return nil, err
 		}
 		// Limit the connection to parent's owned.
-		q.Predicate = append(q.Predicate, query.Equal{Field: r.ParentField(), Value: parent["id"]})
+		q.Predicate = append(q.Predicate, &query.Equal{Field: r.ParentField(), Value: parent["id"]})
 		list, err := r.Find(p.Context, q)
 		if err != nil {
 			return nil, err
