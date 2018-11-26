@@ -232,7 +232,23 @@ type Equal struct {
 
 // Match implements Expression interface.
 func (e Equal) Match(payload map[string]interface{}) bool {
-	return reflect.DeepEqual(getField(payload, e.Field), e.Value)
+	value := getField(payload, e.Field)
+
+	// The equality operator in MongoDB allows matching both single values and an
+	// array of values.
+	// https://docs.mongodb.com/manual/tutorial/query-arrays/#query-an-array-for-an-element
+	vt, vok := value.([]interface{})
+	_, eok := e.Value.([]interface{})
+	if vok && !eok {
+		for _, vv := range vt {
+			if reflect.DeepEqual(e.Value, vv) {
+				return true
+			}
+		}
+	} else {
+		return reflect.DeepEqual(value, e.Value)
+	}
+	return false
 }
 
 // Prepare implements Expression interface.
@@ -255,7 +271,23 @@ type NotEqual struct {
 
 // Match implements Expression interface.
 func (e NotEqual) Match(payload map[string]interface{}) bool {
-	return !reflect.DeepEqual(getField(payload, e.Field), e.Value)
+	value := getField(payload, e.Field)
+
+	// The $ne operator in MongoDB allows matching both single values and an
+	// array of values.
+	// https://docs.mongodb.com/manual/tutorial/query-arrays/#query-an-array-for-an-element
+	vt, vok := value.([]interface{})
+	_, eok := e.Value.([]interface{})
+	if vok && !eok {
+		for _, vv := range vt {
+			if reflect.DeepEqual(e.Value, vv) {
+				return false
+			}
+		}
+	} else {
+		return !reflect.DeepEqual(value, e.Value)
+	}
+	return true
 }
 
 // Prepare implements Expression interface.
