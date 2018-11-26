@@ -29,6 +29,10 @@ func TestMatch(t *testing.T) {
 			`{"foo": "bar"}`, []test{
 				{map[string]interface{}{"foo": "bar"}, true},
 				{map[string]interface{}{"foo": "baz"}, false},
+				{map[string]interface{}{"foo": []interface{}{"bar", "baz"}}, true},
+				{map[string]interface{}{"foo": []interface{}{"bar"}}, true},
+				{map[string]interface{}{"foo": []interface{}{"baz"}}, false},
+				{map[string]interface{}{"foo": []interface{}{}}, false},
 			},
 			nil,
 		},
@@ -36,6 +40,10 @@ func TestMatch(t *testing.T) {
 			`{"foo": {"$ne": "bar"}}`, []test{
 				{map[string]interface{}{"foo": "bar"}, false},
 				{map[string]interface{}{"foo": "baz"}, true},
+				{map[string]interface{}{"foo": []interface{}{"bar", "baz"}}, false},
+				{map[string]interface{}{"foo": []interface{}{"bar"}}, false},
+				{map[string]interface{}{"foo": []interface{}{"baz"}}, true},
+				{map[string]interface{}{"foo": []interface{}{}}, true},
 			},
 			nil,
 		},
@@ -150,6 +158,26 @@ func TestMatch(t *testing.T) {
 			`{"foo.bar": "baz"}`, []test{
 				{map[string]interface{}{"foo": map[string]interface{}{"bar": "baz"}}, true},
 				{map[string]interface{}{"foo": map[string]interface{}{"bar": "bar"}}, false},
+			},
+			nil,
+		},
+		{
+			`{"foo": ["bar","baz"]}`, []test{
+				{map[string]interface{}{"foo": []interface{}{"bar", "baz"}}, true},
+				{map[string]interface{}{"foo": []interface{}{"bar"}}, false},
+				{map[string]interface{}{"foo": []interface{}{"baz"}}, false},
+				{map[string]interface{}{"foo": []interface{}{"bar", "baz", "tar"}}, false},
+				{map[string]interface{}{"foo": []interface{}{}}, false},
+			},
+			nil,
+		},
+		{
+			`{"foo": {$ne: ["bar","baz"]}}`, []test{
+				{map[string]interface{}{"foo": []interface{}{"bar", "baz"}}, false},
+				{map[string]interface{}{"foo": []interface{}{"bar"}}, true},
+				{map[string]interface{}{"foo": []interface{}{"baz"}}, true},
+				{map[string]interface{}{"foo": []interface{}{"bar", "baz", "tar"}}, true},
+				{map[string]interface{}{"foo": []interface{}{}}, true},
 			},
 			nil,
 		},
