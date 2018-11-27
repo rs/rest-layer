@@ -132,6 +132,8 @@ func (s Schema) Prepare(ctx context.Context, payload map[string]interface{}, ori
 				// previous value as the client would have no way to resubmit the stored value.
 				if def.Hidden && !def.ReadOnly {
 					changes[field] = oValue
+				} else if def.Required && def.Default != nil {
+					changes[field] = def.Default
 				} else {
 					changes[field] = Tombstone
 				}
@@ -227,7 +229,7 @@ func (s Schema) validate(changes map[string]interface{}, base map[string]interfa
 		}
 		// Check required fields.
 		if def.Required {
-			if value, found := changes[field]; !found || value == nil {
+			if value, found := changes[field]; !found || value == nil || value == Tombstone {
 				if found {
 					// If explicitly set to null, raise the required error.
 					addFieldError(errs, field, "required")
