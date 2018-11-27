@@ -14,6 +14,27 @@ import (
 	"github.com/rs/rest-layer/schema/query"
 )
 
+func checkPayload(name string, id interface{}, payload map[string]interface{}) requestCheckerFunc {
+	return func(t *testing.T, vars *requestTestVars) {
+		var item *resource.Item
+
+		s := vars.Storers[name]
+		q := query.Query{Predicate: query.Predicate{&query.Equal{Field: "id", Value: id}}, Window: &query.Window{Limit: 1}}
+		if items, err := s.Find(context.Background(), &q); err != nil {
+			t.Errorf("s.Find failed: %s", err)
+			return
+		} else if len(items.Items) != 1 {
+			t.Errorf("item with ID %v not found", id)
+			return
+		} else {
+			item = items.Items[0]
+		}
+		if !reflect.DeepEqual(payload, item.Payload) {
+			t.Errorf("Unexpected stored payload for item %v:\nexpect: %#v\ngot: %#v", id, payload, item.Payload)
+		}
+	}
+}
+
 func TestPutItem(t *testing.T) {
 	now := time.Now()
 	yesterday := now.Add(-24 * time.Hour)
@@ -48,26 +69,6 @@ func TestPutItem(t *testing.T) {
 		return &requestTestVars{
 			Index:   idx,
 			Storers: map[string]resource.Storer{"foo": s1, "foo.sub": s2},
-		}
-	}
-	checkPayload := func(name string, id interface{}, payload map[string]interface{}) requestCheckerFunc {
-		return func(t *testing.T, vars *requestTestVars) {
-			var item *resource.Item
-
-			s := vars.Storers[name]
-			q := query.Query{Predicate: query.Predicate{&query.Equal{Field: "id", Value: id}}, Window: &query.Window{Limit: 1}}
-			if items, err := s.Find(context.Background(), &q); err != nil {
-				t.Errorf("s.Find failed: %s", err)
-				return
-			} else if len(items.Items) != 1 {
-				t.Errorf("item with ID %v not found", id)
-				return
-			} else {
-				item = items.Items[0]
-			}
-			if !reflect.DeepEqual(payload, item.Payload) {
-				t.Errorf("Unexpected stored payload for item %v:\nexpect: %#v\ngot: %#v", id, payload, item.Payload)
-			}
 		}
 	}
 
@@ -307,6 +308,272 @@ func TestPutItem(t *testing.T) {
 			ResponseCode: http.StatusOK,
 			ResponseBody: `{"id": "1", "foo": "3"}`,
 			ExtraTest:    checkPayload("foo.sub", "1", map[string]interface{}{"id": "1", "foo": "3"}),
+		},
+	}
+
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
+	}
+}
+
+func TestPutItemDefault(t *testing.T) {
+	now := time.Now()
+
+	sharedInit := func() *requestTestVars {
+		s1 := mem.NewHandler()
+		s1.Insert(context.Background(), []*resource.Item{
+			{ID: "1", ETag: "a", Updated: now, Payload: map[string]interface{}{"id": "1", "foo": "odd"}},
+			{ID: "2", ETag: "b", Updated: now, Payload: map[string]interface{}{"id": "2", "foo": "odd", "bar": "value"}},
+		})
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"id":  {Sortable: true, Filterable: true},
+				"foo": {Filterable: true},
+				"bar": {Filterable: true, Default: "default"},
+			},
+		}, s1, resource.DefaultConf)
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s1},
+		}
+	}
+
+	tests := map[string]requestTest{
+		`pathID:not-found,body:valid,default:missing`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PUT", "/foo/66", body)
+			},
+			ResponseCode: http.StatusCreated,
+			ResponseBody: `{"id": "66", "foo": "baz", "bar": "default"}`,
+			ExtraTest:    checkPayload("foo", "66", map[string]interface{}{"id": "66", "foo": "baz", "bar": "default"}),
+		},
+		`pathID:not-found,body:valid,default:set`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz", "bar": "value"}`))
+				return http.NewRequest("PUT", "/foo/66", body)
+			},
+			ResponseCode: http.StatusCreated,
+			ResponseBody: `{"id": "66", "foo": "baz", "bar": "value"}`,
+			ExtraTest:    checkPayload("foo", "66", map[string]interface{}{"id": "66", "foo": "baz", "bar": "value"}),
+		},
+		`pathID:found,body:valid,default:missing`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PUT", "/foo/1", body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "1", "foo": "baz"}`,
+			ExtraTest:    checkPayload("foo", "1", map[string]interface{}{"id": "1", "foo": "baz"}),
+		},
+		`pathID:found,body:valid,default:set`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz", "bar": "value"}`))
+				return http.NewRequest("PUT", "/foo/1", body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "1", "foo": "baz", "bar": "value"}`,
+			ExtraTest:    checkPayload("foo", "1", map[string]interface{}{"id": "1", "foo": "baz", "bar": "value"}),
+		},
+		`pathID:found,body:valid,default:delete`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PUT", "/foo/2", body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "2", "foo": "baz"}`,
+			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz"}),
+		},
+	}
+
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
+	}
+}
+
+func TestPutItemRequired(t *testing.T) {
+	now := time.Now()
+
+	sharedInit := func() *requestTestVars {
+		s1 := mem.NewHandler()
+		s1.Insert(context.Background(), []*resource.Item{
+			{ID: "1", ETag: "a", Updated: now, Payload: map[string]interface{}{"id": "1", "foo": "odd"}},
+			{ID: "2", ETag: "b", Updated: now, Payload: map[string]interface{}{"id": "2", "foo": "odd", "bar": "original"}},
+		})
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"id":  {Sortable: true, Filterable: true},
+				"foo": {Filterable: true},
+				"bar": {Filterable: true, Required: true},
+			},
+		}, s1, resource.DefaultConf)
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s1},
+		}
+	}
+
+	tests := map[string]requestTest{
+		`pathID:not-found,body:valid,required:missing`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PUT", "/foo/66", body)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{
+				"code": 422,
+				"message": "Document contains error(s)",
+				"issues": {
+					"bar": ["required"]
+				}
+			}`,
+		},
+		`pathID:not-found,body:valid,required:set`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz", "bar": "value"}`))
+				return http.NewRequest("PUT", "/foo/1", body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "1", "foo": "baz", "bar": "value"}`,
+			ExtraTest:    checkPayload("foo", "1", map[string]interface{}{"id": "1", "foo": "baz", "bar": "value"}),
+		},
+		`pathID:found,body:valid,required:missing`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PUT", "/foo/1", body)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{
+				"code": 422,
+				"message": "Document contains error(s)",
+				"issues": {
+					"bar": ["required"]
+				}
+			}`,
+		},
+		`pathID:found,body:valid,required:change`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz", "bar": "value1"}`))
+				return http.NewRequest("PUT", "/foo/2", body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "2", "foo": "baz", "bar": "value1"}`,
+			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "value1"}),
+		},
+		`pathID:found,body:valid,required:delete`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PUT", "/foo/2", body)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{
+				"code": 422,
+				"message": "Document contains error(s)",
+				"issues": {
+					"bar": ["required"]
+				}
+			}`,
+		},
+	}
+
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
+	}
+}
+
+func TestPutItemRequiredDefault(t *testing.T) {
+	now := time.Now()
+
+	sharedInit := func() *requestTestVars {
+		s1 := mem.NewHandler()
+		s1.Insert(context.Background(), []*resource.Item{
+			{ID: "1", ETag: "a", Updated: now, Payload: map[string]interface{}{"id": "1", "foo": "odd"}},
+			{ID: "2", ETag: "b", Updated: now, Payload: map[string]interface{}{"id": "2", "foo": "odd", "bar": "original"}},
+		})
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"id":  {Sortable: true, Filterable: true},
+				"foo": {Filterable: true},
+				"bar": {Filterable: true, Required: true, Default: "default"},
+			},
+		}, s1, resource.DefaultConf)
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s1},
+		}
+	}
+
+	tests := map[string]requestTest{
+		`pathID:not-found,body:valid,required-default:missing`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PUT", "/foo/66", body)
+			},
+			ResponseCode: http.StatusCreated,
+			ResponseBody: `{"id": "66", "foo": "baz", "bar": "default"}`,
+			ExtraTest:    checkPayload("foo", "66", map[string]interface{}{"id": "66", "foo": "baz", "bar": "default"}),
+		},
+		`pathID:not-found,body:valid,required-default:set`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz", "bar": "value"}`))
+				return http.NewRequest("PUT", "/foo/1", body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "1", "foo": "baz", "bar": "value"}`,
+			ExtraTest:    checkPayload("foo", "1", map[string]interface{}{"id": "1", "foo": "baz", "bar": "value"}),
+		},
+		`pathID:found,body:valid,required-default:missing`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PUT", "/foo/1", body)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{
+				"code": 422,
+				"message": "Document contains error(s)",
+				"issues": {
+					"bar": ["required"]
+				}
+			}`,
+		},
+		`pathID:found,body:valid,required-default:change`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz", "bar": "value"}`))
+				return http.NewRequest("PUT", "/foo/2", body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "2", "foo": "baz", "bar": "value"}`,
+			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "value"}),
+		},
+		`pathID:found,body:valid,required-default:delete`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				return http.NewRequest("PUT", "/foo/2", body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"id": "2", "foo": "baz", "bar": "default"}`,
+			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "default"}),
 		},
 	}
 

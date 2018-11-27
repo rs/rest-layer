@@ -54,6 +54,14 @@ The REST Layer framework is composed of several sub-packages:
 - [Data Integrity & Concurrency Control](#data-integrity-and-concurrency-control)
 - [HTTP Headers Support](#http-headers-support)
   - [Prefer](#prefer)
+- [HTTP Methods](#http-methods)
+  - [HEAD](#head)
+  - [GET](#get)
+  - [POST](#post)
+  - [PUT](#put)
+  - [PATCH](#patch)
+  - [DELETE](#delete)
+  - [OPTIONS](#options)
 - [Data Validation](#data-validation)
   - [Nullable Values](#nullable-values)
   - [Extensible Data Validation](#extensible-data-validation)
@@ -1178,6 +1186,32 @@ Content-Type: application/json-patch+json \
 Prefer: return=minimal
 HTTP/1.1 204 No Content
 ```
+
+## HTTP Methods
+
+Following HTTP Methods are supported currently.
+
+### HEAD
+The same as [GET](#get), except that it doesn't return any body.
+
+### GET
+Used to query a resource with its sub/embedded resources.
+
+### POST
+Used to create new resource document, where new `ID` is generated from the server.
+
+### PUT
+Used to create/update single resource document given its `ID`.\
+Be aware when dealing with resource fields with `Default` set. Initial creation for such resources will set particular field to its default value if omitted, however on subsequent `PUT` calls this field will be deleted if omitted. If persistent `Default` field is needed use `{Required: true}` with it. 
+
+### PATCH
+Used to update/patch single resource document given its `ID`.
+
+### DELETE
+Used to delete single resource document given its `ID`, or via [Query](#quering).
+
+### OPTIONS
+Used to tell the client, which HTTP Methods are supported on a given resource.
 
 ## Data Validation
 
