@@ -2,20 +2,42 @@ package rest
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
+	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema/query"
 )
 
+func isJSONPatch(r *http.Request) bool {
+	if ct := r.Header.Get("Content-Type"); ct != "" && strings.TrimSpace(strings.SplitN(ct, ";", 2)[0]) == "application/json-patch+json" {
+		return true
+	}
+	return false
+}
+
 // itemPatch handles PATCH resquests on an item URL.
 //
-// Reference: http://tools.ietf.org/html/rfc5789
+// Reference: http://tools.ietf.org/html/rfc5789, http://tools.ietf.org/html/rfc6902
 func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
 	var payload map[string]interface{}
-	if e := decodePayload(r, &payload); e != nil {
-		return e.Code, nil, e
+	var patchJSON []byte
+
+	isJSONPatch := isJSONPatch(r)
+	if isJSONPatch {
+		if r.Body != nil {
+			patchJSON, _ = ioutil.ReadAll(r.Body)
+			r.Body.Close()
+		}
+	} else {
+		if e := decodePayload(r, &payload); e != nil {
+			return e.Code, nil, e
+		}
 	}
+
 	q, e := route.Query()
 	if e != nil {
 		return e.Code, nil, e
@@ -37,7 +59,29 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 	if err := checkIntegrityRequest(r, original); err != nil {
 		return err.Code, nil, err
 	}
-	changes, base := rsrc.Validator().Prepare(ctx, payload, &original.Payload, false)
+
+	if isJSONPatch {
+		// Recreate the new document
+		originalJSON, err := json.Marshal(original.Payload)
+		if err != nil {
+			return 422, nil, &Error{422, err.Error(), nil}
+		}
+		patch, err := jsonpatch.DecodePatch(patchJSON)
+		if err != nil {
+			return 400, nil, &Error{400, "Malformed patch document: " + err.Error(), nil}
+		}
+		payloadJSON, err := patch.Apply(originalJSON)
+		if err != nil {
+			return 422, nil, &Error{422, err.Error(), nil}
+		}
+		err = json.Unmarshal(payloadJSON, &payload)
+		if err != nil {
+			return 422, nil, &Error{422, err.Error(), nil}
+		}
+	}
+
+	// If JSON-Patch then `replace=true`, because we can delete fields
+	changes, base := rsrc.Validator().Prepare(ctx, payload, &original.Payload, isJSONPatch)
 	// Append lookup fields to base payload so it isn't caught by ReadOnly
 	// (i.e.: contains id and parent resource refs if any).
 	for k, v := range route.ResourcePath.Values() {
@@ -64,6 +108,7 @@ func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status 
 		e = NewError(err)
 		return e.Code, nil, e
 	}
+
 	// Evaluate projection so response gets the same format as read requests.
 	item.Payload, err = q.Projection.Eval(ctx, item.Payload, restResource{rsrc})
 	if err != nil {
