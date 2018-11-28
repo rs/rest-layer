@@ -55,6 +55,7 @@ The REST Layer framework is composed of several sub-packages:
 - [Data Validation](#data-validation)
   - [Nullable Values](#nullable-values)
   - [Extensible Data Validation](#extensible-data-validation)
+- [JSON Patch](#json-patch)
 - [Timeout and Request Cancellation](#timeout-and-request-cancellation)
 - [Logging](#logging)
 - [CORS](#cors)
@@ -117,6 +118,7 @@ From the next release and onwards (0.2), this list will summarize breaking chang
 - [x] Custom ID field
 - [ ] Data versioning
 - [x] Per resource circuit breaker using [Hystrix](https://godoc.org/github.com/afex/hystrix-go/hystrix)
+- [x] [JSON-Patch](https://tools.ietf.org/html/rfc6902) support
 
 ### Extensions
 
@@ -693,7 +695,7 @@ The following table shows how REST layer maps CRUDL operations to HTTP methods a
 | `List`    | GET         | Collection | List/find items using filters and sorts.
 | `Create`  | POST        | Collection | Create an item letting the system generate its ID.
 | `Create`  | PUT         | Item       | Create an item by choosing its ID.
-| `Update`  | PATCH       | Item       | Partially modify the item following [RFC-5789](http://tools.ietf.org/html/rfc5789).
+| `Update`  | PATCH       | Item       | Partially modify the item following [RFC-5789](http://tools.ietf.org/html/rfc5789), [RFC-6902](https://tools.ietf.org/html/rfc6902).
 | `Replace` | PUT         | Item       | Replace the item by a new on.
 | `Delete`  | DELETE      | Item       | Delete the item by its ID.
 | `Clear`   | DELETE      | Collection | Delete all items from the collection matching the context and/or filters.
@@ -1234,6 +1236,19 @@ type FieldSerializer interface {
 When a validator implements this interface, the method is called with the field's value just before JSON marshaling. You should return an error if the format stored in the db is invalid and can't be converted back into a suitable representation.
 
 See [schema.IP](https://godoc.org/github.com/rs/rest-layer/schema#IP) validator for an implementation example.
+
+## JSON-Patch
+
+When patching deeply nested documents, it is more convenient to use protocol designed especially for this, instead of top level document field replacement as described in [RFC-5789](http://tools.ietf.org/html/rfc5789). For this purpose `rest-layer` implements [JSON-Patch/RFC-6902](https://tools.ietf.org/html/rfc6902). In addition JSON-Patch allows field deletion, which is not possible with the simple field replacement.
+
+If using `If-Match` concurrency control as described in the [data control and integrity section](#data-integrity-and-concurrency-control), you could potentially choose to calculate the body of new object client side. Note that the response body for a successful operation can be omitted by supplying a HTTP request header: `Prefer: return=minimal`.
+
+```sh
+$ echo '[{"op": "add", "path":"/foo", "value": "bar"}]' | http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' \
+Content-Type: application/json-patch+json \
+Prefer: return=minimal
+HTTP/1.1 204 No Content
+```
 
 ## Timeout and Request Cancellation
 
