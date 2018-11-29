@@ -52,6 +52,8 @@ The REST Layer framework is composed of several sub-packages:
 - [Authentication & Authorization](#authentication-and-authorization)
 - [Conditional Requests](#conditional-requests)
 - [Data Integrity & Concurrency Control](#data-integrity-and-concurrency-control)
+- [HTTP Headers Support](#http-headers-support)
+  - [Prefer](#prefer)
 - [Data Validation](#data-validation)
   - [Nullable Values](#nullable-values)
   - [Extensible Data Validation](#extensible-data-validation)
@@ -1161,6 +1163,21 @@ Last-Modified: Mon, 27 Jul 2015 19:36:19 GMT
 This time the update operation was accepted and we got a new `ETag` for the updated resource.
 
 Concurrency control header `If-Match` can be used with all mutation methods on item URLs: `PATCH` (update), `PUT` (replace) and `DELETE` (delete).
+
+## HTTP Headers Support
+
+### Prefer
+
+Currently supported values are:
+- [return=minimal](https://tools.ietf.org/html/rfc7240#section-4.2) - When request is successfull (HTTP Response Status of `200` or `201`), response body is not returned. For Response Status of `200 OK`, status becomes `204 No Content`. Usefull for `PUT`, `POST` and `PATCH` methods, where returned body will be known by the client.
+- [return-no-content](https://msdn.microsoft.com/en-us/library/hh537533.aspx) - same as `return=minimal`.
+
+```sh
+$ echo '[{"op": "add", "path":"/foo", "value": "bar"}]' | http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' \
+Content-Type: application/json-patch+json \
+Prefer: return=minimal
+HTTP/1.1 204 No Content
+```
 
 ## Data Validation
 

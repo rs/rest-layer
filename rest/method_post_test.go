@@ -115,9 +115,34 @@ func TestHandlerPostList(t *testing.T) {
 			NewRequest: func() (*http.Request, error) {
 				return http.NewRequest("POST", "/test", bytes.NewBufferString(`{"id": "2", "foo": "baz"}`))
 			},
-			ResponseCode:   http.StatusCreated,
-			ResponseBody:   `{"id":"2","foo":"baz"}`,
-			ResponseHeader: http.Header{"Content-Location": []string{"/test/2"}},
+			ResponseCode: http.StatusCreated,
+			ResponseBody: `{"id":"2","foo":"baz"}`,
+			ResponseHeader: http.Header{
+				"Content-Location": []string{"/test/2"},
+				"Etag":             []string{`W/"b89c2acfea8a49933a3387f0e3fb0527"`},
+			},
+		},
+		"New:minimal": {
+			Init: func() *requestTestVars {
+				index := resource.NewIndex()
+				s := mem.NewHandler()
+				index.Bind("test", schema.Schema{Fields: schema.Fields{
+					"id":  {},
+					"foo": {},
+				}}, s, resource.DefaultConf)
+				return &requestTestVars{Index: index}
+			},
+			NewRequest: func() (*http.Request, error) {
+				r, err := http.NewRequest("POST", "/test", bytes.NewBufferString(`{"id": "2", "foo": "baz"}`))
+				r.Header.Set("Prefer", "return=minimal")
+				return r, err
+			},
+			ResponseCode: http.StatusCreated,
+			ResponseBody: ``,
+			ResponseHeader: http.Header{
+				"Content-Location": []string{"/test/2"},
+				"Etag":             []string{`W/"b89c2acfea8a49933a3387f0e3fb0527"`},
+			},
 		},
 		"InvalidField": {
 			Init: func() *requestTestVars {

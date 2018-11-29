@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/rs/rest-layer/resource"
 )
@@ -72,6 +73,12 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 		h.FallbackHandlerFunc(ctx, w, r)
 		return
 	}
+	if r.Method != "HEAD" && body != nil && (status == 200 || status == 201) && isNoContent(r) {
+		skipBody = true
+		if status == 200 {
+			status = 204
+		}
+	}
 	h.sendResponse(ctx, w, status, headers, body, skipBody)
 }
 
@@ -101,4 +108,21 @@ func routeHandler(ctx context.Context, r *http.Request, route *RouteMatch) (stat
 func (h *Handler) sendResponse(ctx context.Context, w http.ResponseWriter, status int, headers http.Header, res interface{}, skipBody bool) {
 	ctx, status, body := formatResponse(ctx, h.ResponseFormatter, w, status, headers, res, skipBody)
 	h.ResponseSender.Send(ctx, w, status, headers, body)
+}
+
+func isNoContent(r *http.Request) bool {
+	if pr := r.Header.Get("Prefer"); pr != "" {
+		items := strings.SplitN(pr, ";", -1)
+		for _, item := range items {
+			switch strings.TrimSpace(item) {
+			case "return=minimal":
+				// From https://tools.ietf.org/html/rfc7240#section-4.2
+				return true
+			case "return-no-content":
+				// From https://msdn.microsoft.com/en-us/library/hh537533.aspx
+				return true
+			}
+		}
+	}
+	return false
 }
