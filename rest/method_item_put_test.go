@@ -176,9 +176,23 @@ func TestPutItem(t *testing.T) {
 				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
 				return http.NewRequest("PUT", "/foo/2", body)
 			},
-			ResponseCode: http.StatusOK,
-			ResponseBody: `{"id": "2", "foo": "baz"}`,
-			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz"}),
+			ResponseCode:   http.StatusOK,
+			ResponseBody:   `{"id": "2", "foo": "baz"}`,
+			ResponseHeader: http.Header{"Etag": []string{`W/"b89c2acfea8a49933a3387f0e3fb0527"`}},
+			ExtraTest:      checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz"}),
+		},
+		`pathID:found,body:valid:minimal`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				r, err := http.NewRequest("PUT", "/foo/2", body)
+				r.Header.Set("Prefer", "return=minimal")
+				return r, err
+			},
+			ResponseCode:   http.StatusNoContent,
+			ResponseBody:   ``,
+			ResponseHeader: http.Header{"Etag": []string{`W/"b89c2acfea8a49933a3387f0e3fb0527"`}},
+			ExtraTest:      checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz"}),
 		},
 		`pathID:found,body:valid,fields:invalid`: {
 			Init: sharedInit,

@@ -142,9 +142,23 @@ func TestPatchItem(t *testing.T) {
 				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
 				return http.NewRequest("PATCH", "/foo/2", body)
 			},
-			ResponseCode: http.StatusOK,
-			ResponseBody: `{"id": "2", "foo": "baz", "bar": "baz"}`,
-			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "baz"}),
+			ResponseCode:   http.StatusOK,
+			ResponseBody:   `{"id": "2", "foo": "baz", "bar": "baz"}`,
+			ResponseHeader: http.Header{"Etag": []string{`W/"53c7f8b8a84dd407e1491f5339fca757"`}},
+			ExtraTest:      checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "baz"}),
+		},
+		`pathID:found,body:valid:minimal`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz"}`))
+				r, err := http.NewRequest("PATCH", "/foo/2", body)
+				r.Header.Set("Prefer", "return=minimal")
+				return r, err
+			},
+			ResponseCode:   http.StatusNoContent,
+			ResponseBody:   ``,
+			ResponseHeader: http.Header{"Etag": []string{`W/"53c7f8b8a84dd407e1491f5339fca757"`}},
+			ExtraTest:      checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "baz"}),
 		},
 		`pathID:found,body:valid,fields:invalid`: {
 			Init: sharedInit,
@@ -677,9 +691,30 @@ func TestJSONPatchItem(t *testing.T) {
 				r.Header.Set("Content-Type", "application/json-patch+json")
 				return r, err
 			},
-			ResponseCode: http.StatusOK,
-			ResponseBody: `{"id": "6", "foo": "odd", "aar": ["baz", "value-1"]}`,
-			ExtraTest:    checkPayload("foo", "6", map[string]interface{}{"id": "6", "foo": "odd", "aar": []interface{}{"baz", "value-1"}}),
+			ResponseCode:   http.StatusOK,
+			ResponseBody:   `{"id": "6", "foo": "odd", "aar": ["baz", "value-1"]}`,
+			ResponseHeader: http.Header{"Etag": []string{`W/"ad278e57a1abd1794df1ce05519639b2"`}},
+			ExtraTest:      checkPayload("foo", "6", map[string]interface{}{"id": "6", "foo": "odd", "aar": []interface{}{"baz", "value-1"}}),
+		},
+		`pathID:found,body:valid:minimal`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`[
+					{
+						"op": "replace",
+						"path": "/foo",
+						"value": "baz"
+					}
+				]`))
+				r, err := http.NewRequest("PATCH", "/foo/2", body)
+				r.Header.Set("Content-Type", "application/json-patch+json")
+				r.Header.Set("Prefer", "return=minimal")
+				return r, err
+			},
+			ResponseCode:   http.StatusNoContent,
+			ResponseBody:   ``,
+			ResponseHeader: http.Header{"Etag": []string{`W/"53c7f8b8a84dd407e1491f5339fca757"`}},
+			ExtraTest:      checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "baz"}),
 		},
 	}
 
