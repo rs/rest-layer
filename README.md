@@ -65,7 +65,6 @@ The REST Layer framework is composed of several sub-packages:
 - [Data Validation](#data-validation)
   - [Nullable Values](#nullable-values)
   - [Extensible Data Validation](#extensible-data-validation)
-- [JSON Patch](#json-patch)
 - [Timeout and Request Cancellation](#timeout-and-request-cancellation)
 - [Logging](#logging)
 - [CORS](#cors)
@@ -1201,11 +1200,23 @@ Used to query a resource with its sub/embedded resources.
 Used to create new resource document, where new `ID` is generated from the server.
 
 ### PUT
-Used to create/update single resource document given its `ID`.\
-Be aware when dealing with resource fields with `Default` set. Initial creation for such resources will set particular field to its default value if omitted, however on subsequent `PUT` calls this field will be deleted if omitted. If persistent `Default` field is needed use `{Required: true}` with it. 
+Used to create/update single resource document given its `ID`. Be aware when dealing with resource fields with `Default` set. Initial creation for such resources will set particular field to its default value if omitted, however on subsequent `PUT` calls this field will be deleted if omitted. If persistent `Default` field is needed use `{Required: true}` with it. 
 
 ### PATCH
-Used to update/patch single resource document given its `ID`.
+Used to update/patch single resource document given its `ID`. REST Layer supports following update protocols:
+
+- Simple filed replacement [RFC-5789](http://tools.ietf.org/html/rfc5789) - this protocol will udpate only supplied top level fields, and will leave other fields in the document intact. This means that this protocol can't delete fields. Using this protocol is specified with `Content-Type: application/json` HTTP Request header.
+
+- [JSON-Patch/RFC-6902](https://tools.ietf.org/html/rfc6902) - When patching deeply nested documents, it is more convenient to use protocol designed especially for this. Using this protocol is specified with `Content-Type: application/json-patch+json` HTTP Request header.
+
+If using `If-Match` concurrency control as described in the [data control and integrity section](#data-integrity-and-concurrency-control), you could potentially choose to calculate the body of new object client side. Note that the response body for a successful operation can be omitted by supplying a HTTP request header: `Prefer: return=minimal`.
+
+```sh
+$ echo '[{"op": "add", "path":"/foo", "value": "bar"}]' | http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' \
+Content-Type: application/json-patch+json \
+Prefer: return=minimal
+HTTP/1.1 204 No Content
+```
 
 ### DELETE
 Used to delete single resource document given its `ID`, or via [Query](#quering).
@@ -1287,19 +1298,6 @@ type FieldSerializer interface {
 When a validator implements this interface, the method is called with the field's value just before JSON marshaling. You should return an error if the format stored in the db is invalid and can't be converted back into a suitable representation.
 
 See [schema.IP](https://godoc.org/github.com/rs/rest-layer/schema#IP) validator for an implementation example.
-
-## JSON-Patch
-
-When patching deeply nested documents, it is more convenient to use protocol designed especially for this, instead of top level document field replacement as described in [RFC-5789](http://tools.ietf.org/html/rfc5789). For this purpose `rest-layer` implements [JSON-Patch/RFC-6902](https://tools.ietf.org/html/rfc6902). In addition JSON-Patch allows field deletion, which is not possible with the simple field replacement.
-
-If using `If-Match` concurrency control as described in the [data control and integrity section](#data-integrity-and-concurrency-control), you could potentially choose to calculate the body of new object client side. Note that the response body for a successful operation can be omitted by supplying a HTTP request header: `Prefer: return=minimal`.
-
-```sh
-$ echo '[{"op": "add", "path":"/foo", "value": "bar"}]' | http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' \
-Content-Type: application/json-patch+json \
-Prefer: return=minimal
-HTTP/1.1 204 No Content
-```
 
 ## Timeout and Request Cancellation
 
