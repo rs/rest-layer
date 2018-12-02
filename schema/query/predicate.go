@@ -83,8 +83,8 @@ func (e And) Match(payload map[string]interface{}) bool {
 }
 
 // Prepare implements Expression interface.
-func (e *And) Prepare(validator schema.Validator) error {
-	return prepareExpressions(*e, validator)
+func (e And) Prepare(validator schema.Validator) error {
+	return prepareExpressions(e, validator)
 }
 
 // String implements Expression interface.
@@ -115,8 +115,8 @@ func (e Or) Match(payload map[string]interface{}) bool {
 }
 
 // Prepare implements Expression interface.
-func (e *Or) Prepare(validator schema.Validator) error {
-	return prepareExpressions(*e, validator)
+func (e Or) Prepare(validator schema.Validator) error {
+	return prepareExpressions(e, validator)
 }
 
 // String implements Expression interface.
