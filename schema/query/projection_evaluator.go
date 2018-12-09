@@ -79,7 +79,10 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 					}
 				} else if ref, ok := def.Validator.(*schema.Reference); ok {
 					// Execute sub-request in batch
-					q := &Query{Predicate: Predicate{&Equal{Field: "id", Value: val}}}
+					q := &Query{
+						Projection: pf.Children,
+						Predicate:  Predicate{&Equal{Field: "id", Value: val}},
+					}
 					rbr.request(ref.Path, q, func(payloads []map[string]interface{}, validator schema.Validator) error {
 						var v interface{}
 						if len(payloads) == 1 {
@@ -140,7 +143,8 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 // connectionQuery builds a query from a projection field on a schema.Connection type field.
 func connectionQuery(pf ProjectionField, field string, id interface{}, validator schema.Validator) (*Query, error) {
 	q := &Query{
-		Predicate: Predicate{&Equal{Field: field, Value: id}},
+		Projection: pf.Children,
+		Predicate:  Predicate{&Equal{Field: field, Value: id}},
 	}
 	if filter, ok := pf.Params["filter"].(string); ok {
 		p, err := ParsePredicate(filter)
