@@ -79,3 +79,14 @@ func (v AnyOf) Serialize(value interface{}) (interface{}, error) {
 
 	return value, nil
 }
+
+// GetField implements the FieldGetter interface. Note that it will return the
+// first matching field only.
+func (v AnyOf) GetField(name string) *Field {
+	for _, obj := range v {
+		if fg, ok := obj.(FieldGetter); ok {
+			return fg.GetField(name)
+		}
+	}
+	return nil
+}
