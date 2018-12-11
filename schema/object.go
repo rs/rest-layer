@@ -2,9 +2,6 @@ package schema
 
 import (
 	"errors"
-	"fmt"
-	"sort"
-	"strings"
 )
 
 // Object validates objects which are defined by Schemas.
@@ -31,9 +28,9 @@ func (v Object) Validate(value interface{}) (interface{}, error) {
 	}
 	dest, errs := v.Schema.Validate(nil, obj)
 	if len(errs) > 0 {
-		var errMap ErrorMap
-		errMap = errs
-		return nil, errMap
+		// Currently, tests expect FieldValidators to always return a nil value
+		// on validation errors.
+		return nil, ErrorMap(errs)
 	}
 	return dest, nil
 }
@@ -41,19 +38,4 @@ func (v Object) Validate(value interface{}) (interface{}, error) {
 // GetField implements the FieldGetter interface.
 func (v Object) GetField(name string) *Field {
 	return v.Schema.GetField(name)
-}
-
-// ErrorMap contains a map of errors by field name.
-type ErrorMap map[string][]interface{}
-
-func (e ErrorMap) Error() string {
-	errs := make([]string, 0, len(e))
-	for key := range e {
-		errs = append(errs, key)
-	}
-	sort.Strings(errs)
-	for i, key := range errs {
-		errs[i] = fmt.Sprintf("%s is %s", key, e[key])
-	}
-	return strings.Join(errs, ", ")
 }

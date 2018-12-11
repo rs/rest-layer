@@ -1,7 +1,5 @@
 package schema
 
-import "errors"
-
 // AnyOf validates if any of the sub field validators validates. If any of the
 // sub field validators implements the FieldSerializer interface, the *first*
 // implementation which does not error will be used.
@@ -20,8 +18,10 @@ func (v AnyOf) Compile(rc ReferenceChecker) error {
 	return nil
 }
 
-// ValidateQuery implements schema.FieldQueryValidator interface
+// ValidateQuery implements schema.FieldQueryValidator interface.
 func (v AnyOf) ValidateQuery(value interface{}) (interface{}, error) {
+	var errs ErrorSlice
+
 	for _, validator := range v {
 		var err error
 		var val interface{}
@@ -33,20 +33,31 @@ func (v AnyOf) ValidateQuery(value interface{}) (interface{}, error) {
 		if err == nil {
 			return val, nil
 		}
+		errs = errs.Append(err)
 	}
-	// TODO: combine errors.
-	return nil, errors.New("invalid")
+
+	if len(errs) > 0 {
+		return nil, errs
+	}
+	return nil, nil
 }
 
 // Validate ensures that at least one sub-validator validates.
 func (v AnyOf) Validate(value interface{}) (interface{}, error) {
+	var errs ErrorSlice
+
 	for _, validator := range v {
-		if value, err := validator.Validate(value); err == nil {
+		value, err := validator.Validate(value)
+		if err == nil {
 			return value, nil
 		}
+		errs = errs.Append(err)
 	}
-	// TODO: combine errors.
-	return nil, errors.New("invalid")
+
+	if len(errs) > 0 {
+		return nil, errs
+	}
+	return nil, nil
 }
 
 // Serialize attempts to serialize the value using the first available

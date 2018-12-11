@@ -344,12 +344,6 @@ func addFieldError(errs map[string][]interface{}, field string, err interface{})
 func mergeFieldErrors(errs map[string][]interface{}, mergeErrs map[string][]interface{}) {
 	// TODO recursive merge
 	for field, values := range mergeErrs {
-		if dest, found := errs[field]; found {
-			for _, value := range values {
-				dest = append(dest, value)
-			}
-		} else {
-			errs[field] = values
-		}
+		errs[field] = append(errs[field], values...)
 	}
 }

@@ -11,8 +11,8 @@ import (
 // hexByteArray implements the FieldSerializer interface.
 type hexByteArray struct{}
 
-// Validate is a dummy implemetation of the FieldValidator interface implemented
-// to allow inclusion in AnyOf.
+// Validate is a dummy implementation of the FieldValidator interface
+// implemented to allow inclusion in AnyOf.
 func (h hexByteArray) Validate(value interface{}) (interface{}, error) {
 	return nil, nil
 }
@@ -75,7 +75,13 @@ func TestAnyOfValidate(t *testing.T) {
 			Name:      `{Bool,Bool}.Validate("")`,
 			Validator: schema.AnyOf{&schema.Bool{}, &schema.Bool{}},
 			Input:     "",
-			Error:     "invalid",
+			Error:     "not a Boolean, not a Boolean",
+		},
+		{
+			Name:      "{Bool,String}.Validate(42)",
+			Validator: schema.AnyOf{&schema.Bool{}, &schema.String{}},
+			Input:     42,
+			Error:     "not a Boolean, not a string",
 		},
 		{
 			Name:      "{Bool,String}.Validate(true)",
@@ -128,7 +134,7 @@ func TestAnyOfQueryValidate(t *testing.T) {
 			Name:      `{Bool,Bool}.Validate("")`,
 			Validator: schema.AnyOf{&schema.Bool{}, &schema.Bool{}},
 			Input:     "",
-			Error:     "invalid",
+			Error:     "not a Boolean, not a Boolean",
 		},
 		{
 			Name:      "{Bool,String}.Validate(true)",
