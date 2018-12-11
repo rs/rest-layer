@@ -220,3 +220,56 @@ func TestAnyOfSerialize(t *testing.T) {
 		cases[i].Run(t)
 	}
 }
+
+func TestAnyOfLesser(t *testing.T) {
+	cases := map[string]struct {
+		validator     schema.AnyOf
+		value, other  interface{}
+		expectNilFunc bool
+		expectResult  bool
+	}{
+		`AnyOf{Null,Integer}.Less(1,2)`: {
+			validator:    schema.AnyOf{&schema.Null{}, &schema.Integer{}},
+			value:        1,
+			other:        2,
+			expectResult: true,
+		},
+		`AnyOf{Null,Integer}.Less(2,1)`: {
+			validator:    schema.AnyOf{&schema.Null{}, &schema.Integer{}},
+			value:        2,
+			other:        1,
+			expectResult: false,
+		},
+		`AnyOf{Null,Dict}.Less(2,1)`: {
+			validator:     schema.AnyOf{&schema.Null{}, &schema.Dict{}},
+			value:         2,
+			other:         1,
+			expectNilFunc: true,
+		},
+	}
+
+	for name, tt := range cases {
+		tt := tt // capture range variable.
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			v := &tt.validator
+			v.Compile(nil)
+			lessFunc := v.LessFunc()
+
+			if lessFunc == nil && !tt.expectNilFunc {
+				t.Error("for validator.LessFunc(), expected non-nil result")
+				return
+			} else if lessFunc != nil && tt.expectNilFunc {
+				t.Error("for validator.LessFunc(), expected nil result")
+				return
+			} else if lessFunc == nil {
+				return
+			}
+
+			got := lessFunc(tt.value, tt.other)
+			if got != tt.expectResult {
+				t.Errorf("for lessFunc(%v,%v)\ngot: %v\nwant: %v", tt.value, tt.other, got, tt.expectResult)
+			}
+		})
+	}
+}

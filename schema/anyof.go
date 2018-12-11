@@ -80,6 +80,19 @@ func (v AnyOf) Serialize(value interface{}) (interface{}, error) {
 	return value, nil
 }
 
+// LessFunc implements the FieldComparator interface, and returns the first
+// non-nil LessFunc or nil.
+func (v AnyOf) LessFunc() LessFunc {
+	for _, comparable := range v {
+		if fc, ok := comparable.(FieldComparator); ok {
+			if less := fc.LessFunc(); less != nil {
+				return less
+			}
+		}
+	}
+	return nil
+}
+
 // GetField implements the FieldGetter interface. Note that it will return the
 // first matching field only.
 func (v AnyOf) GetField(name string) *Field {

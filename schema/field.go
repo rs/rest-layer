@@ -127,12 +127,18 @@ type FieldGetter interface {
 	GetField(name string) *Field
 }
 
-// FieldComparator defines an interface for comparing field values, depending
-// on the each value type semantics. Field types need to implement this interface
-// if you want to use $gt, $gte, $lt, $lte for rest-layer-mem store.
+// LessFunc is a function that returns true only when value is less than other,
+// and false in all other circumstances, including error conditions.
+type LessFunc func(value, other interface{}) bool
+
+// FieldComparator must be implemented by a FieldValidator that is to allow
+// comparison queries ($gt, $gte, $lt and $lte). The returned LessFunc will be
+// used by the query package's Predicate.Match functions, which is used e.g. by
+// the internal mem storage backend.
 type FieldComparator interface {
-	// Less returns true if "value" is less than "other", otherwise returns true.
-	Less(value, other interface{}) bool
+	// LessFunc returns a valid LessFunc or nil. nil is returned when comparison
+	// is not allowed.
+	LessFunc() LessFunc
 }
 
 // FieldQueryValidator defines an interface for lightweight validation on field

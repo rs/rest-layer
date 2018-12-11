@@ -348,17 +348,17 @@ func (e NotExist) String() string {
 
 // GreaterThan matches values that are greater than a specified value.
 type GreaterThan struct {
-	Field      string
-	Value      Value
-	comparator schema.FieldComparator
+	Field string
+	Value Value
+	less  schema.LessFunc
 }
 
 // Match implements Expression interface.
 func (e GreaterThan) Match(payload map[string]interface{}) bool {
-	if e.comparator == nil {
+	if e.less == nil {
 		return false
 	}
-	return e.comparator.Less(e.Value, getField(payload, e.Field))
+	return e.less(e.Value, getField(payload, e.Field))
 }
 
 // Prepare implements Expression interface.
@@ -368,8 +368,8 @@ func (e *GreaterThan) Prepare(validator schema.Validator) error {
 		return err
 	}
 	e.Value = value
-	c, err := getComparator(e.Field, validator)
-	e.comparator = c
+	c, err := getLessFunc(e.Field, validator)
+	e.less = c
 	return err
 }
 
@@ -380,17 +380,17 @@ func (e GreaterThan) String() string {
 
 // GreaterOrEqual matches values that are greater than or equal to a specified value.
 type GreaterOrEqual struct {
-	Field      string
-	Value      Value
-	comparator schema.FieldComparator
+	Field string
+	Value Value
+	less  schema.LessFunc
 }
 
 // Match implements Expression interface
 func (e GreaterOrEqual) Match(payload map[string]interface{}) bool {
-	if e.comparator == nil {
+	if e.less == nil {
 		return false
 	}
-	return !e.comparator.Less(getField(payload, e.Field), e.Value)
+	return !e.less(getField(payload, e.Field), e.Value)
 }
 
 // Prepare implements Expression interface.
@@ -400,8 +400,8 @@ func (e *GreaterOrEqual) Prepare(validator schema.Validator) error {
 		return err
 	}
 	e.Value = value
-	c, err := getComparator(e.Field, validator)
-	e.comparator = c
+	less, err := getLessFunc(e.Field, validator)
+	e.less = less
 	return err
 }
 
@@ -412,17 +412,17 @@ func (e GreaterOrEqual) String() string {
 
 // LowerThan matches values that are less than a specified value.
 type LowerThan struct {
-	Field      string
-	Value      Value
-	comparator schema.FieldComparator
+	Field string
+	Value Value
+	less  schema.LessFunc
 }
 
 // Match implements Expression interface.
 func (e LowerThan) Match(payload map[string]interface{}) bool {
-	if e.comparator == nil {
+	if e.less == nil {
 		return false
 	}
-	return e.comparator.Less(getField(payload, e.Field), e.Value)
+	return e.less(getField(payload, e.Field), e.Value)
 }
 
 // Prepare implements Expression interface.
@@ -432,8 +432,8 @@ func (e *LowerThan) Prepare(validator schema.Validator) error {
 		return err
 	}
 	e.Value = value
-	c, err := getComparator(e.Field, validator)
-	e.comparator = c
+	c, err := getLessFunc(e.Field, validator)
+	e.less = c
 	return err
 }
 
@@ -444,17 +444,17 @@ func (e LowerThan) String() string {
 
 // LowerOrEqual matches values that are less than or equal to a specified value.
 type LowerOrEqual struct {
-	Field      string
-	Value      Value
-	comparator schema.FieldComparator
+	Field string
+	Value Value
+	less  schema.LessFunc
 }
 
 // Match implements Expression interface.
 func (e LowerOrEqual) Match(payload map[string]interface{}) bool {
-	if e.comparator == nil {
+	if e.less == nil {
 		return false
 	}
-	return !e.comparator.Less(e.Value, getField(payload, e.Field))
+	return !e.less(e.Value, getField(payload, e.Field))
 }
 
 // Prepare implements Expression interface.
@@ -464,8 +464,8 @@ func (e *LowerOrEqual) Prepare(validator schema.Validator) error {
 		return err
 	}
 	e.Value = value
-	c, err := getComparator(e.Field, validator)
-	e.comparator = c
+	c, err := getLessFunc(e.Field, validator)
+	e.less = c
 	return err
 }
 

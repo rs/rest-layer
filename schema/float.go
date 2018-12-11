@@ -17,14 +17,6 @@ type Float struct {
 	Boundaries *Boundaries
 }
 
-func (v Float) parse(value interface{}) (interface{}, error) {
-	f, ok := value.(float64)
-	if !ok {
-		return nil, errors.New("not a float")
-	}
-	return f, nil
-}
-
 // ValidateQuery implements schema.FieldQueryValidator interface
 func (v Float) ValidateQuery(value interface{}) (interface{}, error) {
 	return v.parse(value)
@@ -68,11 +60,23 @@ func (v Float) Validate(value interface{}) (interface{}, error) {
 	return f, nil
 }
 
-// Less implements schema.FieldComparator interface
-func (v Float) Less(value, other interface{}) bool {
-	t, err := v.get(value)
-	o, err1 := v.get(other)
-	if err != nil || err1 != nil {
+func (v Float) parse(value interface{}) (interface{}, error) {
+	f, ok := value.(float64)
+	if !ok {
+		return nil, errors.New("not a float")
+	}
+	return f, nil
+}
+
+// LessFunc implements the FieldComparator interface.
+func (v Float) LessFunc() LessFunc {
+	return v.less
+}
+
+func (v Float) less(value, other interface{}) bool {
+	t, err1 := v.get(value)
+	o, err2 := v.get(other)
+	if err1 != nil || err2 != nil {
 		return false
 	}
 	return t < o
