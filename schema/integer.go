@@ -12,23 +12,6 @@ type Integer struct {
 	Boundaries *Boundaries
 }
 
-func (v Integer) parse(value interface{}) (interface{}, error) {
-	if f, ok := value.(float64); ok {
-		// JSON unmarshaling treat all numbers as float64, try to convert it to
-		// int if not fraction.
-		i, frac := math.Modf(f)
-		if frac == 0.0 {
-			v := int(i)
-			value = v
-		}
-	}
-	i, ok := value.(int)
-	if !ok {
-		return nil, errors.New("not an integer")
-	}
-	return i, nil
-}
-
 // ValidateQuery implements schema.FieldQueryValidator interface
 func (v Integer) ValidateQuery(value interface{}) (interface{}, error) {
 	return v.parse(value)
@@ -76,11 +59,32 @@ func (v Integer) Validate(value interface{}) (interface{}, error) {
 	return i, nil
 }
 
-// Less implements schema.FieldComparator interface
-func (v Integer) Less(value, other interface{}) bool {
-	t, err := v.get(value)
-	o, err1 := v.get(other)
-	if err != nil || err1 != nil {
+func (v Integer) parse(value interface{}) (interface{}, error) {
+	if f, ok := value.(float64); ok {
+		// JSON unmarshaling treat all numbers as float64, try to convert it to
+		// int if not fraction.
+		i, frac := math.Modf(f)
+		if frac == 0.0 {
+			v := int(i)
+			value = v
+		}
+	}
+	i, ok := value.(int)
+	if !ok {
+		return nil, errors.New("not an integer")
+	}
+	return i, nil
+}
+
+// LessFunc implements the FieldComparator interface.
+func (v Integer) LessFunc() LessFunc {
+	return v.less
+}
+
+func (v Integer) less(value, other interface{}) bool {
+	t, err1 := v.get(value)
+	o, err2 := v.get(other)
+	if err1 != nil || err2 != nil {
 		return false
 	}
 	return t < o

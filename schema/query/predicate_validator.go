@@ -78,15 +78,18 @@ func prepareValue(field string, value Value, validator schema.Validator) (Value,
 	return nv, nil
 }
 
-func getComparator(field string, validator schema.Validator) (schema.FieldComparator, error) {
+func getLessFunc(field string, validator schema.Validator) (schema.LessFunc, error) {
 	f, err := getValidatorField(field, validator)
 	if err != nil {
 		return nil, err
 	}
-	c, ok := f.Validator.(schema.FieldComparator)
+	fc, ok := f.Validator.(schema.FieldComparator)
 	if !ok {
-		// XXX. Should we return error, stating that field is non-comparable?
-		return nil, fmt.Errorf("%s: field type doesn't support comparing. Implement `schema.FieldComparator`", field)
+		return nil, fmt.Errorf("%s: not-comparable", field)
 	}
-	return c, nil
+	less := fc.LessFunc()
+	if less == nil {
+		return nil, fmt.Errorf("%s: not-comparable", field)
+	}
+	return less, nil
 }

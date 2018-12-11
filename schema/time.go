@@ -102,11 +102,15 @@ func (v Time) get(value interface{}) (time.Time, error) {
 	return t, nil
 }
 
-// Less implements schema.FieldComparator interface
-func (v Time) Less(value, other interface{}) bool {
-	t, err := v.get(value)
-	o, err1 := v.get(other)
-	if err != nil || err1 != nil {
+// LessFunc implements the FieldComparator interface.
+func (v Time) LessFunc() LessFunc {
+	return v.less
+}
+
+func (v Time) less(value, other interface{}) bool {
+	t, err1 := v.get(value)
+	o, err2 := v.get(other)
+	if err1 != nil || err2 != nil {
 		return false
 	}
 	return t.Before(o)
