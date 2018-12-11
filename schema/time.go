@@ -49,10 +49,19 @@ var (
 	}
 )
 
-// Time validates time based values
+// Time validates time based values.
 type Time struct {
-	TimeLayouts []string // TimeLayouts is set of time layouts we want to validate.
-	layouts     []string
+	// TimeLayouts is set of time layouts we want to validate.
+	TimeLayouts []string
+
+	// Truncate set to truncate all time-stamps to a given precision. Truncate
+	// always happens according to the Go zero-time (1 Jan, year 1 at midnight).
+	Truncate time.Duration
+
+	// Location, if set, converts all times to the given time-zone.
+	Location *time.Location
+
+	layouts []string
 }
 
 // Compile the time formats.
@@ -69,29 +78,46 @@ func (v *Time) Compile(rc ReferenceChecker) error {
 	return nil
 }
 
-func (v Time) parse(value interface{}) (interface{}, error) {
-	if s, ok := value.(string); ok {
+func (v Time) parse(value interface{}) (time.Time, error) {
+	switch vt := value.(type) {
+	case time.Time:
+		return vt, nil
+	case string:
 		for _, layout := range v.layouts {
-			if t, err := time.Parse(layout, s); err == nil {
-				value = t
-				break
+			if t, err := time.Parse(layout, vt); err == nil {
+				return t, nil
 			}
 		}
 	}
-	if _, ok := value.(time.Time); !ok {
-		return nil, errors.New("not a time")
-	}
-	return value, nil
+
+	return time.Time{}, errors.New("not a time")
 }
 
-// ValidateQuery implements schema.FieldQueryValidator interface
+// ValidateQuery implements the FieldQueryValidator interface.
 func (v Time) ValidateQuery(value interface{}) (interface{}, error) {
-	return v.parse(value)
+	t, err := v.parse(value)
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
 }
 
-// Validate validates and normalize time based value.
+// Validate validates and normalize a time based value.
 func (v Time) Validate(value interface{}) (interface{}, error) {
-	return v.parse(value)
+	t, err := v.parse(value)
+	if err != nil {
+		return nil, err
+	}
+
+	// We always call Truncate, even if v.Truncate is 0, so that the monotonic
+	// time component is always dropped.
+	t = t.Truncate(v.Truncate)
+
+	if v.Location != nil {
+		t = t.In(v.Location)
+	}
+
+	return t, nil
 }
 
 func (v Time) get(value interface{}) (time.Time, error) {

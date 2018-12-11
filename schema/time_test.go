@@ -9,6 +9,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var testTimeFormats = []string{
+	time.RFC3339,
+	time.RFC3339Nano,
+	time.ANSIC,
+	time.UnixDate,
+	time.RubyDate,
+	time.RFC822,
+	time.RFC822Z,
+	time.RFC850,
+	time.RFC1123,
+	time.RFC1123Z,
+}
+
 func TestTimeValidate(t *testing.T) {
 	now := time.Now().Truncate(time.Minute).UTC()
 	timeT := Time{}
@@ -19,14 +32,92 @@ func TestTimeValidate(t *testing.T) {
 		assert.NoError(t, err)
 		if assert.IsType(t, v, now) {
 			assert.True(t, now.Equal(v.(time.Time)), f)
+
+// timeValidateTest can be used for positive validation tests only; negative
+// tests should be hand-written to check for the correct errors.
+type timeValidateTest struct {
+	validator  schema.Time
+	input      interface{}
+	expectTime time.Time
+}
+
+func (tt timeValidateTest) Run(t *testing.T) {
+	t.Parallel()
+
+	v := &tt.validator
+	v.Compile(nil)
+	value, err := v.Validate(tt.input)
+
+	t.Run("should not error", func(t *testing.T) {
+		if err != nil {
+			t.Errorf("unexpected error: %s", err)
 		}
-	}
-	v, err := timeT.Validate(now)
-	assert.NoError(t, err)
-	assert.Equal(t, now, v)
-	v, err = timeT.Validate("invalid date")
-	assert.EqualError(t, err, "not a time")
-	assert.Nil(t, v)
+	})
+
+	t.Run("should return the expected value", func(t *testing.T) {
+		ts, ok := value.(time.Time)
+		if !ok {
+			t.Errorf("expected type time.Time, got type %T", value)
+		}
+		if !ts.Equal(tt.expectTime) {
+			t.Errorf("expected time %s, got %s", tt.expectTime, ts)
+		}
+		tsLoc := ts.Location().String()
+		expectLoc := tt.expectTime.Location().String()
+
+		if expectLoc != tsLoc {
+			t.Errorf("expected time-zone %v, got %v", expectLoc, tsLoc)
+		}
+	})
+}
+
+func TestTimeValidate(t *testing.T) {
+	tsString := "2018-11-18T17:15:16.000000017Z"
+	tsParsed, _ := time.Parse(time.RFC3339Nano, tsString)
+	tzMinus1 := time.FixedZone("UTC-1,", -60*60)
+
+	t.Run("when validating a time string", timeValidateTest{
+		validator:  schema.Time{},
+		input:      tsString,
+		expectTime: time.Date(2018, 11, 18, 17, 15, 16, 17, time.UTC),
+	}.Run)
+
+	t.Run("when validating a parsed time", timeValidateTest{
+		validator:  schema.Time{},
+		input:      tsParsed,
+		expectTime: time.Date(2018, 11, 18, 17, 15, 16, 17, time.UTC),
+	}.Run)
+	t.Run("when changing time-zone", timeValidateTest{
+		validator: schema.Time{
+			Location: tzMinus1,
+		},
+		input:      tsParsed,
+		expectTime: time.Date(2018, 11, 18, 16, 15, 16, 17, tzMinus1),
+	}.Run)
+	t.Run("when truncating string to one seconde", timeValidateTest{
+		validator: schema.Time{
+			Truncate: time.Second,
+		},
+		input:      tsParsed,
+		expectTime: time.Date(2018, 11, 18, 17, 15, 16, 0, time.UTC),
+	}.Run)
+
+	t.Run("when truncating a parsed time to 24 hours", timeValidateTest{
+		validator: schema.Time{
+			Truncate: time.Hour * 24,
+		},
+		input:      tsParsed,
+		expectTime: time.Date(2018, 11, 18, 0, 0, 0, 0, time.UTC),
+	}.Run)
+
+	t.Run("when truncating to 24 hours and changing time-zone", timeValidateTest{
+		validator: schema.Time{
+			Truncate: time.Hour * 24,
+			Location: tzMinus1,
+		},
+		input:      tsParsed,
+		expectTime: time.Date(2018, 11, 17, 23, 0, 0, 0, tzMinus1),
+	}.Run)
 }
 
 func TestTimeSpecificLayoutList(t *testing.T) {
