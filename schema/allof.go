@@ -1,6 +1,8 @@
 package schema
 
-// AllOf validates that all the sub field validators validates.
+// AllOf validates that all the sub field validators validates. Be aware that
+// the order of the validators matter, as the result of one successful
+// validation is passed as input to the next.
 type AllOf []FieldValidator
 
 // Compile implements the ReferenceCompiler interface.
@@ -15,12 +17,10 @@ func (v AllOf) Compile(rc ReferenceChecker) (err error) {
 	return
 }
 
-// ValidateQuery implements schema.FieldQueryValidator interface
+// ValidateQuery implements schema.FieldQueryValidator interface. Note the
+// result of one successful validation is passed as input to the next. The
+// result of the first error or last successful validation is returned.
 func (v AllOf) ValidateQuery(value interface{}) (interface{}, error) {
-	// This works like this:
-	// 1.	only the first validator gets passed the original value.
-	// 2. after that, each validator gets passed the value from the previous validator.
-	// 3. finally, the value returned from the last validator is returned for further use.
 	for _, validator := range v {
 		var err error
 		if validatorQuery, ok := validator.(FieldQueryValidator); ok {
@@ -35,12 +35,10 @@ func (v AllOf) ValidateQuery(value interface{}) (interface{}, error) {
 	return value, nil
 }
 
-// Validate ensures that all sub-validators validates.
+// Validate ensures that all sub-validators validates. Note the result of one
+// successful validation is passed as input to the next. The result of the first
+// error or last successful validation is returned.
 func (v AllOf) Validate(value interface{}) (interface{}, error) {
-	// This works like this:
-	// 1.	only the first validator gets passed the original value.
-	// 2. after that, each validator gets passed the value from the previous validator.
-	// 3. finally, the value returned from the last validator is returned for further use.
 	for _, validator := range v {
 		var err error
 		if value, err = validator.Validate(value); err != nil {
