@@ -149,6 +149,7 @@ As REST Layer is a simple `net/http` handler. You can use standard middleware to
 - [x] [ElasticSearch](http://github.com/rs/rest-layer-es)
 - [x] [SQL](https://github.com/apuigsech/rest-layer-sql) (third party)
 - [x] [Google Datastore](https://github.com/ajcrowe/rest-layer-datastore) (third party)
+- [x] [Kubernetes ConfigMap](https://github.com/Segence/rest-layer-kubernetes-configmap) (third party)
 - [ ] Redis
 - [ ] Google BigTable
 
