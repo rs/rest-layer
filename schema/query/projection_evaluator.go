@@ -79,18 +79,37 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 					}
 				} else if ref, ok := def.Validator.(*schema.Reference); ok {
 					// Execute sub-request in batch
+					var e Expression
+					v, isArray := val.([]interface{})
+					if isArray {
+						e = &In{Field: "id", Values: v}
+					} else {
+						e = &Equal{Field: "id", Value: val}
+					}
 					q := &Query{
 						Projection: pf.Children,
-						Predicate:  Predicate{&Equal{Field: "id", Value: val}},
+						Predicate:  Predicate{e},
 					}
 					rbr.request(ref.Path, q, func(payloads []map[string]interface{}, validator schema.Validator) error {
 						var v interface{}
-						if len(payloads) == 1 {
-							payload, err := evalProjection(ctx, pf.Children, payloads[0], validator, rbr)
-							if err != nil {
-								return fmt.Errorf("%s: error applying Projection on sub-field: %v", name, err)
+						if len(payloads) == 1 && isArray == false {
+							if payloads[0] != nil {
+								payload, err := evalProjection(ctx, pf.Children, payloads[0], validator, rbr)
+								if err != nil {
+									return fmt.Errorf("%s: error applying Projection on sub-field: %v", name, err)
+								}
+								if v, err = resolveFieldHandler(ctx, pf, def, payload); err != nil {
+									return fmt.Errorf("%s: error resolving field handler on sub-field: %v", name, err)
+								}
 							}
-							if v, err = resolveFieldHandler(ctx, pf, def, payload); err != nil {
+						} else {
+							var err error
+							for i := range payloads {
+								if payloads[i], err = evalProjection(ctx, pf.Children, payloads[i], validator, rbr); err != nil {
+									return fmt.Errorf("%s: error applying projection on sub-field item #%d: %v", pf.Name, i, err)
+								}
+							}
+							if v, err = resolveFieldHandler(ctx, pf, def, payloads); err != nil {
 								return fmt.Errorf("%s: error resolving field handler on sub-field: %v", name, err)
 							}
 						}
