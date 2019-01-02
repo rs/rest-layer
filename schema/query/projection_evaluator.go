@@ -174,7 +174,7 @@ func connectionQuery(pf ProjectionField, field string, id interface{}, validator
 		if err != nil {
 			return nil, fmt.Errorf("%s: invalid filter: %v", pf.Name, err)
 		}
-		q.Predicate = append(q.Predicate, p)
+		q.Predicate = append(q.Predicate, p...)
 	}
 	if sort, ok := pf.Params["sort"].(string); ok {
 		s, err := ParseSort(sort)
