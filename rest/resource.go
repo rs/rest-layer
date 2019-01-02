@@ -34,7 +34,11 @@ func (r restResource) MultiGet(ctx context.Context, ids []interface{}) ([]map[st
 	}
 	payloads := make([]map[string]interface{}, 0, len(items))
 	for _, i := range items {
-		payloads = append(payloads, i.Payload)
+		var p map[string]interface{}
+		if i != nil {
+			p = i.Payload
+		}
+		payloads = append(payloads, p)
 	}
 	return payloads, nil
 }
