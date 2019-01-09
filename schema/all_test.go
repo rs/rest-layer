@@ -154,8 +154,9 @@ func (tc fieldSerializerTestCase) Run(t *testing.T) {
 }
 
 type fakeReferenceChecker map[string]struct {
-	IDs       []interface{}
-	Validator schema.FieldValidator
+	IDs             []interface{}
+	Validator       schema.FieldValidator
+	SchemaValidator schema.Validator
 }
 
 func (rc fakeReferenceChecker) Compile() error {
@@ -172,10 +173,10 @@ func (rc fakeReferenceChecker) Compile() error {
 	return nil
 }
 
-func (rc fakeReferenceChecker) ReferenceChecker(path string) schema.FieldValidator {
+func (rc fakeReferenceChecker) ReferenceChecker(path string) (schema.FieldValidator, schema.Validator) {
 	rsc, ok := rc[path]
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	return schema.FieldValidatorFunc(func(value interface{}) (interface{}, error) {
 		var id interface{}
@@ -197,5 +198,5 @@ func (rc fakeReferenceChecker) ReferenceChecker(path string) schema.FieldValidat
 			}
 		}
 		return nil, errors.New("not found")
-	})
+	}), rsc.SchemaValidator
 }

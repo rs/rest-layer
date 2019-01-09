@@ -973,6 +973,29 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body}'
 ]
 ```
 
+Also `all fields` expansion is supported:
+```sh
+$ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='*,user{*}'
+[
+    {
+        "_etag": "ar6eimukj5lfl07r0uv0",
+        "id": "ar6eimukj5lfl07r0ugz",
+        "created": "2015-07-27T21:46:55.355857401+02:00",
+        "updated": "2015-07-27T21:46:55.355857989+02:00",
+        "user": {
+          "id": "ar6eimukj5lfl07gzb0b",
+          "created": "2015-07-24T21:46:55.355857401+02:00",
+          "updated": "2015-07-24T21:46:55.355857989+02:00",
+          "name": "John Snow",
+        },
+        "meta": {
+            "title": "test",
+            "body": "example"
+        }
+    }
+]
+```
+
 #### Field Aliasing
 
 It's also possible to rename fields in the response using aliasing. To create an alias, prefix the field name by the wanted alias separated by a colon (`:`):

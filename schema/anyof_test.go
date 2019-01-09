@@ -49,12 +49,12 @@ func TestAnyOfCompile(t *testing.T) {
 		{
 			Name:             "{Reference{Path:valid}}",
 			Compiler:         &schema.AnyOf{&schema.Reference{Path: "items"}},
-			ReferenceChecker: fakeReferenceChecker{"items": {IDs: []interface{}{1, 2, 3}, Validator: &schema.Integer{}}},
+			ReferenceChecker: fakeReferenceChecker{"items": {IDs: []interface{}{1, 2, 3}, Validator: &schema.Integer{}, SchemaValidator: &schema.Schema{}}},
 		},
 		{
 			Name:             "{Reference{Path:invalid}}",
 			Compiler:         &schema.AnyOf{&schema.Reference{Path: "foobar"}},
-			ReferenceChecker: fakeReferenceChecker{"items": {IDs: []interface{}{1, 2, 3}, Validator: &schema.Integer{}}},
+			ReferenceChecker: fakeReferenceChecker{"items": {IDs: []interface{}{1, 2, 3}, Validator: &schema.Integer{}, SchemaValidator: &schema.Schema{}}},
 			Error:            "can't find resource 'foobar'",
 		},
 	}
@@ -97,12 +97,14 @@ func TestAnyOfValidate(t *testing.T) {
 			},
 			ReferenceChecker: fakeReferenceChecker{
 				"foo": {
-					IDs:       []interface{}{"foo1"},
-					Validator: &schema.String{},
+					IDs:             []interface{}{"foo1"},
+					Validator:       &schema.String{},
+					SchemaValidator: &schema.Schema{},
 				},
 				"bar": {
-					IDs:       []interface{}{"bar1", "bar2", "bar3"},
-					Validator: &schema.String{},
+					IDs:             []interface{}{"bar1", "bar2", "bar3"},
+					Validator:       &schema.String{},
+					SchemaValidator: &schema.Schema{},
 				},
 			},
 			Input:  "foo1",
@@ -148,12 +150,14 @@ func TestAnyOfQueryValidate(t *testing.T) {
 			},
 			ReferenceChecker: fakeReferenceChecker{
 				"foo": {
-					IDs:       []interface{}{"foo1"},
-					Validator: &schema.String{},
+					IDs:             []interface{}{"foo1"},
+					Validator:       &schema.String{},
+					SchemaValidator: &schema.Schema{},
 				},
 				"bar": {
-					IDs:       []interface{}{"bar1", "bar2", "bar3"},
-					Validator: &schema.String{},
+					IDs:             []interface{}{"bar1", "bar2", "bar3"},
+					Validator:       &schema.String{},
+					SchemaValidator: &schema.Schema{},
 				},
 			},
 			Input:  "foo1",

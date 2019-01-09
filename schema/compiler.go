@@ -10,7 +10,7 @@ type Compiler interface {
 type ReferenceChecker interface {
 	// ReferenceChecker should return a FieldValidator that can be used for validate that a referenced ID exists and
 	// is of the right format. If there is no resource matching path, nil should e returned.
-	ReferenceChecker(path string) FieldValidator
+	ReferenceChecker(path string) (FieldValidator, Validator)
 }
 
 // ReferenceCheckerFunc is an adapter that allows ordinary functions to be used as reference checkers.

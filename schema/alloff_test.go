@@ -51,12 +51,14 @@ func TestAllOfValidator(t *testing.T) {
 			},
 			ReferenceChecker: fakeReferenceChecker{
 				"foo": {
-					IDs:       []interface{}{"foo1"},
-					Validator: &schema.String{},
+					IDs:             []interface{}{"foo1"},
+					Validator:       &schema.String{},
+					SchemaValidator: &schema.Schema{},
 				},
 				"bar": {
-					IDs:       []interface{}{"bar1", "bar2", "bar3"},
-					Validator: &schema.String{},
+					IDs:             []interface{}{"bar1", "bar2", "bar3"},
+					Validator:       &schema.String{},
+					SchemaValidator: &schema.Schema{},
 				},
 			},
 			Input: "foo1",
@@ -96,12 +98,14 @@ func TestAllOfQueryValidator(t *testing.T) {
 			},
 			ReferenceChecker: fakeReferenceChecker{
 				"foo": {
-					IDs:       []interface{}{"foo1"},
-					Validator: &schema.String{},
+					IDs:             []interface{}{"foo1"},
+					Validator:       &schema.String{},
+					SchemaValidator: &schema.Schema{},
 				},
 				"bar": {
-					IDs:       []interface{}{"bar1", "bar2", "bar3"},
-					Validator: &schema.String{},
+					IDs:             []interface{}{"bar1", "bar2", "bar3"},
+					Validator:       &schema.String{},
+					SchemaValidator: &schema.Schema{},
 				},
 			},
 			Input: "foo1",

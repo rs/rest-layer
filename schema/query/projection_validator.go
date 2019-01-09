@@ -7,8 +7,15 @@ import (
 )
 
 // Validate validates the projection field against the provided validator.
-func (pf ProjectionField) Validate(validator schema.Validator) error {
-	def := validator.GetField(pf.Name)
+func (pf ProjectionField) Validate(fg schema.FieldGetter) error {
+	if pf.Name == "*" {
+		if pf.Alias != "" {
+			return fmt.Errorf("%s: can't have an alias", pf.Name)
+		}
+		return nil
+	}
+
+	def := fg.GetField(pf.Name)
 	if def == nil {
 		return fmt.Errorf("%s: unknown field", pf.Name)
 	}
@@ -22,12 +29,23 @@ func (pf ProjectionField) Validate(validator schema.Validator) error {
 			if err := pf.Children.Validate(def.Schema); err != nil {
 				return fmt.Errorf("%s.%v", pf.Name, err)
 			}
-		} else if _, ok := def.Validator.(*schema.Reference); ok {
+		} else if ref, ok := def.Validator.(*schema.Reference); ok {
 			// Sub-field on a reference (sub-request)
+			if err := pf.Children.Validate(ref.SchemaValidator); err != nil {
+				return fmt.Errorf("%s.%v", pf.Name, err)
+			}
 		} else if _, ok := def.Validator.(*schema.Connection); ok {
 			// Sub-field on a sub resource (sub-request)
+		} else if _, ok := def.Validator.(*schema.Dict); ok {
+			// Sub-field on a dict resource
+		} else if array, ok := def.Validator.(*schema.Array); ok {
+			if fg, ok := array.Values.Validator.(schema.FieldGetter); ok {
+				if err := pf.Children.Validate(fg); err != nil {
+					return fmt.Errorf("%s.%v", pf.Name, err)
+				}
+			}
 		} else {
-			return fmt.Errorf("%s: field as no children", pf.Name)
+			return fmt.Errorf("%s: field has no children", pf.Name)
 		}
 	}
 	if len(pf.Params) > 0 {

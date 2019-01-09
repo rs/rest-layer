@@ -178,7 +178,11 @@ func (p *projectionParser) scanFieldName() string {
 	field := []byte{}
 	for p.more() {
 		c := p.peek()
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' {
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '*' {
+			// Allow * only by itself.
+			if (c == '*' && len(field) != 0) || (c != '*' && len(field) > 0 && field[0] == '*') {
+				return ""
+			}
 			field = append(field, c)
 			p.pos++
 			continue

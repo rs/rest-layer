@@ -11,6 +11,17 @@ import (
 func TestProjectionValidate(t *testing.T) {
 	s := schema.Schema{
 		Fields: schema.Fields{
+			"array": {
+				Validator: &schema.Array{
+					Values: schema.Field{
+						Validator: &schema.Object{
+							Schema: &schema.Schema{
+								Fields: schema.Fields{"child": {}},
+							},
+						},
+					},
+				},
+			},
 			"parent": {
 				Schema: &schema.Schema{
 					Fields: schema.Fields{"child": {}},
@@ -36,13 +47,16 @@ func TestProjectionValidate(t *testing.T) {
 		projection string
 		err        error
 	}{
+		{`array{child}`, nil},
+		{`array{*}`, nil},
+		{`array{foo}`, errors.New("array.foo: unknown field")},
 		{`parent{child},simple`, nil},
 		{`with_params(foo:1)`, nil},
 		{`with_params(bar:true)`, nil},
 		{`with_params(bar:false)`, nil},
 		{`with_params(foobar:"foobar")`, nil},
 		{`foo`, errors.New("foo: unknown field")},
-		{`simple{child}`, errors.New("simple: field as no children")},
+		{`simple{child}`, errors.New("simple: field has no children")},
 		{`parent{foo}`, errors.New("parent.foo: unknown field")},
 		{`simple(foo:1)`, errors.New("simple: params not allowed")},
 		{`with_params(baz:1)`, errors.New("with_params: unsupported param name: baz")},
@@ -50,6 +64,15 @@ func TestProjectionValidate(t *testing.T) {
 		{`with_params(foo:3.14)`, errors.New("with_params: invalid param `foo' value: not an integer")},
 		{`with_params(bar:1)`, errors.New("with_params: invalid param `bar' value: not a Boolean")},
 		{`with_params(foobar:true)`, errors.New("with_params: invalid param `foobar' value: not a string")},
+		{`*`, nil},
+		{`*,*`, nil},
+		{`z:*`, errors.New("*: can't have an alias")},
+		{`simple{*}`, errors.New("simple: field has no children")},
+		{`parent{*}`, nil},
+		{`parent{foo}`, errors.New("parent.foo: unknown field")},
+		{`*,parent{*}`, nil},
+		{`*,parent{z:*}`, errors.New("parent.*: can't have an alias")},
+		{`*,parent{child{*}}`, errors.New("parent.child: field has no children")},
 	}
 	for i := range cases {
 		tc := cases[i]
