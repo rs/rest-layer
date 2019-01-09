@@ -12,7 +12,7 @@ func TestReferenceValidate(t *testing.T) {
 			Name:      `{Path:valid}.Validate(valid)`,
 			Validator: &schema.Reference{Path: "foobar"},
 			ReferenceChecker: fakeReferenceChecker{
-				"foobar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}},
+				"foobar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}, SchemaValidator: &schema.Schema{}},
 			},
 			Input:  "a",
 			Expect: "a",
@@ -21,7 +21,7 @@ func TestReferenceValidate(t *testing.T) {
 			Name:      `{Path:valid}.Validate(invalid)`,
 			Validator: &schema.Reference{Path: "foobar"},
 			ReferenceChecker: fakeReferenceChecker{
-				"foobar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}},
+				"foobar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}, SchemaValidator: &schema.Schema{}},
 			},
 			Input: "c",
 			Error: "not found",

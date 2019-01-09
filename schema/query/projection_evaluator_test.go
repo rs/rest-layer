@@ -9,6 +9,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/rs/rest-layer/internal/testutil"
 	"github.com/rs/rest-layer/schema"
 )
 
@@ -53,6 +54,11 @@ func (r resource) Validator() schema.Validator {
 }
 
 func TestProjectionEval(t *testing.T) {
+	cnxShema := schema.Schema{Fields: schema.Fields{
+		"name": {},
+		"ref":  {},
+	}}
+
 	r := resource{
 		validator: schema.Schema{Fields: schema.Fields{
 			"id":     {},
@@ -60,13 +66,48 @@ func TestProjectionEval(t *testing.T) {
 			"parent": {
 				Schema: &schema.Schema{
 					Fields: schema.Fields{
-						"child": {},
+						"child":  {},
+						"child2": {},
+					},
+				},
+			},
+			"dict": {
+				Validator: &schema.Dict{
+					Values: schema.Field{
+						Validator: &schema.Reference{
+							Path: "cnx",
+						},
+					},
+				},
+			},
+			"arrayObject": {
+				Validator: &schema.Array{
+					Values: schema.Field{
+						Validator: &schema.Object{
+							Schema: &schema.Schema{
+								Fields: schema.Fields{
+									"child":  {},
+									"child2": {},
+								},
+							},
+						},
 					},
 				},
 			},
 			"reference": {
 				Validator: &schema.Reference{
-					Path: "cnx",
+					Path:            "cnx",
+					SchemaValidator: cnxShema,
+				},
+			},
+			"arrayReference": {
+				Validator: &schema.Array{
+					Values: schema.Field{
+						Validator: &schema.Reference{
+							Path:            "cnx",
+							SchemaValidator: cnxShema,
+						},
+					},
 				},
 			},
 			"connection": {
@@ -96,10 +137,7 @@ func TestProjectionEval(t *testing.T) {
 		}},
 		subResources: map[string]resource{
 			"cnx": resource{
-				validator: schema.Schema{Fields: schema.Fields{
-					"name": {},
-					"ref":  {},
-				}},
+				validator: cnxShema,
 				payloads: map[string]map[string]interface{}{
 					"1": map[string]interface{}{"id": "1", "name": "first"},
 					"2": map[string]interface{}{"id": "2", "name": "second", "ref": "a"},
@@ -181,52 +219,24 @@ func TestProjectionEval(t *testing.T) {
 		},
 		{
 			"Reference",
-			`reference{name}`,
-			`{"reference":"2"}`,
-			nil,
-			`{"reference":{"name":"second"}}`,
-		},
-		{
-			"Reference-no-expansion",
 			`reference`,
 			`{"reference":"100"}`,
 			nil,
 			`{"reference":"100"}`,
 		},
 		{
-			"Reference-non-existant",
+			"Reference/Field",
+			`reference{name}`,
+			`{"reference":"2"}`,
+			nil,
+			`{"reference":{"name":"second"}}`,
+		},
+		{
+			"Reference/Field-non-existant",
 			`reference{name}`,
 			`{"reference":"100"}`,
 			nil,
 			`{"reference":null}`,
-		},
-		{
-			"ReferenceArray-non-existant",
-			`reference{name}`,
-			`{"reference":["100"]}`,
-			nil,
-			`{"reference":[]}`,
-		},
-		{
-			"ReferenceArray-empty",
-			`reference{name}`,
-			`{"reference":[]}`,
-			nil,
-			`{"reference":[]}`,
-		},
-		{
-			"ReferenceArray-one",
-			`reference{name}`,
-			`{"reference":["2"]}`,
-			nil,
-			`{"reference":[{"name":"second"}]}`,
-		},
-		{
-			"ReferenceArray-many",
-			`reference{name}`,
-			`{"reference":["2","3"]}`,
-			nil,
-			`{"reference":[{"name":"second"},{"name":"third"}]}`,
 		},
 		{
 			"Connection#1",
@@ -241,6 +251,216 @@ func TestProjectionEval(t *testing.T) {
 			`{"id":"b","simple":"foo"}`,
 			nil,
 			`{"connection":[{"name":"third"}]}`,
+		},
+		{
+			"Star",
+			`*`,
+			`{"parent":{"child":"value"},"simple":"value","reference":"2"}`,
+			nil,
+			`{"parent":{"child":"value"},"simple":"value","reference":"2"}`,
+		},
+		{
+			"Star/Expand-one-level",
+			`*{*}`,
+			`{"parent":{"child":"value"},"reference":"2"}`,
+			nil,
+			`{"parent":{"child":"value"},"reference":{"id":"2","name":"second","ref":"a"}}`,
+		},
+		{
+			"Star/Expand-invalid",
+			`*{*}`,
+			`{"parent":{"child":"value"},"simple":"value","reference":"2"}`,
+			errors.New("simple: field has no children"),
+			``,
+		},
+		{
+			"Star/Double",
+			`*,*`,
+			`{"parent":{"child":"value"},"simple":"value","reference":"2"}`,
+			errors.New("only one * in projection allowed"),
+			``,
+		},
+		{
+			"Star/Rename",
+			`*,s:simple`,
+			`{"parent":{"child":"value"},"simple":"value","reference":"2"}`,
+			nil,
+			`{"parent":{"child":"value"},"reference":"2","s":"value","simple":"value"}`,
+		},
+		{
+			"Star/Parent",
+			`parent{*}`,
+			`{"parent":{"child":"value"},"simple":"value","reference":"2"}`,
+			nil,
+			`{"parent":{"child":"value"}}`,
+		},
+		{
+			"Reference/Expand",
+			`reference{*}`,
+			`{"parent":{"child":"value"},"simple":"value","reference":"2"}`,
+			nil,
+			`{"reference":{"id":"2","name":"second","ref":"a"}}`,
+		},
+		{
+			"Reference/Expand-double",
+			`reference{*,*}`,
+			`{"parent":{"child":"value"},"simple":"value","reference":"2"}`,
+			errors.New("reference: error applying Projection on sub-field: only one * in projection allowed"),
+			``,
+		},
+		{
+			"Reference/Expand-mixed",
+			`reference{*},*`,
+			`{"parent":{"child":"value"},"simple":"value","reference":"2"}`,
+			nil,
+			`{"parent":{"child":"value"},"reference":{"id":"2","name":"second","ref":"a"},"simple":"value"}`,
+		},
+		{
+			"Reference/Expand-rename",
+			`reference{*,n:name}`,
+			`{"parent":{"child":"value"},"simple":"value","reference":"2"}`,
+			nil,
+			`{"reference":{"id":"2","n":"second","name":"second","ref":"a"}}`,
+		},
+		{
+			"ArrayOfObject",
+			`arrayObject`,
+			`{"arrayObject":[{"child":"foo", "child2":"bar"},{"child":"foo2"}]}`,
+			nil,
+			`{"arrayObject":[{"child":"foo","child2":"bar"},{"child":"foo2"}]}`,
+		},
+		{
+			"ArrayOfObject/Expand-field",
+			`arrayObject{child}`,
+			`{"arrayObject":[{"child":"foo", "child2":"bar"},{"child":"foo2"}]}`,
+			nil,
+			`{"arrayObject":[{"child":"foo"},{"child":"foo2"}]}`,
+		},
+		{
+			"ArrayOfObject/Expand",
+			`arrayObject{*}`,
+			`{"arrayObject":[{"child":"foo","child2":"bar"},{"child":"foo2"}]}`,
+			nil,
+			`{"arrayObject":[{"child":"foo","child2":"bar"},{"child":"foo2"}]}`,
+		},
+		{
+			"ArrayOfObject/Expand-rename",
+			`arrayObject{c:child}`,
+			`{"arrayObject":[{"child":"foo","child2":"bar"},{"child":"foo2"}]}`,
+			nil,
+			`{"arrayObject":[{"c":"foo"},{"c":"foo2"}]}`,
+		},
+		{
+			"ArrayOfObject/Expand-and-rename",
+			`arrayObject{*,c:child}`,
+			`{"arrayObject":[{"child":"foo","child2":"bar"},{"child":"foo2"}]}`,
+			nil,
+			`{"arrayObject":[{"c":"foo","child":"foo","child2":"bar"},{"c":"foo2","child":"foo2"}]}`,
+		},
+		{
+			"ArrayReference/Field-non-existant",
+			`arrayReference{name}`,
+			`{"arrayReference":["100"]}`,
+			nil,
+			`{"arrayReference":[]}`,
+		},
+		{
+			"ArrayReference/Empty",
+			`arrayReference{name}`,
+			`{"arrayReference":[]}`,
+			nil,
+			`{"arrayReference":[]}`,
+		},
+		{
+			"ArrayReference/Expand",
+			`arrayReference{*}`,
+			`{"arrayReference":["2","3"]}`,
+			nil,
+			`{"arrayReference":[{"id":"2","name":"second","ref":"a"},{"id":"3","name":"third","ref":"b"}]}`,
+		},
+		{
+			"ArrayReference/Expand-non-existant",
+			`arrayReference{*}`,
+			`{"arrayReference":["100","101"]}`,
+			nil,
+			`{"arrayReference":[]}`,
+		},
+		{
+			"ArrayReference/Field",
+			`arrayReference{name}`,
+			`{"arrayReference":["2"]}`,
+			nil,
+			`{"arrayReference":[{"name":"second"}]}`,
+		},
+		{
+			"ArrayReference/Field-many",
+			`arrayReference{name}`,
+			`{"arrayReference":["2","3"]}`,
+			nil,
+			`{"arrayReference":[{"name":"second"},{"name":"third"}]}`,
+		},
+		{
+			"ArrayReference/Field-many-non-existant",
+			`arrayReference{name}`,
+			`{"arrayReference":["2","100","3"]}`,
+			nil,
+			`{"arrayReference":[{"name":"second"},{"name":"third"}]}`,
+		},
+		{
+			"Dict",
+			`dict`,
+			`{"dict":{"x":"2"}}`,
+			nil,
+			`{"dict":{"x":"2"}}`,
+		},
+		{
+			"Dict/Multiple",
+			`dict{x,y}`,
+			`{"dict":{"x":"2","y":"3"}}`,
+			nil,
+			`{"dict":{"x":"2","y":"3"}}`,
+		},
+		{
+			"Dict/Field-unknown",
+			`dict{z}`,
+			`{"dict":{"x":"2"}}`,
+			nil,
+			`{"dict":{}}`,
+		},
+		{
+			"Dict/Field-unknown-mixed",
+			`dict{x,z}`,
+			`{"dict":{"x":"2"}}`,
+			nil,
+			`{"dict":{"x":"2"}}`,
+		},
+		{
+			"Dict/Expand",
+			`dict{*}`,
+			`{"dict":{"x":"2","y":"3"}}`,
+			nil,
+			`{"dict":{"x":"2","y":"3"}}`,
+		},
+		{
+			"Dict/Expand-all",
+			`dict{*{*}}`,
+			`{"dict":{"x":"2","y":"3"}}`,
+			nil,
+			`{"dict":{"x":{"id":"2","name":"second","ref":"a"},"y":{"id":"3","name":"third","ref":"b"}}}`,
+		},
+		{
+			"Dict/Expand-reference",
+			`dict{*,y{*}}`,
+			`{"dict":{"x":"2","y":"3"}}`,
+			nil,
+			`{"dict":{"x":"2","y":{"id":"3","name":"third","ref":"b"}}}`,
+		},
+		{
+			"Dict/Expand-reference-partial",
+			`dict{*,y{name}}`,
+			`{"dict":{"x":"2","y":"3"}}`,
+			nil,
+			`{"dict":{"x":"2","y":{"name":"third"}}}`,
 		},
 	}
 
@@ -268,9 +488,7 @@ func TestProjectionEval(t *testing.T) {
 				return
 			}
 			got, _ := json.Marshal(payload)
-			if string(got) != tc.want {
-				t.Errorf("Eval:\ngot:  %v\nwant: %v", string(got), tc.want)
-			}
+			testutil.JSONEq(t, []byte(tc.want), []byte(got))
 		})
 	}
 }

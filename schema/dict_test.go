@@ -36,12 +36,12 @@ func TestDictCompile(t *testing.T) {
 		{
 			Name:             "{Values.Validator:Reference{Path:valid}}",
 			Compiler:         &schema.Dict{Values: schema.Field{Validator: &schema.Reference{Path: "foo"}}},
-			ReferenceChecker: fakeReferenceChecker{"foo": {}},
+			ReferenceChecker: fakeReferenceChecker{"foo": {SchemaValidator: &schema.Schema{}}},
 		},
 		{
 			Name:             "{Values.Validator:Reference{Path:invalid}}",
 			Compiler:         &schema.Dict{Values: schema.Field{Validator: &schema.Reference{Path: "bar"}}},
-			ReferenceChecker: fakeReferenceChecker{"foo": {}},
+			ReferenceChecker: fakeReferenceChecker{"foo": {SchemaValidator: &schema.Schema{}}},
 			Error:            "can't find resource 'bar'",
 		},
 	}

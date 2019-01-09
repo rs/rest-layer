@@ -32,14 +32,14 @@ func TestObjectCompile(t *testing.T) {
 			Compiler: &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
 				"foo": {Validator: &schema.Reference{Path: "bar"}},
 			}}},
-			ReferenceChecker: fakeReferenceChecker{"bar": {}},
+			ReferenceChecker: fakeReferenceChecker{"bar": {SchemaValidator: &schema.Schema{}}},
 		},
 		{
 			Name: `{Schema:{"foo":Reference{Path:invalid}}}`,
 			Compiler: &schema.Object{Schema: &schema.Schema{Fields: schema.Fields{
 				"foo": {Validator: &schema.Reference{Path: "foobar"}},
 			}}},
-			ReferenceChecker: fakeReferenceChecker{"bar": {}},
+			ReferenceChecker: fakeReferenceChecker{"bar": {SchemaValidator: &schema.Schema{}}},
 			Error:            "foo: can't find resource 'foobar'",
 		},
 	}
@@ -81,7 +81,7 @@ func TestObjectValidate(t *testing.T) {
 				"foo": {Validator: &schema.Reference{Path: "bar"}},
 			}}},
 			ReferenceChecker: fakeReferenceChecker{
-				"bar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}},
+				"bar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}, SchemaValidator: &schema.Schema{}},
 			},
 			Input:  map[string]interface{}{"foo": "a"},
 			Expect: map[string]interface{}{"foo": "a"},
@@ -92,7 +92,7 @@ func TestObjectValidate(t *testing.T) {
 				"foo": {Validator: &schema.Reference{Path: "bar"}},
 			}}},
 			ReferenceChecker: fakeReferenceChecker{
-				"bar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}},
+				"bar": {IDs: []interface{}{"a", "b"}, Validator: &schema.String{}, SchemaValidator: &schema.Schema{}},
 			},
 			Input: map[string]interface{}{"foo": "c"},
 			Error: "foo is [not found]",

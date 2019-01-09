@@ -50,6 +50,31 @@ func TestParseProjection(t *testing.T) {
 			}},
 		},
 		{
+			`foo{*,*,baz,baz{*,y}},*,*{*},*{y}`,
+			nil,
+			Projection{
+				{Name: "foo", Children: Projection{
+					{Name: "*"},
+					{Name: "*"},
+					{Name: "baz"},
+					{Name: "baz", Children: Projection{{Name: "*"}, {Name: "y"}}},
+				}},
+				{Name: "*"},
+				{Name: "*", Children: Projection{{Name: "*"}}},
+				{Name: "*", Children: Projection{{Name: "y"}}},
+			},
+		},
+		{
+			`z:*`,
+			nil,
+			Projection{{Name: "*", Alias: "z"}},
+		},
+		{
+			`fo*`,
+			errors.New("looking for field name at char 2"),
+			Projection{},
+		},
+		{
 			`foo{rab : bar{baz}}`,
 			nil,
 			Projection{{

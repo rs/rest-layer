@@ -33,9 +33,9 @@ type ProjectionField struct {
 }
 
 // Validate validates the projection against the provided validator.
-func (p Projection) Validate(validator schema.Validator) error {
+func (p Projection) Validate(fg schema.FieldGetter) error {
 	for _, pf := range p {
-		if err := pf.Validate(validator); err != nil {
+		if err := pf.Validate(fg); err != nil {
 			return err
 		}
 	}

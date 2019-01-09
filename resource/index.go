@@ -109,10 +109,10 @@ type refChecker struct {
 }
 
 // ReferenceChecker implements the schema.ReferenceChecker interface.
-func (rc refChecker) ReferenceChecker(path string) schema.FieldValidator {
+func (rc refChecker) ReferenceChecker(path string) (schema.FieldValidator, schema.Validator) {
 	rsc, exists := rc.index.GetResource(path, nil)
 	if !exists {
-		return nil
+		return nil, nil
 	}
 	validator := rsc.Schema().Fields["id"].Validator
 
@@ -134,7 +134,7 @@ func (rc refChecker) ReferenceChecker(path string) schema.FieldValidator {
 			return nil, err
 		}
 		return id, nil
-	})
+	}), rsc.Validator()
 }
 
 // assertNotBound asserts a given resource name is not already bound.

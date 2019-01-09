@@ -7,8 +7,9 @@ import (
 
 // Reference validates the ID of a linked resource.
 type Reference struct {
-	Path      string
-	validator FieldValidator
+	Path            string
+	validator       FieldValidator
+	SchemaValidator Validator
 }
 
 // Compile validates v.Path against rc and stores the a FieldValidator for later use by v.Validate.
@@ -17,8 +18,9 @@ func (r *Reference) Compile(rc ReferenceChecker) error {
 		return fmt.Errorf("rc can not be nil")
 	}
 
-	if v := rc.ReferenceChecker(r.Path); v != nil {
+	if v, sv := rc.ReferenceChecker(r.Path); v != nil && sv != nil {
 		r.validator = v
+		r.SchemaValidator = sv
 		return nil
 	}
 
@@ -32,4 +34,9 @@ func (r Reference) Validate(value interface{}) (interface{}, error) {
 	}
 
 	return r.validator.Validate(value)
+}
+
+// GetField implements the FieldGetter interface.
+func (r Reference) GetField(name string) *Field {
+	return r.SchemaValidator.GetField(name)
 }
