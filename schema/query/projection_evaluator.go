@@ -93,14 +93,16 @@ func evalProjectionArray(ctx context.Context, pf ProjectionField, payload []inte
 		name = pf.Alias
 	}
 
-	if ref, ok := validator.(*schema.Reference); ok {
+	switch fieldType := validator.(type) {
+	// schema.Reference has higher priority than schema.FieldGetter
+	case *schema.Reference:
 		// Execute sub-request in batch
 		e := &In{Field: "id", Values: payload}
 		q := &Query{
 			Projection: pf.Children,
 			Predicate:  Predicate{e},
 		}
-		rbr.request(ref.Path, q, func(payloads []map[string]interface{}, validator schema.Validator) error {
+		rbr.request(fieldType.Path, q, func(payloads []map[string]interface{}, validator schema.Validator) error {
 			var v interface{}
 			var err error
 			for i := range payloads {
@@ -119,28 +121,13 @@ func evalProjectionArray(ctx context.Context, pf ProjectionField, payload []inte
 			resMu.Unlock()
 			return nil
 		})
-	} else if dict, ok := validator.(*schema.Dict); ok {
-		for _, val := range payload {
-			subval, ok := val.(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("%s: invalid value: not a dict", pf.Name)
-			}
-			var err error
-			if subval, err = evalProjection(ctx, pf.Children, subval, dict, rbr); err != nil {
-				return nil, fmt.Errorf("%s.%v", pf.Name, err)
-			}
-			var v interface{}
-			if v, err = resolveFieldHandler(ctx, pf, def, subval); err != nil {
-				return nil, err
-			}
-			res = append(res, v)
-		}
-	} else if array, ok := validator.(*schema.Array); ok {
+	// schema.Array has higher priority than schema.FieldGetter
+	case *schema.Array:
 		for i, val := range payload {
 			if subval, ok := val.([]interface{}); ok {
 				var err error
 				var subvalp *[]interface{}
-				if subvalp, err = evalProjectionArray(ctx, pf, subval, &array.Values, rbr); err != nil {
+				if subvalp, err = evalProjectionArray(ctx, pf, subval, &fieldType.Values, rbr); err != nil {
 					return nil, fmt.Errorf("%s: error applying projection on array item #%d: %v", pf.Name, i, err)
 				}
 				var v interface{}
@@ -152,26 +139,24 @@ func evalProjectionArray(ctx context.Context, pf ProjectionField, payload []inte
 				return nil, fmt.Errorf("%s. is not an array", pf.Name)
 			}
 		}
-	} else {
+	case schema.FieldGetter:
 		for _, val := range payload {
 			subval, ok := val.(map[string]interface{})
 			if !ok {
-				return nil, fmt.Errorf("%s: invalid value: not a dict", pf.Name)
+				return nil, fmt.Errorf("%s: invalid value: not a dict/object", pf.Name)
 			}
-			if fg, ok := validator.(schema.FieldGetter); ok {
-				var err error
-				if subval, err = evalProjection(ctx, pf.Children, subval, fg, rbr); err != nil {
-					return nil, fmt.Errorf("%s.%v", pf.Name, err)
-				}
-				var v interface{}
-				if v, err = resolveFieldHandler(ctx, pf, def, subval); err != nil {
-					return nil, err
-				}
-				res = append(res, v)
-			} else {
-				return nil, fmt.Errorf("%s. is not an object", pf.Name)
+			var err error
+			if subval, err = evalProjection(ctx, pf.Children, subval, fieldType, rbr); err != nil {
+				return nil, fmt.Errorf("%s.%v", pf.Name, err)
 			}
+			var v interface{}
+			if v, err = resolveFieldHandler(ctx, pf, def, subval); err != nil {
+				return nil, err
+			}
+			res = append(res, v)
 		}
+	default:
+		return nil, fmt.Errorf("%s. unknown field type", pf.Name)
 	}
 
 	return resp, nil
@@ -238,18 +223,6 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 						resMu.Unlock()
 						return nil
 					})
-				} else if dict, ok := def.Validator.(*schema.Dict); ok {
-					subval, ok := val.(map[string]interface{})
-					if !ok {
-						return nil, fmt.Errorf("%s: invalid value: not a dict", pf.Name)
-					}
-					var err error
-					if subval, err = evalProjection(ctx, pf.Children, subval, dict, rbr); err != nil {
-						return nil, fmt.Errorf("%s.%v", pf.Name, err)
-					}
-					if res[name], err = resolveFieldHandler(ctx, pf, def, subval); err != nil {
-						return nil, err
-					}
 				} else if array, ok := def.Validator.(*schema.Array); ok {
 					if payload, ok := val.([]interface{}); ok {
 						var err error
@@ -262,6 +235,18 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 						}
 					} else {
 						return nil, fmt.Errorf("%s: invalid value: not an array", pf.Name)
+					}
+				} else if fg, ok := def.Validator.(schema.FieldGetter); ok {
+					subval, ok := val.(map[string]interface{})
+					if !ok {
+						return nil, fmt.Errorf("%s: invalid value: not a dict", pf.Name)
+					}
+					var err error
+					if subval, err = evalProjection(ctx, pf.Children, subval, fg, rbr); err != nil {
+						return nil, fmt.Errorf("%s.%v", pf.Name, err)
+					}
+					if res[name], err = resolveFieldHandler(ctx, pf, def, subval); err != nil {
+						return nil, err
 					}
 				} else {
 					return nil, fmt.Errorf("%s: field has no children", pf.Name)
