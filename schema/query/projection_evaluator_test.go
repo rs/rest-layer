@@ -236,7 +236,7 @@ func TestProjectionEval(t *testing.T) {
 			`reference{name}`,
 			`{"reference":"100"}`,
 			nil,
-			`{"reference":null}`,
+			`{"reference":{}}`,
 		},
 		{
 			"Connection#1",
