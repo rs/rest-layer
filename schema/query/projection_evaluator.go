@@ -214,10 +214,6 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 								return fmt.Errorf("%s: error resolving field handler on sub-field: %v", name, err)
 							}
 						}
-						// Return `null` for missing result instead of empty object
-						if m, ok := v.(map[string]interface{}); ok && len(m) == 0 {
-							v = nil
-						}
 						resMu.Lock()
 						res[name] = v
 						resMu.Unlock()
