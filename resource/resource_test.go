@@ -29,7 +29,7 @@ func TestResourceBind(t *testing.T) {
 				Validator: &schema.Connection{
 					Path:      ".bar",
 					Field:     "foo",
-					Validator: barSchema,
+					Validator: bar.validator,
 				},
 				Params: schema.Params{
 					"skip": schema.Param{

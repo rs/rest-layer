@@ -87,6 +87,8 @@ Below is an overview over recent breaking changes, starting from an arbitrary po
   - Storage drivers need to accept pointer to `Expression` implementer in `query.Predicate`.
   - `filter` parameters in sub-query will be validated for type match.
   - `filter` parameters will be validated for type match only, instead of type & constrains.
+- PR #228: `Reference` projection fields will be validated against referenced resource schema.
+- PR #230: `Connection` projection fields will be validated against connected resource schema.
 
 From the next release and onwards (0.2), this list will summarize breaking changes done to master since the last release.
 

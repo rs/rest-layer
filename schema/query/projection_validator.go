@@ -34,8 +34,11 @@ func (pf ProjectionField) Validate(fg schema.FieldGetter) error {
 			if err := pf.Children.Validate(ref.SchemaValidator); err != nil {
 				return fmt.Errorf("%s.%v", pf.Name, err)
 			}
-		} else if _, ok := def.Validator.(*schema.Connection); ok {
+		} else if conn, ok := def.Validator.(*schema.Connection); ok {
 			// Sub-field on a sub resource (sub-request)
+			if err := pf.Children.Validate(conn.Validator); err != nil {
+				return fmt.Errorf("%s.%v", pf.Name, err)
+			}
 		} else if _, ok := def.Validator.(*schema.Dict); ok {
 			// Sub-field on a dict resource
 		} else if array, ok := def.Validator.(*schema.Array); ok {

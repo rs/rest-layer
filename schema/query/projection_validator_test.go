@@ -41,6 +41,16 @@ func TestProjectionValidate(t *testing.T) {
 					},
 				},
 			},
+			"connection": {
+				Validator: &schema.Connection{
+					Path:  "cnx",
+					Field: "ref",
+					Validator: schema.Schema{Fields: schema.Fields{
+						"id":   {},
+						"name": {},
+					}},
+				},
+			},
 		},
 	}
 	cases := []struct {
@@ -73,6 +83,9 @@ func TestProjectionValidate(t *testing.T) {
 		{`*,parent{*}`, nil},
 		{`*,parent{z:*}`, errors.New("parent.*: can't have an alias")},
 		{`*,parent{child{*}}`, errors.New("parent.child: field has no children")},
+		{`connection{name}`, nil},
+		{`connection{*}`, nil},
+		{`connection{foo}`, errors.New("connection.foo: unknown field")},
 	}
 	for i := range cases {
 		tc := cases[i]
