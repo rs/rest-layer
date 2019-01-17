@@ -23,6 +23,10 @@ type Resource interface {
 
 	// Validator returns the schema.Validator associated with the resource.
 	Validator() schema.Validator
+
+	// Path returns the full path of the resource composed of names of each
+	// intermediate resources separated by dots (i.e.: res1.res2.res3).
+	Path() string
 }
 
 // Eval evaluate the projection on the given payload with the help of the
@@ -31,10 +35,10 @@ type Resource interface {
 func (p Projection) Eval(ctx context.Context, payload map[string]interface{}, rsc Resource) (map[string]interface{}, error) {
 	rbr := &referenceBatchResolver{}
 	validator := rsc.Validator()
-	payload, err := evalProjection(ctx, p, payload, validator, rbr)
+	payload, err := evalProjection(ctx, p, payload, validator, rbr, rsc)
 	if err == nil {
 		// Execute the batched reference resolutions.
-		err = rbr.execute(ctx, rsc)
+		err = rbr.execute(ctx)
 	}
 	return payload, err
 }
@@ -80,7 +84,7 @@ func prepareProjection(p Projection, payload map[string]interface{}) (Projection
 	return proj, nil
 }
 
-func evalProjectionArray(ctx context.Context, pf ProjectionField, payload []interface{}, def *schema.Field, rbr *referenceBatchResolver) (*[]interface{}, error) {
+func evalProjectionArray(ctx context.Context, pf ProjectionField, payload []interface{}, def *schema.Field, rbr *referenceBatchResolver, rsc Resource) (*[]interface{}, error) {
 	res := make([]interface{}, 0, len(payload))
 	// Return pointer to res, because it may be populated after this function ends, by referenceBatchResolver
 	// in `schema.Reference` case
@@ -102,11 +106,15 @@ func evalProjectionArray(ctx context.Context, pf ProjectionField, payload []inte
 			Projection: pf.Children,
 			Predicate:  Predicate{e},
 		}
-		rbr.request(fieldType.Path, q, func(payloads []map[string]interface{}, validator schema.Validator) error {
+		subRsc, err := rsc.SubResource(ctx, fieldType.Path)
+		if err != nil {
+			return nil, err
+		}
+		rbr.request(subRsc, q, func(payloads []map[string]interface{}, validator schema.Validator, rsc Resource) error {
 			var v interface{}
 			var err error
 			for i := range payloads {
-				if payloads[i], err = evalProjection(ctx, pf.Children, payloads[i], validator, rbr); err != nil {
+				if payloads[i], err = evalProjection(ctx, pf.Children, payloads[i], validator, rbr, rsc); err != nil {
 					return fmt.Errorf("%s: error applying projection on sub-field item #%d: %v", pf.Name, i, err)
 				}
 			}
@@ -127,7 +135,7 @@ func evalProjectionArray(ctx context.Context, pf ProjectionField, payload []inte
 			if subval, ok := val.([]interface{}); ok {
 				var err error
 				var subvalp *[]interface{}
-				if subvalp, err = evalProjectionArray(ctx, pf, subval, &fieldType.Values, rbr); err != nil {
+				if subvalp, err = evalProjectionArray(ctx, pf, subval, &fieldType.Values, rbr, rsc); err != nil {
 					return nil, fmt.Errorf("%s: error applying projection on array item #%d: %v", pf.Name, i, err)
 				}
 				var v interface{}
@@ -146,7 +154,7 @@ func evalProjectionArray(ctx context.Context, pf ProjectionField, payload []inte
 				return nil, fmt.Errorf("%s: invalid value: not a dict/object", pf.Name)
 			}
 			var err error
-			if subval, err = evalProjection(ctx, pf.Children, subval, fieldType, rbr); err != nil {
+			if subval, err = evalProjection(ctx, pf.Children, subval, fieldType, rbr, rsc); err != nil {
 				return nil, fmt.Errorf("%s.%v", pf.Name, err)
 			}
 			var v interface{}
@@ -162,7 +170,7 @@ func evalProjectionArray(ctx context.Context, pf ProjectionField, payload []inte
 	return resp, nil
 }
 
-func evalProjection(ctx context.Context, p Projection, payload map[string]interface{}, fg schema.FieldGetter, rbr *referenceBatchResolver) (map[string]interface{}, error) {
+func evalProjection(ctx context.Context, p Projection, payload map[string]interface{}, fg schema.FieldGetter, rbr *referenceBatchResolver, rsc Resource) (map[string]interface{}, error) {
 	res := map[string]interface{}{}
 	resMu := sync.Mutex{}
 	var err error
@@ -191,7 +199,7 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 						return nil, fmt.Errorf("%s: invalid value: not a dict", pf.Name)
 					}
 					var err error
-					if subval, err = evalProjection(ctx, pf.Children, subval, def.Schema, rbr); err != nil {
+					if subval, err = evalProjection(ctx, pf.Children, subval, def.Schema, rbr, rsc); err != nil {
 						return nil, fmt.Errorf("%s.%v", pf.Name, err)
 					}
 					if res[name], err = resolveFieldHandler(ctx, pf, def, subval); err != nil {
@@ -203,10 +211,14 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 						Projection: pf.Children,
 						Predicate:  Predicate{&Equal{Field: "id", Value: val}},
 					}
-					rbr.request(ref.Path, q, func(payloads []map[string]interface{}, validator schema.Validator) error {
+					subRsc, err := rsc.SubResource(ctx, ref.Path)
+					if err != nil {
+						return nil, err
+					}
+					rbr.request(subRsc, q, func(payloads []map[string]interface{}, validator schema.Validator, rsc Resource) error {
 						var v interface{}
 						if len(payloads) == 1 {
-							payload, err := evalProjection(ctx, pf.Children, payloads[0], validator, rbr)
+							payload, err := evalProjection(ctx, pf.Children, payloads[0], validator, rbr, rsc)
 							if err != nil {
 								return fmt.Errorf("%s: error applying Projection on sub-field: %v", name, err)
 							}
@@ -223,7 +235,7 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 					if payload, ok := val.([]interface{}); ok {
 						var err error
 						var subvalp *[]interface{}
-						if subvalp, err = evalProjectionArray(ctx, pf, payload, &array.Values, rbr); err != nil {
+						if subvalp, err = evalProjectionArray(ctx, pf, payload, &array.Values, rbr, rsc); err != nil {
 							return nil, fmt.Errorf("%s: error applying projection on array item #%d: %v", pf.Name, i, err)
 						}
 						if res[name], err = resolveFieldHandler(ctx, pf, &array.Values, subvalp); err != nil {
@@ -238,7 +250,7 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 						return nil, fmt.Errorf("%s: invalid value: not a dict", pf.Name)
 					}
 					var err error
-					if subval, err = evalProjection(ctx, pf.Children, subval, fg, rbr); err != nil {
+					if subval, err = evalProjection(ctx, pf.Children, subval, fg, rbr, rsc); err != nil {
 						return nil, fmt.Errorf("%s.%v", pf.Name, err)
 					}
 					if res[name], err = resolveFieldHandler(ctx, pf, def, subval); err != nil {
@@ -264,9 +276,13 @@ func evalProjection(ctx context.Context, p Projection, payload map[string]interf
 				if err != nil {
 					return nil, err
 				}
-				rbr.request(ref.Path, q, func(payloads []map[string]interface{}, validator schema.Validator) (err error) {
+				subRsc, err := rsc.SubResource(ctx, ref.Path)
+				if err != nil {
+					return nil, err
+				}
+				rbr.request(subRsc, q, func(payloads []map[string]interface{}, validator schema.Validator, rsc Resource) (err error) {
 					for i := range payloads {
-						if payloads[i], err = evalProjection(ctx, pf.Children, payloads[i], validator, rbr); err != nil {
+						if payloads[i], err = evalProjection(ctx, pf.Children, payloads[i], validator, rbr, rsc); err != nil {
 							return fmt.Errorf("%s: error applying projection on sub-resource item #%d: %v", pf.Name, i, err)
 						}
 					}

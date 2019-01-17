@@ -17,6 +17,7 @@ type resource struct {
 	validator    schema.Validator
 	subResources map[string]resource
 	payloads     map[string]map[string]interface{}
+	path         string
 }
 
 func (r resource) Find(ctx context.Context, query *Query) ([]map[string]interface{}, error) {
@@ -52,11 +53,28 @@ func (r resource) SubResource(ctx context.Context, path string) (Resource, error
 func (r resource) Validator() schema.Validator {
 	return r.validator
 }
+func (r resource) Path() string {
+	return r.path
+}
 
 func TestProjectionEval(t *testing.T) {
 	cnxShema := schema.Schema{Fields: schema.Fields{
+		"id":   {},
 		"name": {},
 		"ref":  {},
+	}}
+
+	cnxShema2 := schema.Schema{Fields: schema.Fields{
+		"id":   {},
+		"name": {},
+		"ref":  {},
+		"subconn": {
+			Validator: &schema.Connection{
+				Path:      "cnx3",
+				Field:     "ref",
+				Validator: cnxShema,
+			},
+		},
 	}}
 
 	r := resource{
@@ -75,7 +93,8 @@ func TestProjectionEval(t *testing.T) {
 				Validator: &schema.Dict{
 					Values: schema.Field{
 						Validator: &schema.Reference{
-							Path: "cnx",
+							Path:            "cnx",
+							SchemaValidator: cnxShema,
 						},
 					},
 				},
@@ -112,8 +131,16 @@ func TestProjectionEval(t *testing.T) {
 			},
 			"connection": {
 				Validator: &schema.Connection{
-					Path:  "cnx",
-					Field: "ref",
+					Path:      "cnx",
+					Field:     "ref",
+					Validator: cnxShema,
+				},
+			},
+			"connection2": {
+				Validator: &schema.Connection{
+					Path:      "cnx2",
+					Field:     "ref",
+					Validator: cnxShema2,
 				},
 			},
 			"with_params": {
@@ -143,6 +170,37 @@ func TestProjectionEval(t *testing.T) {
 					"2": map[string]interface{}{"id": "2", "name": "second", "ref": "a"},
 					"3": map[string]interface{}{"id": "3", "name": "third", "ref": "b"},
 					"4": map[string]interface{}{"id": "4", "name": "forth", "ref": "a"},
+				},
+			},
+			"cnx2": resource{
+				validator: schema.Schema{Fields: schema.Fields{
+					"id":   {},
+					"name": {},
+					"ref":  {},
+					"subconn": {
+						Validator: &schema.Connection{
+							Path:      "cnx3",
+							Field:     "ref",
+							Validator: cnxShema,
+						},
+					},
+				}},
+				subResources: map[string]resource{
+					"cnx3": resource{
+						validator: cnxShema,
+						payloads: map[string]map[string]interface{}{
+							"6": map[string]interface{}{"id": "6", "name": "first"},
+							"7": map[string]interface{}{"id": "7", "name": "second", "ref": "a"},
+							"8": map[string]interface{}{"id": "8", "name": "third", "ref": "b"},
+							"9": map[string]interface{}{"id": "9", "name": "forth", "ref": "c"},
+						},
+					},
+				},
+				payloads: map[string]map[string]interface{}{
+					"a": map[string]interface{}{"id": "a", "name": "first"},
+					"b": map[string]interface{}{"id": "b", "name": "second", "ref": "2"},
+					"c": map[string]interface{}{"id": "c", "name": "third", "ref": "3"},
+					"d": map[string]interface{}{"id": "d", "name": "forth", "ref": "4"},
 				},
 			},
 		},
@@ -251,6 +309,20 @@ func TestProjectionEval(t *testing.T) {
 			`{"id":"b","simple":"foo"}`,
 			nil,
 			`{"connection":[{"name":"third"}]}`,
+		},
+		{
+			"Connection#3",
+			`connection2{name,subconn{name}}`,
+			`{"id":"1","simple":"foo"}`,
+			nil,
+			`{"connection2":[]}`,
+		},
+		{
+			"Connection#4",
+			`connection2{name,subconn{name}}`,
+			`{"id":"2","simple":"foo"}`,
+			nil,
+			`{"connection2":[{"name":"second","subconn":[{"name":"third"}]}]}`,
 		},
 		{
 			"Star",

@@ -145,7 +145,7 @@ func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *
 		Validator: &schema.Connection{
 			Path:      "." + name,
 			Field:     field,
-			Validator: s,
+			Validator: sr.validator,
 		},
 		Params: schema.Params{
 			"skip": schema.Param{
