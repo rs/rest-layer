@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/schema"
 	"github.com/rs/rest-layer/schema/query"
 )
 
@@ -152,10 +153,28 @@ func (p ResourcePath) Path() string {
 
 // Values returns all the key=value pairs defined by the resource path.
 func (p ResourcePath) Values() map[string]interface{} {
+	path := p.Path()
+	d := strings.LastIndexAny(path, ".")
+	if d > 0 {
+		path = path[0:d]
+	} else {
+		path = ""
+	}
+	targetResource := p[len(p)-1].Resource
+	targetFields := targetResource.Schema().Fields
+
 	v := map[string]interface{}{}
 	for _, rp := range p {
+		include := false
 		if _, found := v[rp.Field]; !found && rp.Value != nil {
-			v[rp.Field] = rp.Value
+			if def, ok := targetFields[rp.Field]; ok {
+				if ref, ok := def.Validator.(*schema.Reference); ok && ref.Path == path {
+					include = true
+				}
+			}
+			if include == true || rp.Field == "id" {
+				v[rp.Field] = rp.Value
+			}
 		}
 	}
 	return v
