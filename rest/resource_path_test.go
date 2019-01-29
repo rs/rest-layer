@@ -10,19 +10,81 @@ import (
 )
 
 func TestResourcePathValues(t *testing.T) {
+	index := resource.NewIndex()
+	users := index.Bind("users", schema.Schema{
+		Fields: schema.Fields{
+			"id": {
+				Validator: &schema.String{},
+			},
+		},
+	}, mem.NewHandler(), resource.DefaultConf)
+	posts := users.Bind("posts", "user", schema.Schema{
+		Fields: schema.Fields{
+			"id": {
+				Validator: &schema.Integer{},
+			},
+			"user": {
+				Validator: &schema.Reference{Path: "users"},
+			},
+		},
+	}, mem.NewHandler(), resource.DefaultConf)
 	p := ResourcePath{
 		&ResourcePathComponent{
-			Name:  "users",
-			Field: "user",
-			Value: "john",
+			Name:     "users",
+			Field:    "user",
+			Value:    "john",
+			Resource: users,
 		},
 		&ResourcePathComponent{
-			Name:  "posts",
-			Field: "id",
-			Value: "123",
+			Name:     "posts",
+			Field:    "id",
+			Value:    "123",
+			Resource: posts,
 		},
 	}
 	assert.Equal(t, map[string]interface{}{"id": "123", "user": "john"}, p.Values())
+}
+
+func TestResourcePathInvalidValues(t *testing.T) {
+	index := resource.NewIndex()
+	users := index.Bind("users", schema.Schema{
+		Fields: schema.Fields{
+			"id": {
+				Validator: &schema.String{},
+			},
+		},
+	}, mem.NewHandler(), resource.DefaultConf)
+	posts := users.Bind("posts", "user", schema.Schema{
+		Fields: schema.Fields{
+			"id": {
+				Validator: &schema.Integer{},
+			},
+			"user": {
+				Validator: &schema.Reference{Path: "users"},
+			},
+		},
+	}, mem.NewHandler(), resource.DefaultConf)
+	p := ResourcePath{
+		&ResourcePathComponent{
+			Name:     "users",
+			Field:    "user",
+			Value:    "john",
+			Resource: users,
+		},
+		&ResourcePathComponent{
+			Name:     "posts",
+			Field:    "id",
+			Value:    "123",
+			Resource: posts,
+		},
+		&ResourcePathComponent{
+			Name:     "users1",
+			Field:    "user1",
+			Value:    "john1",
+			Resource: posts,
+		},
+	}
+	assert.Equal(t, map[string]interface{}{"id": "123"}, p.Values())
 }
 
 func TestResourcePathAppend(t *testing.T) {
