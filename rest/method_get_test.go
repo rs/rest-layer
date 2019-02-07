@@ -286,3 +286,60 @@ func TestGetListFieldHandler(t *testing.T) {
 		t.Run(n, tc.Test)
 	}
 }
+
+func TestGetListFilter(t *testing.T) {
+	sharedInit := func() *requestTestVars {
+		s := mem.NewHandler()
+		s.Insert(context.TODO(), []*resource.Item{
+			{ID: "1", Payload: map[string]interface{}{"id": 1, "foo": "bar"}},
+			{ID: "2", Payload: map[string]interface{}{"id": 2, "foo": nil}},
+			{ID: "3", Payload: map[string]interface{}{"id": 3, "foo2": "bar2"}},
+		})
+
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"foo": {
+					Filterable: true,
+					Validator:  &schema.AnyOf{&schema.Null{}, &schema.String{}},
+				},
+			},
+		}, s, resource.DefaultConf)
+
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s},
+		}
+	}
+
+	tests := map[string]requestTest{
+		`filter:string`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:""}`, nil)
+			},
+			ResponseCode: 200,
+			ResponseBody: `[]`,
+		},
+		`filter:string2`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:"bar"}`, nil)
+			},
+			ResponseCode: 200,
+			ResponseBody: `[{"foo":"bar","id":1}]`,
+		},
+		`filter:null`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:null}`, nil)
+			},
+			ResponseCode: 200,
+			ResponseBody: `[{"foo":null,"id":2},{"foo2":"bar2","id":3}]`,
+		},
+	}
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
+	}
+}
