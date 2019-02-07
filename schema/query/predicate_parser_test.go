@@ -43,6 +43,11 @@ func TestParse(t *testing.T) {
 			nil,
 		},
 		{
+			`{"foo": null}`,
+			Predicate{&Equal{Field: "foo", Value: nil}},
+			nil,
+		},
+		{
 			`{"foo": "bar \n\" ❤️"}`,
 			Predicate{&Equal{Field: "foo", Value: "bar \n\" ❤️"}},
 			nil,
@@ -213,6 +218,11 @@ func TestParse(t *testing.T) {
 			`{"foo": "`,
 			Predicate{},
 			errors.New("char 8: foo: not a string: unexpected EOF"),
+		},
+		{
+			`{"foo": nul`,
+			Predicate{},
+			errors.New("char 8: foo: not null"),
 		},
 		{
 			`{"foo": {"$ne": {"bar", "baz"}}}`,

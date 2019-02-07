@@ -305,6 +305,8 @@ func (p *predicateParser) parseValue() (Value, error) {
 		return p.parseValues()
 	case 't', 'f':
 		return p.parseBool()
+	case 'n':
+		return p.parseNull()
 	default:
 		if (c >= '0' && c <= '9') || c == '-' {
 			// Parse a number
@@ -392,6 +394,16 @@ func (p *predicateParser) parseBool() (bool, error) {
 		}
 	}
 	return false, errors.New("not a boolean")
+}
+
+// parseNull parses a JSON Null value.
+func (p *predicateParser) parseNull() (Value, error) {
+	c := p.peek()
+	if c == 'n' && p.pos+4 <= len(p.query) && p.query[p.pos:p.pos+4] == "null" {
+		p.pos += 4
+		return nil, nil
+	}
+	return nil, errors.New("not null")
 }
 
 // parseNumber parses a number as float.
