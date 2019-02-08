@@ -121,10 +121,17 @@ func (s Schema) Prepare(ctx context.Context, payload map[string]interface{}, ori
 			// Handle prepare on an updated document (original provided).
 			oValue, oFound := (*original)[field]
 			// Apply value to change-set only if the field was not identical same in the original doc.
-			if found && (!oFound || !reflect.DeepEqual(value, oValue)) {
-				changes[field] = value
-			}
-			if !found && oFound && replace {
+			if found {
+				if def.Validator != nil {
+					if validated, err := def.Validator.Validate(value); err != nil {
+						changes[field] = value
+					} else if !oFound || !reflect.DeepEqual(validated, oValue) {
+						changes[field] = validated
+					}
+				} else if !oFound || !reflect.DeepEqual(value, oValue) {
+					changes[field] = value
+				}
+			} else if oFound && replace {
 				// When replace arg is true and a field is not present in the payload but is in the original,
 				// the tombstone value is set on the field in the change map so validator can enforce the
 				// ReadOnly and then the field can be removed from the output document.

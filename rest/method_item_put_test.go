@@ -582,3 +582,84 @@ func TestPutItemRequiredDefault(t *testing.T) {
 		t.Run(n, tc.Test)
 	}
 }
+
+func TestPutItemReadOnly(t *testing.T) {
+	now := time.Now()
+	yesterday := now.Add(-24 * time.Hour)
+
+	timeOldStr := "2018-01-03T00:00:00+02:00"
+	timeOld, _ := time.Parse(time.RFC3339, timeOldStr)
+
+	sharedInit := func() *requestTestVars {
+		s1 := mem.NewHandler()
+		s1.Insert(context.Background(), []*resource.Item{
+			{ID: "1", ETag: "a", Updated: yesterday, Payload: map[string]interface{}{"id": "1", "foo": "odd"}},
+			{ID: "2", ETag: "b", Updated: yesterday, Payload: map[string]interface{}{"id": "2", "foo": "odd", "zar": "old"}},
+			// Storer will persist `schema.Time{}` as `time.Time` type.
+			{ID: "3", ETag: "c", Updated: yesterday, Payload: map[string]interface{}{"id": "3", "foo": "odd", "tar": timeOld}},
+		})
+
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"id":  {Sortable: true, Filterable: true},
+				"foo": {Filterable: true},
+				"zar": {ReadOnly: true},
+				"tar": {ReadOnly: true, Validator: &schema.Time{}},
+			},
+		}, s1, resource.DefaultConf)
+
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s1},
+		}
+	}
+
+	tests := map[string]requestTest{
+		`put:read-only:string:new`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz", "zar":"old"}`))
+				return http.NewRequest("PUT", `/foo/1`, body)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{"code":422,"issues":{"zar":["read-only"]},"message":"Document contains error(s)"}`,
+			ExtraTest:    checkPayload("foo", "1", map[string]interface{}{"id": "1", "foo": "odd"}),
+		},
+		`put:read-only:string:old`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "baz", "zar":"old"}`))
+				return http.NewRequest("PUT", `/foo/2`, body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"foo":"baz","id":"2","zar":"old"}`,
+			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "zar": "old"}),
+		},
+		`put:read-only:time:old`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "odd", "tar":"2018-01-03T00:00:00+02:00"}`))
+				return http.NewRequest("PUT", `/foo/3`, body)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `{"foo":"odd","id":"3","tar":"2018-01-03T00:00:00+02:00"}`,
+			ExtraTest:    checkPayload("foo", "3", map[string]interface{}{"id": "3", "foo": "odd", "tar": timeOld}),
+		},
+		`put:read-only:time:new`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				body := bytes.NewReader([]byte(`{"foo": "odd", "tar":"2018-01-03T11:11:11+02:00"}`))
+				return http.NewRequest("PUT", `/foo/3`, body)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{"code":422,"issues":{"tar":["read-only"]},"message":"Document contains error(s)"}`,
+			ExtraTest:    checkPayload("foo", "3", map[string]interface{}{"id": "3", "foo": "odd", "tar": timeOld}),
+		},
+	}
+
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
+	}
+}
