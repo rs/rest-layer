@@ -124,6 +124,9 @@ func (s Schema) Prepare(ctx context.Context, payload map[string]interface{}, ori
 			if found {
 				if def.Validator != nil {
 					if validated, err := def.Validator.Validate(value); err != nil {
+						// We treat a validation error as a change; the validation
+						// error indicate invalid payload and will be caught
+						// again by schema.Validate().
 						changes[field] = value
 					} else if !oFound || !reflect.DeepEqual(validated, oValue) {
 						changes[field] = validated
