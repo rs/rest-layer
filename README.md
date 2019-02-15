@@ -919,20 +919,46 @@ The same example with flags:
 However, keep in mind that Storers have to support regular expression and depending on the implementation of the storage handler the accepted syntax may vary.
 An error of `ErrNotImplemented` will be returned for those storage backends which do not support the `$regex` operator.
 
+The `$elemMatch` operator matches documents that contain an array field with at least one element that matches all the specified query criteria.
+```go
+			"telephones": schema.Field{
+				Filterable: true,
+				Validator: &schema.Array{
+					Values: schema.Field{
+						Validator:  &schema.Object{Schema: &Telephone},
+					},
+				},
+			},
+```
+
+Matching documents that contain specific values within array objects can be done with `$elemMatch`:
+```js
+{telephones: {$elemMatch: {name: "John Snow", active: true}}}
+```
+The snippet above will return all documents, which `telephones` array field contains objects that have `name` **_AND_** `active` fields matching queried values.
+> Note that documents returned may contain other objects in `telephones` that don't match the query above, but at least one object will do. Further filtering could be needed on the API client side.
+
+#### *$elemMatch* Limitation
+`$elemMatch` will work only for arrays of objects for now. Later it could be extended to work on plain arrays e.g:
+```js
+{numbers: {$elemMatch: {$gt: 20}}}
+```
+
 #### Filter operators
 
-| Operator  | Usage                           | Description
-| --------- | ------------------------------- | ------------
-| `$or`     | `{$or: [{a: "b"}, {a: "c"}]}`   | Join two clauses with a logical `OR` conjunction.
-| `$and`    | `{$and: [{a: "b"}, {b: "c"}]}`  | Join two clauses with a logical `AND` conjunction.
-| `$in`     | `{a: {$in: ["b", "c"]}}`        | Match a field against several values.
-| `$nin`    | `{a: {$nin: ["b", "c"]}}`       | Opposite of `$in`.
-| `$lt`     | `{a: {$lt: 10}}`                | Fields value is lower than specified number.
-| `$lte`    | `{a: {$lte: 10}}`               | Fields value is lower than or equal to the specified number.
-| `$gt`     | `{a: {$gt: 10}}`                | Fields value is greater than specified number.
-| `$gte`    | `{a: {$gte: 10}}`               | Fields value is greater than or equal to the specified number.
-| `$exists` | `{a: {$exists: true}}`          | Match if the field is present (or not if set to `false`) in the item, event if `nil`.
-| `$regex`  | `{a: {$regex: "fo[o]{1}"}}`     | Match regular expression on a field's value.
+| Operator     | Usage                           | Description
+| -------------| --------------------------------| ------------
+| `$or`        | `{$or: [{a: "b"}, {a: "c"}]}`   | Join two clauses with a logical `OR` conjunction.
+| `$and`       | `{$and: [{a: "b"}, {b: "c"}]}`  | Join two clauses with a logical `AND` conjunction.
+| `$in`        | `{a: {$in: ["b", "c"]}}`        | Match a field against several values.
+| `$nin`       | `{a: {$nin: ["b", "c"]}}`       | Opposite of `$in`.
+| `$lt`        | `{a: {$lt: 10}}`                | Fields value is lower than specified number.
+| `$lte`       | `{a: {$lte: 10}}`               | Fields value is lower than or equal to the specified number.
+| `$gt`        | `{a: {$gt: 10}}`                | Fields value is greater than specified number.
+| `$gte`       | `{a: {$gte: 10}}`               | Fields value is greater than or equal to the specified number.
+| `$exists`    | `{a: {$exists: true}}`          | Match if the field is present (or not if set to `false`) in the item, event if `nil`.
+| `$regex`     | `{a: {$regex: "fo[o]{1}"}}`     | Match regular expression on a field's value.
+| `$elemMatch` | `{a: {$elemMatch: {b: "foo"}}}` | Match array items against multiple query criteria.
 
 *Some storage handlers may not support all operators. Refer to the storage handler's documentation for more info.*
 

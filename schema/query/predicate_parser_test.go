@@ -134,6 +134,11 @@ func TestParse(t *testing.T) {
 			nil,
 		},
 		{
+			`{"foo": {"$elemMatch": {"bar": "one", "baz": "two"}}}`,
+			Predicate{&ElemMatch{Field: "foo", Exps: []Expression{&Equal{Field: "bar", Value: "one"}, &Equal{Field: "baz", Value: "two"}}}},
+			nil,
+		},
+		{
 			`{`,
 			Predicate{},
 			errors.New("char 1: expected a label got '\\x00'"),
@@ -320,6 +325,21 @@ func TestParse(t *testing.T) {
 			Predicate{},
 			errors.New("char 28: foo: $regex: invalid regex: error parsing regexp: invalid or unsupported Perl syntax: `(?=`"),
 		},
+		{
+			`{"foo": {"$elemMatch": "two"}}`,
+			Predicate{},
+			errors.New("char 23: foo: $elemMatch: expected '{' got '\"'"),
+		},
+		{
+			`{"foo": {"$elemMatch": [{"bar": "one", "baz": "two"}]}}`,
+			Predicate{},
+			errors.New("char 23: foo: $elemMatch: expected '{' got '['"),
+		},
+		{
+			`{"foo": {"$elemMatch": null}}`,
+			Predicate{},
+			errors.New("char 23: foo: $elemMatch: expected '{' got 'n'"),
+		},
 		// Hierarchy issues
 		{
 			`{"$ne": "bar"}`,
@@ -345,6 +365,11 @@ func TestParse(t *testing.T) {
 			`{"$regex": "someregexpression"}`,
 			Predicate{},
 			errors.New("char 1: $regex: invalid placement"),
+		},
+		{
+			`{"$elemMatch": "someregexpression"}`,
+			Predicate{},
+			errors.New("char 1: $elemMatch: invalid placement"),
 		},
 	}
 	for i := range tests {

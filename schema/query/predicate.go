@@ -1,6 +1,7 @@
 package query
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -20,6 +21,7 @@ const (
 	opGreaterThan    = "$gt"
 	opGreaterOrEqual = "$gte"
 	opRegex          = "$regex"
+	opElemMatch      = "$elemMatch"
 )
 
 // Predicate defines an expression against a schema to perform a match on schema's data.
@@ -492,4 +494,61 @@ func (e *Regex) Prepare(validator schema.Validator) error {
 // String implements Expression interface.
 func (e Regex) String() string {
 	return quoteField(e.Field) + ": {" + opRegex + ": " + valueString(e.Value) + "}"
+}
+
+// ElemMatch matches object values specified in an array.
+type ElemMatch struct {
+	Field string
+	Exps  []Expression
+}
+
+// Match implements Expression interface.
+func (e ElemMatch) Match(payload map[string]interface{}) bool {
+	value := getField(payload, e.Field)
+
+	arr, ok := value.([]interface{})
+	if !ok {
+		return false
+	}
+
+	p := Predicate(e.Exps)
+	for _, val := range arr {
+		if v, ok := val.(map[string]interface{}); ok {
+			if p.Match(v) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// Prepare implements Expression interface.
+func (e *ElemMatch) Prepare(validator schema.Validator) error {
+	f, err := getValidatorField(e.Field, validator)
+	if err != nil {
+		return err
+	}
+
+	arr, ok := f.Validator.(*schema.Array)
+	if !ok {
+		return fmt.Errorf("%s: is not an array", e.Field)
+	}
+
+	// FIXME: Should allow any type.
+	obj, ok := arr.Values.Validator.(*schema.Object)
+	if !ok {
+		return fmt.Errorf("%s: array elements are not schema.Object", e.Field)
+	}
+
+	return prepareExpressions(e.Exps, obj.Schema)
+}
+
+// String implements Expression interface.
+func (e ElemMatch) String() string {
+	s := make([]string, 0, len(e.Exps))
+	for _, v := range e.Exps {
+		s = append(s, v.String())
+	}
+	return quoteField(e.Field) + ": {" + opElemMatch + ": {" + strings.Join(s, ", ") + "}}"
 }

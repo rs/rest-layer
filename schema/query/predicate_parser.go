@@ -106,7 +106,7 @@ func (p *predicateParser) parseExpression() (Expression, error) {
 		}
 		or := Or(subExp)
 		return &or, nil
-	case opExists, opIn, opNotIn, opNotEqual, opRegex,
+	case opExists, opIn, opNotIn, opNotEqual, opRegex, opElemMatch,
 		opLowerThan, opLowerOrEqual, opGreaterThan, opGreaterOrEqual:
 		p.pos = oldPos
 		return nil, fmt.Errorf("%s: invalid placement", label)
@@ -248,6 +248,16 @@ func (p *predicateParser) parseCommand(field string) (Expression, error) {
 				return nil, fmt.Errorf("%s: expected '}' got %q", label, p.peek())
 			}
 			return &Regex{Field: field, Value: re}, nil
+		case opElemMatch:
+			exps, err := p.parseExpressions()
+			if err != nil {
+				return nil, fmt.Errorf("%s: %v", label, err)
+			}
+			p.eatWhitespaces()
+			if !p.expect('}') {
+				return nil, fmt.Errorf("%s: expected '}' got %q", label, p.peek())
+			}
+			return &ElemMatch{Field: field, Exps: exps}, nil
 		}
 	}
 VALUE:
