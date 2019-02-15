@@ -343,3 +343,255 @@ func TestGetListFilter(t *testing.T) {
 		t.Run(n, tc.Test)
 	}
 }
+
+func TestGetListArray(t *testing.T) {
+	sharedInit := func() *requestTestVars {
+		s := mem.NewHandler()
+		s.Insert(context.TODO(), []*resource.Item{
+			{ID: "1", Payload: map[string]interface{}{"id": 1,
+				"foo": []interface{}{
+					map[string]interface{}{
+						"a": "bar",
+						"b": 10,
+					},
+					map[string]interface{}{
+						"a": "bar1",
+						"b": 101,
+					},
+				}},
+			},
+			{ID: "2", Payload: map[string]interface{}{"id": 2,
+				"foo": []interface{}{
+					map[string]interface{}{
+						"a": "bar",
+						"b": 20,
+					},
+				}},
+			},
+			{ID: "3", Payload: map[string]interface{}{"id": 3,
+				"foo": []interface{}{
+					map[string]interface{}{
+						"a": "baz",
+						"b": 30,
+						"c": "true",
+					},
+				}},
+			},
+		})
+
+		arrayObj := &schema.Object{
+			Schema: &schema.Schema{
+				Fields: schema.Fields{
+					"a": {
+						Filterable: true,
+						Validator:  &schema.String{},
+					},
+					"b": {
+						Filterable: true,
+						Validator:  &schema.Integer{},
+					},
+					"c": {
+						Filterable: true,
+						Validator:  &schema.String{},
+					},
+				},
+			},
+		}
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"foo": {
+					Filterable: true,
+					Validator: &schema.Array{
+						Values: schema.Field{
+							Validator: arrayObj,
+						},
+					},
+				},
+			},
+		}, s, resource.DefaultConf)
+
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s},
+		}
+	}
+
+	// NOTE: Having an array of objects, only one object needs to match the predicate
+	// for the whole record to be returned, including all other objects in that array,
+	// that may not match predicate given.
+	tests := map[string]requestTest{
+		`filter/array:foo.a:not-found`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{a:"mar"}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[]`,
+		},
+		`filter/array:foo.a`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{a:"bar"}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":1,"foo":[
+					{"a":"bar","b":10},
+					{"a":"bar1","b":101}
+				]},
+				{"id":2,"foo":[{"a":"bar","b":20}]}
+			]`,
+		},
+		`filter/array:foo.a+foo.b`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{a:"bar",b:10}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":1,"foo":[
+					{"a":"bar","b":10},
+					{"a":"bar1","b":101}
+				]}
+			]`,
+		},
+		`filter/array:foo.b`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{b:10}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":1,"foo":[
+					{"a":"bar","b":10},
+					{"a":"bar1","b":101}
+				]}
+			]`,
+		},
+		`filter/array:foo.a:regex`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{a:{$regex:"az$"}}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":3,"foo":[{"a":"baz","b":30,"c":"true"}]}
+			]`,
+		},
+		`filter/array:foo.b:gt`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{b:{$gt:20}}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":1,"foo":[
+					{"a":"bar","b":10},
+					{"a":"bar1","b":101}
+				]},
+				{"id":3,"foo":[{"a":"baz","b":30,"c":"true"}]}
+			]`,
+		},
+		`filter/array:foo.b:gte`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{b:{$gte:20}}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":1,"foo":[
+					{"a":"bar","b":10},
+					{"a":"bar1","b":101}
+				]},
+				{"id":2,"foo":[{"a":"bar","b":20}]},
+				{"id":3,"foo":[{"a":"baz","b":30,"c":"true"}]}
+			]`,
+		},
+		`filter/array:foo.b:lt`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{b:{$lt:20}}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":1,"foo":[
+					{"a":"bar","b":10},
+					{"a":"bar1","b":101}
+				]}
+			]`,
+		},
+		`filter/array:foo.b:lte`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{b:{$lte:20}}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":1,"foo":[
+					{"a":"bar","b":10},
+					{"a":"bar1","b":101}
+				]},
+				{"id":2,"foo":[{"a":"bar","b":20}]}
+			]`,
+		},
+		`filter/array:foo.b:$in`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{b:{$in:[10,20]}}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":1,"foo":[
+					{"a":"bar","b":10},
+					{"a":"bar1","b":101}
+				]},
+				{"id":2,"foo":[{"a":"bar","b":20}]}
+			]`,
+		},
+		`filter/array:foo.b:$exists-true`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{c:{$exists:true}}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":3,"foo":[{"a":"baz","b":30,"c":"true"}]}
+			]`,
+		},
+		`filter/array:foo.b:$exists-false`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:{c:{$exists:false}}}}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[
+				{"id":1,"foo":[
+					{"a":"bar","b":10},
+					{"a":"bar1","b":101}
+				]},
+				{"id":2,"foo":[{"a":"bar","b":20}]}
+			]`,
+		},
+		`filter/array:foo:not-an-array`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:"mar"}`, nil)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{"code":422,"issues":{"filter":["foo: invalid query expression: not an array"]},"message":"URL parameters contain error(s)"}`,
+		},
+		`filter/array:foo:invalid-elemMatch`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{$elemMatch:"mar"}}`, nil)
+			},
+			ResponseCode: http.StatusUnprocessableEntity,
+			ResponseBody: `{"code":422,"issues":{"filter":["char 17: foo: $elemMatch: expected '{' got '\"'"]},"message":"URL parameters contain error(s)"}`,
+		},
+	}
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
+	}
+}
