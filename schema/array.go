@@ -50,13 +50,18 @@ func (v Array) validateValues(values []interface{}, query bool) ([]interface{}, 
 
 // ValidateQuery implements FieldQueryValidator.
 func (v Array) ValidateQuery(value interface{}) (interface{}, error) {
-	values, ok := value.([]interface{})
-	if !ok {
-		return nil, errors.New("not an array")
+	values, isArray := value.([]interface{})
+	if !isArray {
+		values = append(values, value)
 	}
+
 	arr, err := v.validateValues(values, true)
 	if err != nil {
 		return nil, err
+	}
+
+	if !isArray {
+		return arr[0], nil
 	}
 	return arr, nil
 }

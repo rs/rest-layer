@@ -119,7 +119,7 @@ func TestArrayQueryValidator(t *testing.T) {
 			Name:      `Values.Validator=&String{},ValidateQuery("value")`,
 			Validator: &schema.Array{Values: schema.Field{Validator: &schema.String{}}},
 			Input:     "value",
-			Error:     "not an array",
+			Expect:    "value",
 		},
 		{
 			Name:      `MinLen=2,ValidateQuery([]interface{}{true,false})`,
