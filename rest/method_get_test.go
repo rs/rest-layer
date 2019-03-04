@@ -349,6 +349,73 @@ func TestGetListArray(t *testing.T) {
 		s := mem.NewHandler()
 		s.Insert(context.TODO(), []*resource.Item{
 			{ID: "1", Payload: map[string]interface{}{"id": 1,
+				"foo": []interface{}{"bar", "baz"}},
+			},
+			{ID: "2", Payload: map[string]interface{}{"id": 2,
+				"foo": []interface{}{"bar"}},
+			},
+			{ID: "3", Payload: map[string]interface{}{"id": 3,
+				"foo": []interface{}{"baz"}},
+			},
+		})
+
+		idx := resource.NewIndex()
+		idx.Bind("foo", schema.Schema{
+			Fields: schema.Fields{
+				"foo": {
+					Filterable: true,
+					Validator: &schema.Array{
+						Values: schema.Field{
+							Validator: &schema.String{},
+						},
+					},
+				},
+			},
+		}, s, resource.DefaultConf)
+
+		return &requestTestVars{
+			Index:   idx,
+			Storers: map[string]resource.Storer{"foo": s},
+		}
+	}
+
+	tests := map[string]requestTest{
+		`filter/array:foo:not-found`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:"mar"}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[]`,
+		},
+		`filter/array:foo:try-object`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:{bar:"mar"}}`, nil)
+			},
+			ResponseCode: 422,
+			ResponseBody: `{"code":422,"issues":{"filter":["foo: invalid query expression: invalid value at #1: not a string"]},"message":"URL parameters contain error(s)"}`,
+		},
+		`filter/array:foo:find`: {
+			Init: sharedInit,
+			NewRequest: func() (*http.Request, error) {
+				return http.NewRequest("GET", `/foo?filter={foo:"bar"}`, nil)
+			},
+			ResponseCode: http.StatusOK,
+			ResponseBody: `[{"foo":["bar","baz"],"id":1},{"foo":["bar"],"id":2}]`,
+		},
+	}
+	for n, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(n, tc.Test)
+	}
+}
+
+func TestGetListArrayOfObjects(t *testing.T) {
+	sharedInit := func() *requestTestVars {
+		s := mem.NewHandler()
+		s.Insert(context.TODO(), []*resource.Item{
+			{ID: "1", Payload: map[string]interface{}{"id": 1,
 				"foo": []interface{}{
 					map[string]interface{}{
 						"a": "bar",
@@ -572,14 +639,6 @@ func TestGetListArray(t *testing.T) {
 				]},
 				{"id":2,"foo":[{"a":"bar","b":20}]}
 			]`,
-		},
-		`filter/array:foo:not-an-array`: {
-			Init: sharedInit,
-			NewRequest: func() (*http.Request, error) {
-				return http.NewRequest("GET", `/foo?filter={foo:"mar"}`, nil)
-			},
-			ResponseCode: http.StatusUnprocessableEntity,
-			ResponseBody: `{"code":422,"issues":{"filter":["foo: invalid query expression: not an array"]},"message":"URL parameters contain error(s)"}`,
 		},
 		`filter/array:foo:invalid-elemMatch`: {
 			Init: sharedInit,
