@@ -22,11 +22,15 @@ func (v Integer) parse(value interface{}) (interface{}, error) {
 			value = v
 		}
 	}
-	i, ok := value.(int)
-	if !ok {
-		return nil, errors.New("not an integer")
+
+	if i, ok := value.(int); ok {
+		return i, nil
 	}
-	return i, nil
+	if i, ok := value.(int64); ok {
+		return i, nil
+	}
+
+	return nil, errors.New("not an integer")
 }
 
 // ValidateQuery implements schema.FieldQueryValidator interface
@@ -35,11 +39,15 @@ func (v Integer) ValidateQuery(value interface{}) (interface{}, error) {
 }
 
 func (v Integer) get(value interface{}) (int, error) {
-	i, ok := value.(int)
-	if !ok {
-		return 0, errors.New("not an integer")
+	if i, ok := value.(int); ok {
+		return int(i), nil
 	}
-	return i, nil
+
+	if i, ok := value.(int64); ok {
+		return int(i), nil
+	}
+
+	return 0, errors.New("not an integer")
 }
 
 // Validate validates and normalize integer based value.
