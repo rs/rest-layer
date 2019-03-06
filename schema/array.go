@@ -18,12 +18,7 @@ type Array struct {
 
 // Compile implements the ReferenceCompiler interface.
 func (v *Array) Compile(rc ReferenceChecker) (err error) {
-	if c, ok := v.Values.Validator.(Compiler); ok {
-		if err = c.Compile(rc); err != nil {
-			return
-		}
-	}
-	return
+	return v.Values.Compile(rc)
 }
 
 func (v Array) validateValues(values []interface{}, query bool) ([]interface{}, error) {

@@ -19,7 +19,13 @@ func TestArrayValidatorCompile(t *testing.T) {
 			Name:             "Values.Validator=&String{Regexp:invalid}",
 			Compiler:         &schema.Array{Values: schema.Field{Validator: &schema.String{Regexp: "[invalid re"}}},
 			ReferenceChecker: fakeReferenceChecker{},
-			Error:            "invalid regexp: error parsing regexp: missing closing ]: `[invalid re`",
+			Error:            ": invalid regexp: error parsing regexp: missing closing ]: `[invalid re`",
+		},
+		{
+			Name:             "Values.Validator=String{}",
+			Compiler:         &schema.Array{Values: schema.Field{Validator: schema.String{}}},
+			ReferenceChecker: fakeReferenceChecker{},
+			Error:            ": not a schema.Validator pointer",
 		},
 	}
 	for i := range testCases {
