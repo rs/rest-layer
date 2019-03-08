@@ -188,7 +188,7 @@ func (s Schema) Prepare(ctx context.Context, payload map[string]interface{}, ori
 		// Call the OnInit or OnUpdate depending on the presence of the original doc and the
 		// state of the replace argument.
 		var hook func(ctx context.Context, value interface{}) interface{}
-		if original == nil || replace {
+		if original == nil {
 			hook = def.OnInit
 		} else {
 			hook = def.OnUpdate
