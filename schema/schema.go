@@ -142,7 +142,7 @@ func (s Schema) Prepare(ctx context.Context, payload map[string]interface{}, ori
 				// previous value as the client would have no way to resubmit the stored value.
 				if def.Hidden && !def.ReadOnly {
 					changes[field] = oValue
-				} else if def.Required && def.Default != nil {
+				} else if def.Default != nil {
 					changes[field] = def.Default
 				} else {
 					changes[field] = Tombstone

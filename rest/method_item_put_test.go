@@ -388,8 +388,8 @@ func TestPutItemDefault(t *testing.T) {
 				return http.NewRequest("PUT", "/foo/2", body)
 			},
 			ResponseCode: http.StatusOK,
-			ResponseBody: `{"id": "2", "foo": "baz"}`,
-			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz"}),
+			ResponseBody: `{"id": "2", "foo": "baz", "bar": "default"}`,
+			ExtraTest:    checkPayload("foo", "2", map[string]interface{}{"id": "2", "foo": "baz", "bar": "default"}),
 		},
 	}
 

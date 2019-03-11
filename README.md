@@ -89,7 +89,7 @@ Below is an overview over recent breaking changes, starting from an arbitrary po
   - `filter` parameters will be validated for type match only, instead of type & constrains.
 - PR #228: `Reference` projection fields will be validated against referenced resource schema.
 - PR #230: `Connection` projection fields will be validated against connected resource schema.
-- PR #241: Always call `OnUpdate` field hook on HTTP PUT for existing documents.
+- PR #241: Always call `OnUpdate` field hook on HTTP PUT for existing documents. Deleting a field with `Default` value set, will always be reset to its default value.
 
 From the next release and onwards (0.2), this list will summarize breaking changes done to master since the last release.
 
@@ -1252,7 +1252,9 @@ Used to query a resource with its sub/embedded resources.
 Used to create new resource document, where new `ID` is generated from the server.
 
 ### PUT
-Used to create/update single resource document given its `ID`. Be aware when dealing with resource fields with `Default` set. Initial creation for such resources will set particular field to its default value if omitted, however on subsequent `PUT` calls this field will be deleted if omitted. If persistent `Default` field is needed use `{Required: true}` with it. 
+Used to create/update single resource document given its `ID`. On initial request, `onInsert` resource hook will be called. All subsequent `PUT` requests will call `onUpdate` resource hook.
+
+Be aware when dealing with resource fields with `Default` set. If missing from payload or deleted, such fields will be reset to their `default value`.
 
 ### PATCH
 Used to update/patch single resource document given its `ID`. REST Layer supports following update protocols:
