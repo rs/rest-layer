@@ -97,8 +97,8 @@ func (p *predicateParser) parseExpression() (Expression, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %v", label, err)
 		}
-		if len(subExp) < 2 {
-			return nil, fmt.Errorf("%s: two expressions or more required", label)
+		if len(subExp) < 1 {
+			return nil, fmt.Errorf("%s: one expressions or more required", label)
 		}
 		if label == opAnd {
 			and := And(subExp)
