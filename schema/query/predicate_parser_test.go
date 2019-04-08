@@ -288,22 +288,12 @@ func TestParse(t *testing.T) {
 		{
 			`{"$or": []}`,
 			Predicate{},
-			errors.New("char 10: $or: two expressions or more required"),
-		},
-		{
-			`{"$or": [{"foo": "bar"}]}`,
-			Predicate{},
-			errors.New("char 24: $or: two expressions or more required"),
+			errors.New("char 10: $or: one expressions or more required"),
 		},
 		{
 			`{"$and": "foo"}`,
 			Predicate{},
 			errors.New("char 9: $and: expected '[' got '\"'"),
-		},
-		{
-			`{"$and": [{"foo": "bar"}]}`,
-			Predicate{},
-			errors.New("char 25: $and: two expressions or more required"),
 		},
 		{
 			`{"$and": ["foo", "bar"]}`,
