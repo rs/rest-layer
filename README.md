@@ -1259,7 +1259,7 @@ Be aware when dealing with resource fields with `Default` set. If missing from p
 ### PATCH
 Used to update/patch single resource document given its `ID`. REST Layer supports following update protocols:
 
-- Simple filed replacement [RFC-5789](http://tools.ietf.org/html/rfc5789) - this protocol will udpate only supplied top level fields, and will leave other fields in the document intact. This means that this protocol can't delete fields. Using this protocol is specified with `Content-Type: application/json` HTTP Request header.
+- Simple filed replacement [RFC-5789](http://tools.ietf.org/html/rfc5789) - this protocol will update only supplied top level fields, and will leave other fields in the document intact. This means that this protocol can't delete fields. Using this protocol is specified with `Content-Type: application/json` HTTP Request header.
 
 - [JSON-Patch/RFC-6902](https://tools.ietf.org/html/rfc6902) - When patching deeply nested documents, it is more convenient to use protocol designed especially for this. Using this protocol is specified with `Content-Type: application/json-patch+json` HTTP Request header.
 
