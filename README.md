@@ -1609,7 +1609,7 @@ It is possible to convert a schema to [JSON Schema](http://json-schema.org/) wit
 Example usage:
 
 ```go
-import "github.com/rs/rest-layer/schema/jsonschema"
+import "github.com/rs/rest-layer/schema/encoding/jsonschema"
 
 b := new(bytes.Buffer)
 enc := jsonschema.NewEncoder(b)
