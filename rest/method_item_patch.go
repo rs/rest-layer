@@ -19,7 +19,7 @@ func isJSONPatch(r *http.Request) bool {
 	return false
 }
 
-// itemPatch handles PATCH resquests on an item URL.
+// itemPatch handles PATCH requests on an item URL.
 //
 // Reference: http://tools.ietf.org/html/rfc5789, http://tools.ietf.org/html/rfc6902
 func itemPatch(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
