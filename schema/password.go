@@ -58,9 +58,9 @@ func (v Password) Validate(value interface{}) (interface{}, error) {
 // VerifyPassword compare a field of an item payload containing a hashed
 // password with a clear text password and return true if they match.
 func VerifyPassword(hash interface{}, password []byte) bool {
-	h, ok := hash.([]byte)
+	h, ok := hash.(string)
 	if !ok {
 		return false
 	}
-	return bcrypt.CompareHashAndPassword(h, password) == nil
+	return bcrypt.CompareHashAndPassword([]byte(h), password) == nil
 }
