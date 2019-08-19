@@ -491,7 +491,7 @@ func TestResourceInsert(t *testing.T) {
 	}))
 	r.Use(InsertedEventHandlerFunc(func(ctx context.Context, items []*Item, err *error) {
 		postHook = true
-		assert.Equal(t, []*Item{{ID: 1}}, items)
+		assert.Equal(t, []*Item{{ID: 1, ETag: "37a6259cc0c1dae299a7866489dff0bd"}}, items)
 		assert.NoError(t, *err)
 	}))
 	ctx := context.Background()
@@ -518,7 +518,7 @@ func TestResourceInsertError(t *testing.T) {
 	}))
 	r.Use(InsertedEventHandlerFunc(func(ctx context.Context, items []*Item, err *error) {
 		postHook = true
-		assert.Equal(t, []*Item{{ID: 1}}, items)
+		assert.Equal(t, []*Item{{ID: 1, ETag: "37a6259cc0c1dae299a7866489dff0bd"}}, items)
 		assert.EqualError(t, *err, "storer error")
 	}))
 	ctx := context.Background()
@@ -571,7 +571,7 @@ func TestResourceInsertPostHookError(t *testing.T) {
 	}))
 	r.Use(InsertedEventHandlerFunc(func(ctx context.Context, items []*Item, err *error) {
 		postHook = true
-		assert.Equal(t, []*Item{{ID: 1}}, items)
+		assert.Equal(t, []*Item{{ID: 1, ETag: "37a6259cc0c1dae299a7866489dff0bd"}}, items)
 		assert.NoError(t, *err)
 		*err = errors.New("post hook error")
 	}))
@@ -604,7 +604,7 @@ func TestResourceUpdate(t *testing.T) {
 	}))
 	r.Use(UpdatedEventHandlerFunc(func(ctx context.Context, item *Item, origin *Item, err *error) {
 		postHook = true
-		assert.Equal(t, &Item{ID: 1}, item)
+		assert.Equal(t, &Item{ID: 1, ETag: "37a6259cc0c1dae299a7866489dff0bd"}, item)
 		assert.Equal(t, &Item{ID: 1}, origin)
 		assert.NoError(t, *err)
 	}))
@@ -633,7 +633,7 @@ func TestResourceUpdateError(t *testing.T) {
 	}))
 	r.Use(UpdatedEventHandlerFunc(func(ctx context.Context, item *Item, origin *Item, err *error) {
 		postHook = true
-		assert.Equal(t, &Item{ID: 1}, item)
+		assert.Equal(t, &Item{ID: 1, ETag: "37a6259cc0c1dae299a7866489dff0bd"}, item)
 		assert.Equal(t, &Item{ID: 1}, origin)
 		assert.EqualError(t, *err, "storer error")
 	}))
@@ -691,7 +691,7 @@ func TestResourceUpdatePostHookError(t *testing.T) {
 	}))
 	r.Use(UpdatedEventHandlerFunc(func(ctx context.Context, item *Item, origin *Item, err *error) {
 		postHook = true
-		assert.Equal(t, &Item{ID: 1}, item)
+		assert.Equal(t, &Item{ID: 1, ETag: "37a6259cc0c1dae299a7866489dff0bd"}, item)
 		assert.Equal(t, &Item{ID: 1}, origin)
 		assert.NoError(t, *err)
 		*err = errors.New("post hook error")
