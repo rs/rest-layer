@@ -354,10 +354,30 @@ func (r *Resource) Insert(ctx context.Context, items []*Item) (err error) {
 		}(time.Now())
 	}
 	if err = r.hooks.onInsert(ctx, items); err == nil {
-		err = r.storage.Insert(ctx, items)
+		if err = recalcEtag(items); err == nil {
+			err = r.storage.Insert(ctx, items)
+		}
 	}
 	r.hooks.onInserted(ctx, items, &err)
 	return
+}
+
+func recalcEtag(items []*Item) error {
+	if items == nil {
+		return nil
+	}
+
+	for _, v := range items {
+		if v == nil {
+			continue
+		}
+		etag, err := genEtag(v.Payload)
+		if err != nil {
+			return err
+		}
+		v.ETag = etag
+	}
+	return nil
 }
 
 // Update implements Storer interface.
@@ -371,7 +391,9 @@ func (r *Resource) Update(ctx context.Context, item *Item, original *Item) (err 
 		}(time.Now())
 	}
 	if err = r.hooks.onUpdate(ctx, item, original); err == nil {
-		err = r.storage.Update(ctx, item, original)
+		if err = recalcEtag([]*Item{item}); err == nil {
+			err = r.storage.Update(ctx, item, original)
+		}
 	}
 	r.hooks.onUpdated(ctx, item, original, &err)
 	return
