@@ -4,7 +4,7 @@ REST APIs made easy.
 
 [![godoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](https://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer) [![Go Report Card](https://goreportcard.com/badge/github.com/rs/rest-layer)](https://goreportcard.com/report/github.com/rs/rest-layer)
 
-REST Layer is an API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable [backend storages](#storage-handlers) with no boiler plate code so you can focus on your business logic.
+REST Layer is an API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable [backend storages](#main-storage-handlers) with no boiler plate code so you can focus on your business logic.
 
 Implemented as a `net/http` handler, it plays well with standard middleware like [CORS](http://github.com/rs/cors). It is also [context](https://godoc.org/context) aware. This allows deadline management to be supported down to the storage and permit an easy extensibility by passing custom data between layers of the framework.
 
@@ -30,7 +30,8 @@ The REST Layer framework is composed of several sub-packages:
 - [Breaking Changes](#breaking-changes)
 - [Features](#features)
   - [Extensions](#extensions)
-  - [Storage Handlers](#storage-handlers)
+  - [Main Storage Handlers](#main-storage-handlers)
+  - [Alternate Storage Handlers](#alternate-storage-handlers)
 - [Usage](#usage)
 - [Resource Configuration](#resource-configuration)
   - [Schema](#schema)
@@ -79,11 +80,11 @@ The REST Layer framework is composed of several sub-packages:
 
 Until we reach a stable v1, there will be occasional breaking changes to the rest-layer APIs. Breaking changes will however not arrive at patch releases.
 
-## Breaking changes since v0.2.0
+### Breaking changes since v0.2.0
 
 No breaking changes since v0.2.0.
 
-## Breaking changes prior to v0.2.0
+### Breaking changes prior to v0.2.0
 
 Below is an incomplete list of breaking changes included in v0.2.0:
 
@@ -1507,7 +1508,7 @@ func main() {
 
 REST Layer doesn't handle storage of resources directly. A [mem.MemoryHandler](https://godoc.org/github.com/rs/rest-layer/resource/testing/mem#MemoryHandler) is provided as an example but should be used for testing only.
 
-A resource storage handler is easy to write though. Some handlers for [popular databases are available](#storage-handlers), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the [resource.Storer](https://godoc.org/github.com/rs/rest-layer/resource#Storer) interface:
+A resource storage handler is easy to write though. Some handlers for [popular databases are available](#main-storage-handlers), but you may want to write your own to put an API in front of anything you want. It is very easy to write a data storage handler, you just need to implement the [resource.Storer](https://godoc.org/github.com/rs/rest-layer/resource#Storer) interface:
 
 ```go
 type Storer interface {
