@@ -78,13 +78,13 @@ func TestDefaultResponseFormatterFormatItem(t *testing.T) {
 	rctx, payload = rf.FormatItem(ctx, h, &resource.Item{Updated: update}, false)
 	assert.Equal(t, http.Header{"Last-Modified": []string{"Tue, 23 Feb 2016 02:49:16 GMT"}}, h)
 	assert.Equal(t, rctx, ctx)
-	assert.Equal(t, map[string]interface{}(nil), payload)
+	assert.Equal(t, nil, payload)
 
 	h = http.Header{}
 	rctx, payload = rf.FormatItem(ctx, h, &resource.Item{ETag: "1234"}, false)
 	assert.Equal(t, http.Header{"Etag": []string{`W/"1234"`}}, h)
 	assert.Equal(t, rctx, ctx)
-	assert.Equal(t, map[string]interface{}(nil), payload)
+	assert.Equal(t, nil, payload)
 }
 
 func TestDefaultResponseFormatterFormatList(t *testing.T) {

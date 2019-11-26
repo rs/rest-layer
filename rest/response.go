@@ -77,7 +77,7 @@ func (f DefaultResponseFormatter) FormatItem(ctx context.Context, headers http.H
 	if !i.Updated.IsZero() {
 		headers.Set("Last-Modified", i.Updated.In(time.UTC).Format("Mon, 02 Jan 2006 15:04:05 GMT"))
 	}
-	if skipBody {
+	if skipBody || i.Payload == nil {
 		return ctx, nil
 	}
 	return ctx, i.Payload
