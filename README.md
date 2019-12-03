@@ -71,7 +71,7 @@ The REST Layer framework is composed of several sub-packages:
 - [CORS](#cors)
 - [JSONP](#jsonp)
 - [Data Storage Handler](#data-storage-handler)
-- [Custom Response Formatter / Sender](#custom-response-formatter-sender)
+- [Custom Response Formatter / Sender](#custom-response-formatter--sender)
 - [GraphQL](#graphql)
 - [Hystrix](#hystrix)
 - [JSONSchema](#jsonschema)
