@@ -29,7 +29,7 @@ func TestPasswordValidate(t *testing.T) {
 
 func TestVerifyPassword(t *testing.T) {
 	h, _ := bcrypt.GenerateFromPassword([]byte("secret"), 0)
-	assert.True(t, VerifyPassword(h, []byte("secret")))
-	assert.False(t, VerifyPassword(h, []byte("wrong password")))
+	assert.True(t, VerifyPassword(string(h), []byte("secret")))
+	assert.False(t, VerifyPassword(string(h), []byte("wrong password")))
 	assert.False(t, VerifyPassword("secret", []byte("secret")))
 }
