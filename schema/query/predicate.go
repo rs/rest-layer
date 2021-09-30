@@ -22,6 +22,7 @@ const (
 	opGreaterOrEqual = "$gte"
 	opRegex          = "$regex"
 	opElemMatch      = "$elemMatch"
+	opNot            = "$not"
 )
 
 // Predicate defines an expression against a schema to perform a match on schema's data.
@@ -476,13 +477,14 @@ func (e LowerOrEqual) String() string {
 
 // Regex matches values that match to a specified regular expression.
 type Regex struct {
-	Field string
-	Value *regexp.Regexp
+	Field   string
+	Value   *regexp.Regexp
+	Negated bool
 }
 
 // Match implements Expression interface.
 func (e Regex) Match(payload map[string]interface{}) bool {
-	return e.Value.MatchString(payload[e.Field].(string))
+	return e.Value.MatchString(payload[e.Field].(string)) != e.Negated
 }
 
 // Prepare implements Expression interface.
@@ -493,7 +495,13 @@ func (e *Regex) Prepare(validator schema.Validator) error {
 
 // String implements Expression interface.
 func (e Regex) String() string {
-	return quoteField(e.Field) + ": {" + opRegex + ": " + valueString(e.Value) + "}"
+	var regexOperation string
+	if e.Negated {
+		regexOperation = opNot
+	} else {
+		regexOperation = opRegex
+	}
+	return quoteField(e.Field) + ": {" + regexOperation + ": " + valueString(e.Value) + "}"
 }
 
 // ElemMatch matches object values specified in an array.

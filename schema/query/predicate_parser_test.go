@@ -104,6 +104,11 @@ func TestParse(t *testing.T) {
 			nil,
 		},
 		{
+			`{"foo": {"$not": "regex.+awesome"}}`,
+			Predicate{&Regex{Field: "foo", Value: regexp.MustCompile("regex.+awesome"), Negated: true}},
+			nil,
+		},
+		{
 			`{"$and": [{"foo": "bar"}, {"foo": "baz"}]}`,
 			Predicate{&And{&Equal{Field: "foo", Value: "bar"}, &Equal{Field: "foo", Value: "baz"}}},
 			nil,
@@ -360,6 +365,11 @@ func TestParse(t *testing.T) {
 			`{"$elemMatch": "someregexpression"}`,
 			Predicate{},
 			errors.New("char 1: $elemMatch: invalid placement"),
+		},
+		{
+			`{"$not": "someregexpression"}`,
+			Predicate{},
+			errors.New("char 1: $not: invalid placement"),
 		},
 	}
 	for i := range tests {
