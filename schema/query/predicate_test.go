@@ -141,8 +141,20 @@ func TestMatch(t *testing.T) {
 			nil,
 		},
 		{
+			`{"foo": {"$not": "rege[x]{1}.+some"}}`, []test{
+				{map[string]interface{}{"foo": "regex-is-awesome"}, false},
+			},
+			nil,
+		},
+		{
 			`{"foo": {"$regex": "^(?i)my.+-rest.+$"}}`, []test{
 				{map[string]interface{}{"foo": "myAwesome-RESTApplication"}, true},
+			},
+			nil,
+		},
+		{
+			`{"foo": {"$not": "^(?i)my.+-rest.+$"}}`, []test{
+				{map[string]interface{}{"foo": "myAwesome-RESTApplication"}, false},
 			},
 			nil,
 		},

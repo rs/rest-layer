@@ -998,6 +998,8 @@ The same example with flags:
 However, keep in mind that Storers have to support regular expression and depending on the implementation of the storage handler the accepted syntax may vary.
 An error of `ErrNotImplemented` will be returned for those storage back-ends which do not support the `$regex` operator.
 
+The operator `$not` functions as an opposite operator to `$regex`. Unlike MongoDB, we do not allow `$not` as a general negation operator.
+
 The `$elemMatch` operator matches documents that contain an array field with at least one element that matches all the specified query criteria.
 ```go
 			"telephones": schema.Field{
@@ -1041,6 +1043,7 @@ The snippet above will return all documents, which `telephones` array field cont
 | `$gte`       | `{a: {$gte: 10}}`               | Fields value is greater than or equal to the specified number.
 | `$exists`    | `{a: {$exists: true}}`          | Match if the field is present (or not if set to `false`) in the item, event if `nil`.
 | `$regex`     | `{a: {$regex: "fo[o]{1}"}}`     | Match regular expression on a field's value.
+| `$not`       | `{a: {$not: "fo[o]{1}"}}`       | Opposite of `$regex`.
 | `$elemMatch` | `{a: {$elemMatch: {b: "foo"}}}` | Match array items against multiple query criteria.
 
 *Some storage handlers may not support all operators. Refer to the storage handler's documentation for more info.*
